@@ -184,7 +184,21 @@ Requirement IDs are stable. Reference them in issues, tests, and commit messages
 | FR-805 | U0 escalates through an on-call chain if unacknowledged within 10 minutes | P1 |
 | FR-806 | `DEMO_MODE` blocks all outbound channels absolutely | P0 |
 
-### 5.9 Community surface (Phase 8)
+### 5.9 ML operations console
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-1001 | A single `admin`-only console surfaces model, agent, prompt, output, eval, failure, and drift state under one global time range | P1 |
+| FR-1002 | Per-agent scorecard ranked by degradation, with a **rule-generated** change narrative — never model-generated | P1 |
+| FR-1003 | Typed failure feed grouped by taxonomy, each event triageable with a written `why` and `fix` that persist | P1 |
+| FR-1004 | A production failure or inspected output can be promoted to `label_queue`; it enters an eval dataset **only after a human writes the expected answer** | P0 |
+| FR-1005 | Model registry showing what is live, run counts, cost per run, latency, and quality per model | P2 |
+| FR-1006 | Prompt registry with version, content hash, traffic split, per-version quality, and one-click rollback by config flip | P1 |
+| FR-1007 | Drift panel comparing online against offline metrics; only the online/offline delta raises an alert | P1 |
+| FR-1008 | Output inspector with filters for low confidence, human override, judge flag, council disagreement, guardrail fire, regeneration | P1 |
+| FR-1009 | No console panel queries a raw event table; all read pre-computed hourly rollups | P1 |
+
+### 5.10 Community surface (Phase 8)
 
 | ID | Requirement | Priority |
 |---|---|---|
@@ -213,6 +227,13 @@ Requirement IDs are stable. Reference them in issues, tests, and commit messages
 | NFR-10 | Graceful degradation | System accepts tickets and acknowledges residents with **zero** model providers available |
 | NFR-11 | Data retention | Tickets 7y, media 2y, raw prompts 90d then digest-only, audit 7y |
 | NFR-12 | Time to local dev environment | One command, under 10 minutes, offline-capable |
+| NFR-13 | Tool payload ceiling into any prompt | ≤ 1,200 tokens per tool result, with an explicit truncation marker when trimmed — never silent |
+| NFR-14 | Time to first streamed token | p50 < 1.5s — perceived latency, measured separately from completion |
+| NFR-15 | Remote shield timeout | 250ms, then proceed on the local verdict and log `shield_degraded` |
+| NFR-16 | Demo cold start | API service stays warm (`min-instances=1`); all other services may scale to zero |
+| NFR-17 | Ops console load | Full console renders in < 2s at p95; panels read rollups, never raw events |
+| NFR-18 | Rollup freshness | Hourly buckets, ≤ 10 min lag behind live |
+| NFR-19 | Console access | `admin` role only; `manager`/`owner`/`resident` tokens receive 403, asserted in CI |
 
 ---
 

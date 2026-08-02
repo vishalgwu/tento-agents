@@ -33,16 +33,19 @@ Owner: Track B (Surface), with data bindings owned by Track A
 | 10 | Context budget | manager | 6 | — |
 | 11 | Knowledge browser | manager | 2 | FR-502 |
 | 12 | Governance tab | manager | 4 | FR-704, FR-705 |
-| 13 | Agent health | manager | 6 | — |
-| 14 | Cost dashboard | manager | 5 | NFR-06 |
-| 15 | Eval dashboard | manager | 5 | §7.1 |
-| 16 | Gateway dashboard | manager | 7 | — |
+| 13 | Agent health | **ml-ops** | 6 | FR-1002 |
+| 14 | Cost dashboard | **ml-ops** | 5 | NFR-06 |
+| 15 | Eval dashboard | **ml-ops** | 5 | §7.1 |
+| 16 | Gateway dashboard | **ml-ops** | 7 | — |
 | 17 | Memory review | manager | 6 | — |
 | 18 | Owner monthly dashboard | owner | 4 | FR-705 |
 | 19 | Tech job card | tech | 3 | FR-401 |
 | 20 | Vendor accept/decline | vendor | 3 | FR-404, FR-405 |
 | 21 | Compliance block | manager | 4 | FR-504, FR-508 |
 | 22 | Degraded mode banner | all | 3 | NFR-10 |
+| **23** | **ML Ops Console** — the shell that hosts 13–16 plus six new panels | **ml-ops** | 5–7 | FR-1001…1009 |
+
+> **Screens 13–16 are not standalone pages.** They are panels inside screen 23. Building them as separate routes was the earlier plan and it was wrong: an engineer debugging a quality regression needs agent health, cost, evals, and the gateway *on one surface with a shared time range*, because the answer is almost always a correlation between two of them. See §23.
 
 ---
 
@@ -720,6 +723,275 @@ DECLINE →  Not available | Outside my area | Wrong trade |
 ```
 
 Persistent, non-dismissible, present on every surface including the resident app (in resident vocabulary). Honesty about degradation is a trust asset, and the banner is proof that the degradation ladder exists rather than being claimed.
+
+---
+
+## 23 · ML Ops Console — the engineer's surface
+
+**Job:** one place where an ML engineer can answer *"is the system working, and if not, which part."* Everything about models, agents, prompts, outputs, evals, failures, and drift lives here.
+
+**Route:** `/ops` · **Role:** `admin` only, never exposed to `manager`, `owner`, or `resident` · **Phase:** shell + panels A/B/C in Phase 5, panels D–F in Phase 6, G–H in Phase 7.
+
+### 23.0 Why this absorbs screens 13–16
+
+The earlier plan had agent health, cost, evals, and the gateway as four separate routes. That is wrong for the way debugging actually happens.
+
+A real investigation reads: *"groundedness dropped — did retrieval get worse, did a prompt version change, did cost per run move at the same time, did the gateway start falling back to a substitute model?"* Four answers, four tabs, four independently-scoped time ranges, and the correlation you need is invisible. **One shell, one global time range, one filter set.** Panels are collapsible sections in a single scroll, not tabs — tabs hide the correlation.
+
+Global controls, applied to every panel at once:
+
+```
+[ last 24h ▾ ]  [ all properties ▾ ]  [ prompt set: v7 ▾ ]  [ compare to: previous period ▾ ]
+```
+
+### 23.1 Layout
+
+```
+┌ ML OPS ─────────────────────────────── last 24h · 342 runs ─────┐
+│                                                                 │
+│  ⚑ Degraded — 1 signal outside band                             │  ← A · verdict
+│    Online groundedness 0.918 vs offline 0.961, started ~14h ago  │
+│                                          [ Investigate ]        │
+├─────────────────────────────────────────────────────────────────┤
+│  QUALITY 0.918 │ RELIABILITY 99.1% │ COST $0.024 │ HUMAN 17.2%   │  ← A · quadrants
+├─────────────────────────────────────────────────────────────────┤
+│  B · AGENT SCORECARD          ranked by degradation              │
+│  ● diagnostician  sonnet-5  diagnose@v7  97.1% · 2.1s · esc 6.2% │
+│  ● dispatch       sonnet-5  dispatch@v3  98.2% · 910ms          │
+│  ● intake         haiku     intake@v4    99.4% · 412ms          │
+├─────────────────────────────────────────────────────────────────┤
+│  C · FAILURE FEED             7 uncited · 4 schema · 3 miss     │
+│  [typed events with why + fix + promote-to-golden-set]          │
+├─────────────────────────────────────────────────────────────────┤
+│  D · MODEL REGISTRY           what is live, at what price       │
+│  E · PROMPT REGISTRY          versions, hashes, A/B splits      │
+│  F · EVAL HISTORY             metrics by commit + calibration   │
+│  G · DRIFT                    online vs offline, embeddings     │
+│  H · OUTPUT INSPECTOR         sample real outputs by filter     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Panel A · Health verdict and quadrants
+
+**One line, not a grid.** An engineer opening this at 9am needs "is anything wrong" answered before reading anything else. The verdict is computed, not curated:
+
+```python
+def verdict(signals) -> Verdict:
+    breaches = [s for s in signals if s.outside_band]
+    if any(s.severity == "critical" for s in breaches): return DOWN
+    if breaches: return DEGRADED
+    if any(s.trending_toward_band_edge for s in signals): return WATCH
+    return HEALTHY
+```
+
+Four quadrants below, each the single most diagnostic number in its class: **quality** (groundedness), **reliability** (run completion), **cost** (blended $/ticket vs ceiling), **human** (override rate). Override rate belongs here and is usually forgotten — it is the only quality signal that comes from a human rather than from a model grading a model.
+
+**Data:** `metric_rollups` (§23.9), not live aggregation over `llm_calls`. Scanning the raw tables for a dashboard is how you make your own observability the slowest thing in the system.
+
+---
+
+### Panel B · Agent scorecard
+
+**Ranked by degradation, never alphabetically.** The suspicious agent is always row one.
+
+Per agent: current model, live prompt version, run count, success rate, p50/p95, schema repair rate, escalation rate, cost per run, and a health lamp. Expanding a row gives the *change narrative* — not more numbers, but a sentence saying what moved and what did not:
+
+> Groundedness fell 0.043 in 14h. Prompt unchanged. Retrieval recall@5 flat. Suspect input distribution shift — 3 new SOP docs merged yesterday may be crowding the policy slot.
+
+**That narrative is generated from rules over the rollups, not by an LLM.** "Prompt unchanged, retrieval flat, KB changed" is a join, and it is the most useful thing on the screen. An LLM writing this would occasionally invent a cause.
+
+Degradation ranking score:
+
+```
+degradation = 0.35·quality_delta_vs_baseline
+            + 0.25·escalation_delta
+            + 0.20·(1 - success_rate)
+            + 0.10·schema_repair_rate
+            + 0.10·latency_p95_delta
+```
+
+---
+
+### Panel C · Failure feed
+
+Typed failure events from the taxonomy in `ARCHITECTURE.md` §14, grouped with counts, each expandable to **detail · why · fix**.
+
+Three actions per event:
+
+| Action | Effect |
+|---|---|
+| **Promote to golden set** | Queues the case in `label_queue`. **Does not add it to the eval set** — it needs a human-written expected answer first. Auto-adding production failures would let the model's own behaviour define ground truth |
+| **Trace** | Opens screen 7 scoped to that run |
+| **Known, dismiss** | Suppresses this failure signature for 7 days, logged |
+
+**This panel is the reason the console exists.** It closes the loop: production failure → labelled eval item → CI gate → prevented regression. Without it the eval set is frozen at whatever you imagined in week 5, and the system stops learning from its own mistakes.
+
+The `why` and `fix` lines are **written by the engineer when triaging**, stored on the event, and shown to whoever sees it next. Institutional memory for failures, in the same spirit as `MEMORY.md`.
+
+---
+
+### Panel D · Model registry
+
+```
+MODEL              TIER   TASKS                       RUNS   $/RUN   p50    QUALITY
+claude-haiku-4.5   small  safety, intake, comms,      1,368  0.0017  340ms  —
+                          policy audit
+claude-sonnet-5    mid    diagnose, dispatch,           684  0.0070  1.6s   0.918
+                          council, judge
+claude-opus-4.8    large  escalated review                4  0.0210  4.2s   —
+gemini-flash       mid    judge cross-check              34  0.0009  890ms  —
+llama-3.3 (ollama) local  offline fallback                0  0.0000  —      —
+```
+
+Answers "what is actually live and what is it costing me," which drifts from what you *think* is live the moment a fallback fires. Deprecation warnings surface here when a provider announces an EOL date.
+
+---
+
+### Panel E · Prompt registry
+
+```
+diagnose@v7   live 100%   sha a91f3c   since 12 Jul   groundedness 0.918 ▾
+diagnose@v6   archived    sha 3d81e0   12 Jun–12 Jul  groundedness 0.961
+intake@v4     live  90%   sha 77c2b1   since 04 Jul   field F1 0.94
+intake@v5     canary 10%  sha 91ae04   since 31 Jul   field F1 0.95 (n=34, wide CI)
+```
+
+Every prompt is a versioned file with a content hash recorded on every call (`llm_calls.prompt_hash`), so this panel is a group-by, not new bookkeeping. Shows live/canary splits, per-version quality, and a **one-click rollback** that flips the version pointer — a config change, not a redeploy.
+
+The canary row deliberately shows `n=34, wide CI`. A dashboard that reports a canary's metric without its sample size invites you to promote on noise.
+
+---
+
+### Panel F · Eval history
+
+Screen 15's content, plus commit-level history: each eval run as a row with git SHA, dataset version, judge model and version, every metric, and pass/fail per band. Sparkline per metric with the tolerance band drawn as a shaded corridor.
+
+The **calibration reliability diagram** is the hero chart here, and the console adds one thing screen 15 lacked: an overlay of *online* calibration against *offline*. If production confidence is calibrated differently from your eval set, your auto-execution threshold is wrong in production, which is the most consequential silent failure this system can have.
+
+---
+
+### Panel G · Drift
+
+Four signals, all of which move slowly and none of which trigger a normal alert:
+
+| Signal | Detects |
+|---|---|
+| **Online vs offline metric delta** | Distribution shift — CI passes while production degrades. The single most important signal on this screen |
+| **Judge score distribution over time** | Judge drift, or genuine quality change. Ambiguous by design, which is why it is shown rather than alerted |
+| **Input embedding drift** (Phoenix projection) | Residents are asking about new things — usually a KB gap |
+| **Retrieval score distribution** | Corpus drift after KB edits; falling top-1 rerank scores mean the KB no longer covers the questions |
+
+**Alert on the first. Display the rest.** Alerting on all four produces noise that gets muted, and a muted alert is worse than no alert.
+
+---
+
+### Panel H · Output inspector
+
+The panel that stops the console from being all aggregates. Sample real outputs with filters that surface the interesting tail:
+
+```
+[ confidence < 0.6 ] [ human overridden ] [ judge flagged ] [ council disagreed ]
+[ guardrail fired ] [ regenerated ] [ random sample ]
+```
+
+Each row: input, output, citations, confidence, judge scores, human decision and reason. Side-by-side diff when a human edited the output — **the edit itself is the most information-dense artifact in the system**, because it shows precisely what the model got wrong in a way no metric captures.
+
+Two actions: promote to golden set (via `label_queue`), or open the trace.
+
+---
+
+### 23.9 What this needs from the schema
+
+Four tables that do not exist yet in `ARCHITECTURE.md` §3. All four are additive.
+
+```sql
+create table failure_events (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null references orgs on delete cascade,
+  run_id uuid references agent_runs on delete cascade,
+  step_id uuid references agent_steps on delete cascade,
+  kind text not null,              -- taxonomy: uncited_claim, schema_repair, ...
+  signature text not null,         -- stable hash for grouping + dismissal
+  agent text not null,
+  detail jsonb not null,
+  triage_why text,                 -- written by the engineer
+  triage_fix text,
+  status text not null default 'open',   -- open|dismissed|promoted|resolved
+  dismissed_until timestamptz,
+  created_at timestamptz not null default now()
+);
+create index on failure_events (org_id, kind, created_at desc);
+create index on failure_events (signature, status);
+
+create table prompt_versions (
+  id uuid primary key default gen_random_uuid(),
+  key text not null,               -- 'diagnose'
+  version int not null,
+  content_sha256 text not null,
+  source_path text not null,
+  status text not null,            -- live|canary|archived
+  traffic_pct int not null default 0,
+  activated_at timestamptz,
+  retired_at timestamptz,
+  unique (key, version)
+);
+
+create table metric_rollups (
+  bucket timestamptz not null,     -- hourly
+  org_id uuid not null,
+  scope text not null,             -- 'agent:diagnostician' | 'model:sonnet-5' | 'system'
+  metric text not null,
+  value numeric not null,
+  sample_n int not null,
+  primary key (bucket, org_id, scope, metric)
+);
+
+create table label_queue (
+  id uuid primary key default gen_random_uuid(),
+  source text not null,            -- failure_event | output_inspector | override
+  source_id uuid not null,
+  run_id uuid references agent_runs,
+  input jsonb not null,
+  observed jsonb not null,
+  expected jsonb,                  -- NULL until a human writes it
+  labeled_by text,
+  labeled_at timestamptz,
+  promoted_to_dataset uuid references eval_datasets,
+  created_at timestamptz not null default now()
+);
+```
+
+`metric_rollups` is the important one. **Never aggregate `llm_calls` live for a dashboard** — the worker rolls up hourly, and every panel reads rollups. Otherwise your observability becomes the heaviest query in the system, and it gets heavier exactly as things go wrong.
+
+### 23.10 API
+
+```
+GET  /v1/ops/health                     verdict + quadrants
+GET  /v1/ops/agents?window=24h          scorecard with degradation ranking
+GET  /v1/ops/failures?kind=&status=     failure feed
+POST /v1/ops/failures/{id}/triage       {why, fix}
+POST /v1/ops/failures/{id}/dismiss      {days}
+POST /v1/ops/label-queue                promote from failure or output
+GET  /v1/ops/models                     registry with live cost/latency
+GET  /v1/ops/prompts                    registry with traffic split
+POST /v1/ops/prompts/{key}/rollback     {to_version}
+GET  /v1/ops/evals?limit=               run history
+GET  /v1/ops/drift?signal=              drift series
+GET  /v1/ops/outputs?filter=            output inspector
+```
+
+### 23.11 Acceptance
+
+- [ ] Opening `/ops` answers "is anything wrong" in under 5 seconds of reading
+- [ ] Every panel respects one global time range and filter set
+- [ ] No panel queries a raw event table — all read `metric_rollups`
+- [ ] A failure can be promoted to `label_queue` and appears there requiring a human expected answer
+- [ ] Prompt rollback is a config flip with no redeploy, verified in staging
+- [ ] The change narrative in panel B is rule-generated and never model-generated
+- [ ] `/ops` is `admin`-only; a `manager` token returns 403, asserted in CI
+- [ ] Every number on screen traces to a rollup row with a sample size
 
 ---
 

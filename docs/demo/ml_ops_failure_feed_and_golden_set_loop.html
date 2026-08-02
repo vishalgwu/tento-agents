@@ -1,0 +1,87 @@
+<h2 class="sr-only">Mockup of the failure feed panel in the ML operations console, listing typed failure events from the last 24 hours grouped by taxonomy, with the ability to promote a production failure into the labelled golden evaluation set.</h2>
+
+<div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+  <span style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--text-muted);">FAILURE FEED · 24h</span>
+  <span style="font-size: 12px; color: var(--text-secondary);" id="queue-note">golden_v1 · 200 items · <span id="pending">0</span> queued for review</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; margin-bottom: 14px;">
+  <div style="background: var(--surface-1); border-radius: var(--radius); padding: 9px 11px;">
+    <p style="font-size: 20px; margin: 0;">7</p>
+    <p style="font-size: 11px; color: var(--text-muted); margin: 1px 0 0;">uncited claim</p>
+  </div>
+  <div style="background: var(--surface-1); border-radius: var(--radius); padding: 9px 11px;">
+    <p style="font-size: 20px; margin: 0;">4</p>
+    <p style="font-size: 11px; color: var(--text-muted); margin: 1px 0 0;">schema repair</p>
+  </div>
+  <div style="background: var(--surface-1); border-radius: var(--radius); padding: 9px 11px;">
+    <p style="font-size: 20px; margin: 0;">3</p>
+    <p style="font-size: 11px; color: var(--text-muted); margin: 1px 0 0;">retrieval miss</p>
+  </div>
+  <div style="background: var(--surface-1); border-radius: var(--radius); padding: 9px 11px;">
+    <p style="font-size: 20px; margin: 0;">2</p>
+    <p style="font-size: 11px; color: var(--text-muted); margin: 1px 0 0;">tool timeout</p>
+  </div>
+  <div style="background: var(--surface-1); border-radius: var(--radius); padding: 9px 11px;">
+    <p style="font-size: 20px; margin: 0;">1</p>
+    <p style="font-size: 11px; color: var(--text-muted); margin: 1px 0 0;">guardrail block</p>
+  </div>
+</div>
+
+<div id="feed"></div>
+
+<script>
+const fails = [
+  { id: 'f-9201', kind: 'uncited_claim', agent: 'diagnostician', ticket: '4519', t: '02:14',
+    detail: 'Claim "water heaters of this model typically fail at 8 years" carried no citation ID. Regenerated once, moved to unknowns on retry.',
+    why: 'Retrieval returned no asset-lifecycle document. The claim is plausible and probably true, which is exactly why it is dangerous — the verifier caught what a judge might have passed.',
+    fix: 'Either add a lifecycle reference to the KB or accept abstention here. Prefer abstention.' },
+  { id: 'f-9188', kind: 'retrieval_miss', agent: 'context_broker', ticket: '4511', t: '23:47',
+    detail: 'Top-1 rerank score 0.31, below τ=0.45. Broadened filters, retried, still below. Answered with "policy not found" and escalated.',
+    why: 'Resident described a "wall unit making a grinding sound" — no SOP covers PTAC units. This is a KB gap, not a retrieval bug.',
+    fix: 'Write SOP-HVA-07 for PTAC. Three tickets in 30d hit this gap.' },
+  { id: 'f-9174', kind: 'schema_repair', agent: 'dispatch_planner', ticket: '4508', t: '21:03',
+    detail: 'estimated_cost_cents returned as "180-220" instead of an integer. Repair prompt succeeded on first retry.',
+    why: 'Model hedged on a range where the schema demands a point estimate. Recurring pattern — 4 of 4 repairs this week are this same field.',
+    fix: 'Add an explicit range-to-midpoint instruction, or change the schema to accept a range with a midpoint. Schema change is the honest fix.' },
+  { id: 'f-9160', kind: 'tool_timeout', agent: 'dispatch_planner', ticket: '4502', t: '18:22',
+    detail: 'vendor.availability exceeded 8s deadline. Two retries, then degraded to trade-only recommendation with no vendor.',
+    why: 'Upstream vendor calendar API p99 spike. Not our defect, but our fallback worked and the run completed.',
+    fix: 'None needed. Consider caching availability for 5 min — already specified, not yet built.' }
+];
+
+const kindColor = { uncited_claim: '#E24B4A', retrieval_miss: '#EF9F27', schema_repair: '#3E9BB5', tool_timeout: '#B4B2A9', guardrail_block: '#639922' };
+let promoted = 0;
+
+document.getElementById('feed').innerHTML = fails.map((f, i) => `
+  <div style="background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 9px;">
+    <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 7px; flex-wrap: wrap;">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: ${kindColor[f.kind]};"></span>
+      <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);">${f.kind}</span>
+      <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">${f.agent} · #${f.ticket}</span>
+      <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-left: auto;">${f.t}</span>
+    </div>
+    <p style="font-size: 13px; margin: 0 0 6px; line-height: 1.6;">${f.detail}</p>
+    <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 4px; line-height: 1.6;"><span style="color: var(--text-muted);">why</span> ${f.why}</p>
+    <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 10px; line-height: 1.6;"><span style="color: var(--text-muted);">fix</span> ${f.fix}</p>
+    <div id="act-${i}" style="display: flex; gap: 7px; flex-wrap: wrap;">
+      <button data-i="${i}" data-a="promote" style="font-size: 12px; padding: 4px 10px; height: auto;">Promote to golden set</button>
+      <button data-i="${i}" data-a="trace" style="font-size: 12px; padding: 4px 10px; height: auto;">Trace ↗</button>
+      <button data-i="${i}" data-a="dismiss" style="font-size: 12px; padding: 4px 10px; height: auto;">Known, dismiss</button>
+    </div>
+  </div>`).join('');
+
+document.getElementById('feed').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const i = b.dataset.i, a = b.dataset.a;
+  if (a === 'trace') { sendPrompt('Show me the trace for failure ' + fails[i].id); return; }
+  const el = document.getElementById('act-' + i);
+  if (a === 'dismiss') {
+    el.innerHTML = '<span style="font-size: 12px; color: var(--text-muted);">Dismissed — suppressed from the feed for 7 days</span>';
+    return;
+  }
+  promoted += 1;
+  document.getElementById('pending').textContent = promoted;
+  el.innerHTML = '<span style="font-size: 12px; color: #854F0B; display: flex; align-items: center; gap: 6px;"><i class="ti ti-check" style="font-size: 14px;" aria-hidden="true"></i>Queued for labelling — needs an expected answer before it enters golden_v2</span>';
+});
+</script>

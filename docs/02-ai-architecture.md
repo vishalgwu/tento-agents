@@ -73,7 +73,7 @@ The most valuable behavior in a regulated vertical is a system that says *"I'm n
 
 Why: your workflow is a *state machine with approval gates and retries*, which is precisely LangGraph's shape. Three properties are load-bearing:
 
-1. **Checkpointing to Postgres.** A ticket that's been half-processed when Fly.io restarts your container must resume, not restart — restarting means re-notifying a resident, which is a real-world duplicate action. Building durable execution yourself is a multi-week project you'd do badly.
+1. **Checkpointing to Postgres.** A ticket that's been half-processed when your container is recycled must resume, not restart — restarting means re-notifying a resident, which is a real-world duplicate action. Building durable execution yourself is a multi-week project you'd do badly.
 2. **`interrupt()` for human approval.** The approval queue *is* an interrupted graph. This maps so cleanly that the alternative (your own state machine + polling) is strictly worse.
 3. **Explicit conditional edges.** Council triggering, escalation, and retry are edge conditions you can read in one screen of code and point to in an interview.
 

@@ -177,7 +177,10 @@ Written in your voice: no arrows, no tilde signs, figures spelled out, GitHub li
 > - Designed Council Mode, an evidence-partitioned ensemble that routes [XX] percent of high-blast-radius tickets to three specialists with disjoint context, improving priority macro F1 from [0.XX] to [0.XX] over single-agent reasoning.
 > - Built a continuous evaluation harness (DeepEval, Ragas, Promptfoo) over a 200-item human-labeled golden set, gating every merge with tolerance bands and a pinned judge model; includes an adversarial fair-housing parity suite that blocks deploys on any violation.
 > - Reduced blended inference cost to [$0.0XX] per ticket through prompt caching, tiered model routing, and per-slot context budgeting, tracked live on a cost dashboard.
-> - Deployed on Vercel, Fly.io, and Supabase with GitHub Actions CI, full OpenTelemetry tracing to Langfuse and Arize Phoenix, and a graceful degradation path to rules-only operation during model provider outages.
+> - Deployed on Google Cloud Run, Vercel, and Supabase with GitHub Actions CI, full OpenTelemetry tracing to Langfuse and Arize Phoenix, and a graceful degradation path to rules-only operation during model provider outages.
+> - Cut per-run tool payloads from approximately [X,XXX] to [XXX] tokens through deterministic schema projection, ranked truncation with explicit coverage markers, and structured folding, reducing blended cost per ticket by [XX] percent.
+> - Held p50 decision latency to [X.X] seconds against an explicit per-stage budget using parallel independent reads, an in-process warm cross-encoder, prompt caching for time-to-first-token, and speculative prefetch of dispatch inputs.
+> - Layered Google Cloud Model Armor behind a pluggable shield interface for prompt-injection, jailbreak, and malicious-URL screening, with pessimistic verdict combination and a 250 millisecond timeout that degrades to local classifiers rather than failing the request.
 
 **Skill-line additions:** LangGraph, LiteLLM, MCP, Langfuse, Arize Phoenix, DeepEval, Ragas, Promptfoo, pgvector, Presidio, LLM-as-judge, evaluation harness design, prompt versioning, agent observability.
 

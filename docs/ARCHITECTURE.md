@@ -276,6 +276,38 @@ Retrieval ranking: `relevance × recency_decay(180d) × scope_weight(unit 1.0 > 
 
 **Mem0 / Zep / LangMem evaluated and not adopted for v1.** Those products solve fuzzy recall across open-ended conversation. Our durable facts are structured, authoritative, and legally consequential — a warranty date must be exactly right, and a summarizer that mangles it is a defect. A `MemoryProvider` interface keeps a Mem0 adapter one flag away if resident-facing conversational memory becomes a major surface.
 
+### 5.8 Dynamic tool output compression
+
+Retrieval results are compressed (§5.6). **Tool results need the same treatment and are easy to forget**, because they look small in a unit test and are enormous in production. `vendor.availability` across 8 vendors × 14 days, `history.search` returning 40 tickets, or a PMS sync payload each run to tens of thousands of tokens — and they land in the context of the agent that most needs to reason carefully.
+
+Four techniques, applied in order at the tool boundary, all deterministic:
+
+**1. Schema projection.** Every tool declares the fields its callers actually need.
+
+```python
+@tool(projection=["vendor_id", "slot_start", "slot_end", "rate_tier"])
+async def vendor_availability(trade: str, window: DateRange) -> list[Slot]: ...
+```
+
+The raw record has 22 fields; the Dispatch Planner needs 4. Project where the data leaves the tool, never in the prompt template.
+
+**2. Per-tool token budget with ranked truncation.** Each tool has a ceiling. Over it, rank by relevance to the current ticket, truncate, and **emit an explicit marker**:
+
+```
+[tool: vendor.availability] truncated — showing 18 of 61 slots, ranked by
+proximity to the requested window. Ask for expansion if none fit.
+```
+
+Silent truncation is worse than no truncation: it makes the model confidently wrong about coverage. The marker is non-negotiable.
+
+**3. Structured folding.** Repetitive rows collapse to a summary plus outliers — `18 slots available Mon–Wed; earliest 24 Jul 08:00; 3 flagged premium rate` — computed in code, reversible from the stored raw result.
+
+**4. Reference handles.** Large results are persisted and passed as `tool_result:9f2c#3` with a digest. The agent can request expansion of one section. **The full payload is always stored for the audit trail even when the model saw only the digest** — the audit record must reflect what was available, not just what was shown.
+
+**The safety rule:** compression is deterministic for anything authoritative. Never fold a lease clause, warranty date, dollar amount, or policy excerpt through a model — the same rule that governs retrieval in §5.6. Only non-authoritative, repetitive output gets folded.
+
+Measured on our workload: typical dispatch-run tool payload drops from ~4,800 to ~900 tokens. That is roughly 18% off blended cost per ticket and it removes the largest single cause of context-budget overflow.
+
 ---
 
 ## 6. Guardrails
@@ -294,6 +326,31 @@ Retrieval ranking: `relevance × recency_decay(180d) × scope_weight(unit 1.0 > 
 **Injection defense is architectural first.** Vendor SMS replies, OCR'd documents, and image captions all enter the same context window as resident text. Untrusted content never reaches an agent holding write tools, because only the orchestrator has them and it does not take instructions from context. The scanner is the second line.
 
 **Fair housing is a CI job, not a prompt.** The red-team suite contains paired probes identical except for a protected-class signal (voucher holder, wheelchair access, service animal, family with children, non-English name) and asserts response **parity**: same latency class, same information completeness, same tone. This is exactly the test a fair-housing testing organization would run against us.
+
+### 6.1 ShieldProvider — pluggable managed screening
+
+Guardrails 3, 4, 5, and 15 (PII, injection, toxicity, output leak) run behind an interface so a managed classifier can augment the local implementation without becoming a dependency.
+
+```python
+class ShieldProvider(Protocol):
+    async def scan_input(self, text: str, trust: TrustLevel) -> ShieldVerdict: ...
+    async def scan_output(self, text: str, audience: Audience) -> ShieldVerdict: ...
+
+LocalShield()        # Presidio + pattern set + our fair-housing classifier — ALWAYS on
+ModelArmorShield()   # Google Cloud, enabled when deployed on Cloud Run
+BedrockGuardrails()  # documented, not built
+```
+
+**Model Armor** (Google Cloud) provides injection and jailbreak detection, sensitive-data protection via Google's DLP, malicious-URL detection, and PDF scanning. Free tier of 2M tokens per month per project standalone, then ~$0.10 per million; the injection filter accepts up to 10,000 tokens per call. It fits our threat model directly: vendors send links, residents upload documents, and OCR text enters the same context as chat.
+
+**Composition rules — these are the part that matters:**
+
+- `LocalShield` always runs. The system's safety must never depend on a third-party service being reachable.
+- Verdicts combine **pessimistically**: any block is a block.
+- The remote shield gets a **250ms budget**. On timeout, log `shield_degraded`, proceed on the local verdict, and continue. A security-service outage must not take down maintenance intake — the architectural boundary (untrusted content never reaches a write-capable agent) is still holding.
+- Every remote verdict is written to `guardrail_events` with the provider name, so an audit can distinguish "local caught it" from "Model Armor caught it."
+
+**Why an adapter rather than the design:** a classifier is a filter; the architecture is the boundary. If our safety story were "Model Armor screens the input," a false negative would be a breach. Because untrusted content structurally cannot reach an agent holding write tools, a false negative is a logged miss.
 
 ---
 
@@ -333,7 +390,16 @@ GET    /v1/runs/{id}                     full trace
 GET    /v1/runs/{id}/replay              re-execute against pinned versions, diff
 GET    /v1/decisions/export              signed audit bundle
 GET    /v1/knowledge/search?q=           hybrid search with scores
-GET    /v1/metrics/agents|cost
+GET    /v1/ops/health                   verdict + quadrants (admin only)
+GET    /v1/ops/agents?window=           scorecard, degradation-ranked
+GET    /v1/ops/failures?kind=&status=   typed failure feed
+POST   /v1/ops/failures/{id}/triage     {why, fix}
+POST   /v1/ops/label-queue              promote a failure or output for labelling
+GET    /v1/ops/models                   live registry: cost, latency, quality
+GET    /v1/ops/prompts                  versions, hashes, traffic split
+POST   /v1/ops/prompts/{key}/rollback   config flip, no redeploy
+GET    /v1/ops/drift?signal=            online-vs-offline, judge, embedding, retrieval
+GET    /v1/ops/outputs?filter=          output inspector
 POST   /v1/webhooks/vendor|pms           untrusted → quarantine
 ```
 
@@ -358,29 +424,47 @@ Conventions: idempotency keys on every mutating endpoint (agentic systems retry;
 
 ## 10. Infrastructure and deployment
 
+**Primary target: Google Cloud Run.** Everything is containerized, so the deployment target is a configuration choice, not an architecture choice.
+
 ```
 Vercel (Next.js, edge CDN)
    │
-Fly.io private network
-   ├── api      2 × shared-cpu-1x/256MB
-   ├── worker   1 × 512MB
-   ├── litellm  1 × 256MB
-   ├── mcp      1 × 256MB
-   └── langfuse + phoenix  1 × 1GB
+Google Cloud Run (one project, internal ingress between services)
+   ├── api       min-instances=1, max=10, 2 vCPU / 1GB, timeout 300s
+   ├── worker    Cloud Run Job, scheduled + queue-triggered, scale to zero
+   ├── litellm   min-instances=0, max=5
+   ├── mcp       min-instances=0, internal ingress only
+   └── langfuse + phoenix   min-instances=0
    │
-Supabase Postgres (pgvector) · Upstash Redis · Cloudflare R2
+Supabase Postgres (pgvector) · Upstash Redis · Cloudflare R2 · Model Armor
 ```
+
+**Why Cloud Run, and why this changed.** The earlier revision of this document specified Fly.io on the basis of a free tier that no longer exists — Fly now requires a card and offers no free allowance to new users. Cloud Run wins on three independent axes:
+
+| | Cloud Run | Fly.io (2026) |
+|---|---|---|
+| Free tier | Genuine monthly request-based allowance, scales to zero | None for new accounts |
+| Workload fit | Service timeout 300s default / 60 min max — an agent run is 5–20s. Cloud Run Jobs cover the worker (max 7 days/task) | Fine, but paid |
+| Hiring signal | GCP appears in far more job descriptions | Niche |
+
+**The cold-start trade, stated explicitly.** Scaling to zero costs 1–3 seconds on the first request, which is exactly the request a recruiter makes when they open the demo link. So: `min-instances=1` on the **API service only** — the hot path stays warm — while worker, MCP, and observability scale to zero freely. That is a deliberate few-dollars-for-latency trade, and being able to explain which service got the warm instance and why is a better answer than either extreme.
+
+The reranker model stays loaded in-process on the API service. This is the specific reason the brain is not serverless-per-request: a per-request model load would dominate the retrieval latency budget.
+
+**Fly.io remains documented as the alternative** if multi-region placement becomes a requirement.
 
 | Component | Free limit | Breaks at | Escape |
 |---|---|---|---|
 | Vercel Hobby | 100GB bandwidth | ~50k demo visits | Pro $20 |
-| Fly.io | ~3 shared machines | ~30 rps | ~$5/machine |
+| Cloud Run | monthly request + CPU allowance | sustained traffic | pay-per-use, cents at this scale |
+| Cloud Run `min-instances=1` | not free | always | ~$5–8/mo — worth it, see above |
 | Supabase Free | 500MB, **pauses after 7 idle days** | ~150k tickets or one quiet week | **Pro $25 — pay this before any demo** |
 | Upstash | 10k cmd/day | ~1k tickets/day | cents |
 | R2 | 10GB + free egress | thousands of photos | $0.015/GB |
+| Model Armor | 2M tokens/mo/project | ~40k scans/mo | ~$0.10/M tokens |
 | GH Actions | 2,000 min/mo | evals are minute-hungry | PR subset, nightly full |
 
-**Realistic total: $0–25/month.**
+**Realistic total: $30–40/month** — the honest number now that Fly's free tier is gone. Supabase Pro and one warm Cloud Run instance are the two lines worth paying for, and both buy demo reliability.
 
 **Environments:** `local` (docker-compose: postgres+pgvector, redis, litellm, langfuse, ollama — full stack offline, one command) → `preview` (per-PR Vercel + staging API + seeded DB branch) → `production`.
 
@@ -442,6 +526,31 @@ Timeouts on every external call · exponential backoff with jitter, max 2 retrie
 
 **Degradation ladder:** full → no-council → no-LLM-diagnosis → **rules-only** (keyword safety screen + category-default SLA + acknowledgment) → queue-and-acknowledge. The building keeps running when a model provider does not. Rules-only mode is ~150 lines and ships in Phase 3.
 
+### 14.1 Latency budget
+
+Latency gets a budget the same way tokens do, because "make it faster" is not an engineering plan.
+
+| Stage | p50 target | How |
+|---|---|---|
+| Acknowledgment | < 200ms | Enqueue and return. No model call on this path — hard rule (FR-102) |
+| Input guardrails | < 120ms | Local classifiers in parallel; remote shield capped at 250ms |
+| Retrieval | < 350ms | HNSW + GIN in one round trip; reranker warm in-process; policy blocks cached |
+| Safety + intake | < 500ms | Merged into one small-model call |
+| Diagnosis | < 2,500ms | Streamed — perceived latency is first-token, not last-token |
+| Council (10% of runs) | < 3,000ms | Three members in parallel: 3× calls, ~1.4× wall clock |
+| Dispatch + audit | < 1,200ms | Overlapped where independent |
+| **Total** | **p50 < 6s · p95 < 20s** | |
+
+**Five techniques, in impact order:**
+
+1. **Stream everything user-visible.** First token is what a human feels. The step timeline renders immediately with pending steps hollow, so structure arrives before content.
+2. **Parallelize reads.** Retrieval, memory lookup, and asset fetch are independent — `asyncio.gather`, not sequential awaits. Free, and the most commonly missed win.
+3. **Keep expensive local things warm.** The cross-encoder stays in-process; this drives the Cloud Run `min-instances` decision in §10.
+4. **Prompt caching cuts time-to-first-token**, not just cost — a cached prefix skips prefill.
+5. **Speculative dispatch prep.** While the Diagnostician runs, fetch the Dispatch Planner's *inputs* (vendor availability, scorecards) in parallel against intake's predicted trade. Confirmed → dispatch starts warm; wrong → discard the read. Costs a wasted query, saves ~400ms on the common path.
+
+**Rejected: speculative generation.** Running dispatch planning before diagnosis completes would save roughly a second and burns a model call on a guess. At this cost profile the added failure mode is not worth it.
+
 ---
 
 ## 15. Scaling path
@@ -470,3 +579,7 @@ Timeouts on every external call · exponential backoff with jitter, max 2 retrie
 | Node/TypeScript backend | The AI ecosystem we need is Python-first; Pydantic doubling as agent contract, HTTP schema, and generated TS types is a real win. |
 | Serverless for the brain | Runs are 5–20s with parallel fan-out; we want a warm reranker and pooled connections. |
 | WebSockets | SSE is sufficient, simpler, and proxy-friendly. |
+| Model Armor as the primary injection defense | A classifier is a filter, not a boundary. It augments `LocalShield`; it never replaces the architectural rule that untrusted content cannot reach a write-capable agent. |
+| Speculative generation (dispatch before diagnosis) | Saves ~1s, burns a model call on a guess, adds a failure mode. Speculative *reads* only. |
+| LLM-based tool output summarization | Same rule as policy text — deterministic projection and folding only, because tool results carry authoritative figures. |
+| Serverless-per-request for the brain | The cross-encoder must stay warm; per-request model loading would dominate the retrieval latency budget. |

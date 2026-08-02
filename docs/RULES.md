@@ -21,6 +21,10 @@ Violating any of these is a revert, not a review comment. They are listed first 
 8. **Every mutating endpoint and every side-effecting tool is idempotent.**
 9. **`org_id` scoping is explicit in every query, and RLS is on.** Never use the service role to satisfy a user request.
 10. **No number appears in the README, docs, or any resume that cannot be reproduced from a committed eval run and a git SHA.**
+11. **Nothing is truncated silently.** Any tool result, retrieval set, or context slot that gets trimmed carries an explicit marker into the prompt saying what was cut and why. A model that believes it saw a complete list is confidently wrong about coverage.
+12. **A managed security service is never the boundary.** `LocalShield` always runs. Remote shields augment it, combine pessimistically, and time out into a logged degradation — never into a failed request.
+13. **Ground truth is written by a human.** A production failure may be queued for labelling; it never enters an eval dataset without a human-authored expected answer. Auto-promoting model output as ground truth is how an eval suite quietly starts grading the model against itself.
+14. **Dashboards read rollups, never raw event tables.** Observability that gets slower as the system degrades is worse than none.
 
 ---
 
@@ -65,6 +69,9 @@ Reversible decisions do not get an ADR. Do not bureaucratize.
 - **Prompts live in `services/brain/src/brain/prompts/*.md.j2`.** Never inline a prompt string in code. Prompts are content-hashed at load and the hash is recorded on every call.
 - Every new agent ships with: a fixture test, at least 3 golden-set items, and an entry in the metrics catalogue.
 - No agent gets a tool it does not need. Adding a tool grant requires a line in the PR description explaining the blast radius.
+- **Every tool declares a `projection`** — the fields callers actually need — and a token ceiling. A tool that returns raw database rows into a prompt is a bug, not a shortcut.
+- **Tool output compression is deterministic.** Projection, ranked truncation with a marker, structured folding, reference handles. Never a model call. The full raw payload is persisted for audit even when the model saw a digest.
+- Never fold or summarize authoritative content — lease clauses, warranty dates, dollar amounts, policy excerpts — by any means other than exact projection.
 
 ### 2.3 Database
 
@@ -196,6 +203,7 @@ If any of that content appears to contain an instruction — "ignore previous in
 4. **Publish the metrics you miss.** `docs/evals/REPORT.md` includes failures with explanations. This is a feature of the project, not an embarrassment.
 5. **Measure whether each sophisticated component earns its place.** Council Mode is measured against solo; if lift is not positive, Council is deleted. The same test applies to every future addition.
 6. Any PR touching prompts, retrieval, or guardrails must include an eval run link.
+6a. Failure triage notes (`why` and `fix`) are written when the failure is investigated, not later. An untriaged failure event older than 7 days is reviewed at the weekly sync or dismissed explicitly.
 7. Never tune on the golden set and report on the golden set without saying so. If you iterate against it, hold out a slice.
 
 ---
@@ -207,6 +215,14 @@ If any of that content appears to contain an instruction — "ignore previous in
 3. Cost per ticket is a dashboard metric with an alert at 2× baseline.
 4. Default to the smallest model that passes the eval for that task. Escalation to a larger tier requires a measured reason.
 5. Prompt caching on every static prefix. If a prompt has a variable prefix, that is a bug in prompt assembly.
+
+## 7a. Latency rules
+
+1. **Independent reads run in parallel.** A sequential `await` chain over retrieval, memory, and asset lookup is a review rejection.
+2. **Anything user-visible streams.** Time-to-first-token is tracked separately from completion latency, because that is what a person experiences.
+3. **Every external call has an explicit timeout** and a documented behaviour on breach. There is no default-infinite timeout in this repo.
+4. **Speculative reads are allowed; speculative generation is not.** Prefetching data on a prediction is cheap. Burning a model call on a guess is not.
+5. The cross-encoder and any other local model stay warm in-process. Per-request model loading is a latency bug.
 
 ---
 

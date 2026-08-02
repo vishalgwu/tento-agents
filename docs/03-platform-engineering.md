@@ -540,7 +540,7 @@ Build these with real data from the seed set. A dashboard with fake numbers is w
 Vercel Edge ──▶ Next.js (RSC + Route Handlers/BFF)
                      │  JWT (Supabase Auth), org-scoped
                      ▼
-              FastAPI (Fly.io, 2 machines, autoscale to zero off-peak)
+              FastAPI (Cloud Run, min-instances=1, autoscale to 10)
                      │
      ┌───────────────┼────────────────┬──────────────┐
      ▼               ▼                ▼              ▼
@@ -554,7 +554,7 @@ Vercel Edge ──▶ Next.js (RSC + Route Handlers/BFF)
 
 **Why FastAPI over Node:** the AI ecosystem you need — LangGraph, Pydantic, DeepEval/Ragas, Presidio, sentence-transformers — is Python-first. Splitting the AI layer into a Python sidecar behind a Node API adds a hop and a serialization boundary for no benefit. Pydantic doubling as your agent contract *and* your HTTP schema *and* your generated TS types is a genuine architectural win.
 
-**Why Fly.io over Railway/Render:** persistent processes with real WebSocket/SSE support, scale-to-zero on the free-ish tier, and simple private networking between API, worker, LiteLLM, and MCP. Render's free tier cold-starts painfully; Railway's free tier has gotten thin. Fly's failure mode — occasional regional weirdness — is one you can absorb.
+**Why Cloud Run over Fly.io/Railway/Render:** persistent processes with real WebSocket/SSE support, scale-to-zero on the free-ish tier, and simple private networking between API, worker, LiteLLM, and MCP. Render's free tier cold-starts painfully; Railway's free tier has gotten thin. Fly's failure mode — occasional regional weirdness — is one you can absorb.
 
 **Why not serverless for the brain:** agent runs last 5–20 seconds with parallel fan-out, plus you want a warm process for the reranker model and connection pooling. Serverless makes both worse.
 
@@ -722,7 +722,7 @@ That "measure council lift, and cut it if it's zero" line is the single most sen
               └──────────────────┬──────────────────────────┘
                                  │ HTTPS, JWT
               ┌──────────────────▼──────────────────────────┐
-              │  Fly.io (org private network)               │
+              │  Cloud Run (internal ingress between svcs)  │
               │  ┌────────┐ ┌────────┐ ┌────────┐ ┌───────┐ │
               │  │  api   │ │ worker │ │litellm │ │  mcp  │ │
               │  │ 2×256M │ │ 1×512M │ │ 1×256M │ │1×256M │ │
@@ -744,7 +744,7 @@ That "measure council lift, and cut it if it's zero" line is the single most sen
 | Component | Service | Free limit | Breaks at | Escape |
 |---|---|---|---|---|
 | Frontend | Vercel Hobby | 100GB bandwidth | ~50k demo visits | Pro $20 |
-| API/worker | Fly.io | ~3 shared-cpu-1x machines | ~30 rps sustained | ~$5/machine/mo |
+| API/worker | Cloud Run | monthly request + CPU allowance | sustained traffic | pay-per-use; ~$5-8/mo for one warm instance |
 | DB | Supabase Free | 500MB, **pauses after 7 days idle** | ~150k tickets, or one quiet week | **Pro $25 — do this before any demo you care about** |
 | Cache/queue | Upstash | 10k commands/day | ~1k tickets/day | Pay-as-you-go, cents |
 | Media | R2 | 10GB + free egress | thousands of photos | $0.015/GB |

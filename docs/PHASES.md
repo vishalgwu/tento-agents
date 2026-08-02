@@ -187,7 +187,7 @@ Each phase below lists: goal, the two parallel tracks, what they integrate on, a
 | Diagnostician + Dispatch Planner | Approval queue sorted by SLA risk, keyboard navigation |
 | LangGraph wiring, Postgres checkpointing, `interrupt()` on approval | Approve / edit / reassign / reject with the reason taxonomy |
 | `agent_runs`, `agent_steps`, `llm_calls`, `retrievals`, `decisions` writing on every run | Vendor accept/decline page at `/v/[token]` |
-| **Rules-only degradation mode** | Deploy to Vercel + Fly; environment and secret setup |
+| **Rules-only degradation mode** · tool `projection` + token ceilings on every tool | Deploy to Vercel + **Cloud Run**; `min-instances=1` on api only; secrets in Secret Manager |
 
 **Integrate on:** the whole loop. A ticket submitted in the UI produces a streamed decision from the brain.
 **DoD:** a stranger with the URL submits a ticket, watches reasoning stream, sees a decision with citations, approves it in the manager console, and the audit record exists.
@@ -200,7 +200,7 @@ Each phase below lists: goal, the two parallel tracks, what they integrate on, a
 
 | Track A — Brain | Track B — Surface |
 |---|---|
-| All 15 guardrails, each a separately testable pure function | Guardrail surfacing in the UI: what was blocked, why, what the human must do |
+| All 15 guardrails, each a separately testable pure function, behind `ShieldProvider` with `LocalShield` as the only implementation | Guardrail surfacing in the UI: what was blocked, why, what the human must do |
 | Policy Auditor (rules + model), source-precedence resolver | Governance tab v1: decisions by mode, override reasons, guardrail events |
 | Citation verifier + numeric grounding + targeted regeneration | Manager override flow with reason capture and confirmation |
 | Approval tokens: single-use, action-scoped, TTL | Owner dashboard v1: cost per unit, SLA compliance, recurring-failure units |
@@ -221,7 +221,7 @@ Each phase below lists: goal, the two parallel tracks, what they integrate on, a
 | **Label the 200-item golden set** (two focused evenings, done before further prompt tuning) | Trace viewer: full run replay, nested step tree, expandable prompts with hashes |
 | Eval harness: DeepEval + Ragas + custom metrics | Retrieval inspector: BM25 list, vector list, RRF merge, rerank delta, which chunks entered the window |
 | CI eval gate with tolerance bands, pinned judge, seeded sample | Eval dashboard: metric history by commit, pass/fail, **calibration curve** |
-| Red-team fair-housing parity suite (paired probes, hard fail) | Cost dashboard: $/ticket, by agent, by model, cache hit rate |
+| Red-team fair-housing parity suite (paired probes, hard fail) · `failure_events` + `metric_rollups` + `label_queue` tables, hourly rollup job | **ML Ops console shell** (`/ops`, admin-only) with panels A verdict, B agent scorecard, C failure feed — cost and eval panels mount **inside** it, not as separate routes |
 | Judge: offline 100%, online 10% sample | Landing page with three demo-account buttons and the 90-second story |
 | Confidence calibration (isotonic fit), reliability diagram | README hero: diagram, GIF of the streaming trace, badges |
 | `GET /runs/{id}/replay` | |
@@ -243,7 +243,7 @@ Each phase below lists: goal, the two parallel tracks, what they integrate on, a
 | **Measure council lift vs solo and publish the delta, positive or negative** | Agent health dashboard: success rate, p50/p95, schema repair rate, escalation rate per agent |
 | Episodic memory + reflection with approval-gated promotion | Memory review UI: proposed reflections, approve/reject with evidence links |
 | Decay, contradiction handling, supersession | Mobile polish pass on resident and tech surfaces |
-| Full degradation ladder tested by killing keys in staging | |
+| Full degradation ladder tested by killing keys in staging · `prompt_versions` registry + rollback-by-config-flip | Ops panels D (model registry), E (prompt registry), F (eval history with online/offline calibration overlay) |
 
 **Integrate on:** a council run renders correctly in the council view including a genuine disagreement case from the golden set.
 **DoD:** council lift is a published number. If it is not positive, Council is deleted and that deletion is written up in `MEMORY.md` — **this is a success, not a failure.**
@@ -256,14 +256,14 @@ Each phase below lists: goal, the two parallel tracks, what they integrate on, a
 
 | Track A — Brain | Track B — Surface |
 |---|---|
-| LiteLLM deployment, provider fallback, virtual keys | Gateway dashboard: routing distribution, fallback rate, budget consumption |
+| LiteLLM deployment, provider fallback, virtual keys · **Model Armor adapter** behind `ShieldProvider`, 250ms budget, pessimistic combine | Gateway dashboard: routing distribution, fallback rate, budget consumption, shield verdicts by provider |
 | Policy layer: routing table, context budget selection, cache decisions, per-org budgets, circuit breaker | Observability links from every trace into Langfuse/Phoenix |
-| Caching: prompt prefix, policy block, embeddings, retrieval, tool results | Conversation replay for multi-turn tickets |
+| Caching: prompt prefix, policy block, embeddings, retrieval, tool results · **latency pass against the §14.1 budget**: parallel reads, warm reranker, speculative dispatch prefetch | Conversation replay for multi-turn tickets |
 | Three MCP servers (read / act / admin) | Performance pass: p95 render, bundle size, image optimization |
-| Langfuse + Phoenix self-hosted, OTEL wiring, alert rules | Canary deploy workflow with auto-rollback |
+| Langfuse + Phoenix self-hosted, OTEL wiring, alert rules · drift signals wired to rollups | Ops panels G (drift) and H (output inspector); console complete |
 
 **Integrate on:** a trace in the UI links to the same trace in Langfuse; cost dashboard matches gateway spend logs.
-**DoD:** killing the primary provider in staging produces a clean fallback with `model_substituted` recorded and forced human approval.
+**DoD:** killing the primary provider in staging produces a clean fallback with `model_substituted` recorded and forced human approval. Disabling Model Armor produces `shield_degraded` and the request still completes on the local verdict. p50 meets the latency budget.
 **Cut if behind:** admin MCP server, conversation replay.
 
 ---

@@ -1,0 +1,93 @@
+<h2 class="sr-only">Mockup of the trace viewer for one ticket, showing a nested execution tree of agent steps on the left with timings, and step detail on the right including model, prompt version, token counts, cost and citation verification.</h2>
+
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+  <span style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);">TRACE · ticket #4471 · run 9f2c</span>
+  <div style="display: flex; gap: 8px;">
+    <button onclick="sendPrompt('Explain what the replay endpoint does and why it matters for audit')" style="font-size: 12px; padding: 4px 10px; height: auto;">Replay ↗</button>
+    <button onclick="sendPrompt('Show me the retrieval inspector for this run')" style="font-size: 12px; padding: 4px 10px; height: auto;">Retrieval ↗</button>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px;">
+
+  <div style="background: var(--surface-1); border-radius: 12px; padding: 12px 14px;">
+    <div id="tree" style="font-family: var(--font-mono); font-size: 12px; line-height: 2;"></div>
+    <p style="font-size: 11px; color: var(--text-muted); margin: 10px 0 0; font-family: var(--font-sans);">3 parallel members share one track</p>
+  </div>
+
+  <div style="background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 12px 14px;">
+    <p style="font-size: 14px; font-weight: 500; margin: 0 0 2px;" id="d-name">Diagnostician</p>
+    <p style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin: 0 0 12px;" id="d-model">sonnet-5 · diagnose@v7 · a91f3c</p>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px;">
+      <div style="background: var(--surface-1); border-radius: var(--radius); padding: 8px 10px;">
+        <p style="font-size: 11px; color: var(--text-muted); margin: 0;">tokens in</p>
+        <p style="font-size: 15px; margin: 2px 0 0;">4,012 <span style="font-size: 11px; color: var(--text-muted);">· 1,000 cached</span></p>
+      </div>
+      <div style="background: var(--surface-1); border-radius: var(--radius); padding: 8px 10px;">
+        <p style="font-size: 11px; color: var(--text-muted); margin: 0;">tokens out</p>
+        <p style="font-size: 15px; margin: 2px 0 0;">486</p>
+      </div>
+      <div style="background: var(--surface-1); border-radius: var(--radius); padding: 8px 10px;">
+        <p style="font-size: 11px; color: var(--text-muted); margin: 0;">cost</p>
+        <p style="font-size: 15px; margin: 2px 0 0;">$0.0158</p>
+      </div>
+      <div style="background: var(--surface-1); border-radius: var(--radius); padding: 8px 10px;">
+        <p style="font-size: 11px; color: var(--text-muted); margin: 0;">latency</p>
+        <p style="font-size: 15px; margin: 2px 0 0;">2,140 ms</p>
+      </div>
+    </div>
+
+    <p style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 6px;">EVIDENCE RAIL</p>
+    <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+      <span style="font-family: var(--font-mono); font-size: 11px; background: var(--bg-accent); color: var(--text-accent); padding: 4px 8px; border-radius: var(--radius);">[C1] ▸ SOP-PLM-04 §2</span>
+      <span style="font-family: var(--font-mono); font-size: 11px; background: var(--bg-accent); color: var(--text-accent); padding: 4px 8px; border-radius: var(--radius);">[C2] ¶ lease 4B §7.3</span>
+      <span style="font-family: var(--font-mono); font-size: 11px; background: var(--bg-accent); color: var(--text-accent); padding: 4px 8px; border-radius: var(--radius);">[C3] · workorder #3877</span>
+      <span style="font-family: var(--font-mono); font-size: 11px; background: var(--bg-accent); color: var(--text-accent); padding: 4px 8px; border-radius: var(--radius);">[F1] asset · warranty to 2027-03</span>
+    </div>
+
+    <div style="border-top: 0.5px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 5px;">
+      <span style="font-size: 12px; color: var(--text-success); display: flex; align-items: center; gap: 6px;"><i class="ti ti-check" style="font-size: 14px;" aria-hidden="true"></i>citations 4 of 4 resolve</span>
+      <span style="font-size: 12px; color: var(--text-success); display: flex; align-items: center; gap: 6px;"><i class="ti ti-check" style="font-size: 14px;" aria-hidden="true"></i>every figure traced to a chunk</span>
+      <span style="font-size: 12px; color: var(--text-success); display: flex; align-items: center; gap: 6px;"><i class="ti ti-check" style="font-size: 14px;" aria-hidden="true"></i>schema valid, no repair needed</span>
+      <span style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;"><i class="ti ti-shield-check" style="font-size: 14px;" aria-hidden="true"></i>guardrails 15 of 15 pass</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const spans = [
+  ['guardrails.input', 24, 0, 'pii 2 redacted · injection clean'],
+  ['safety + intake', 412, 0, 'haiku · intake@v4'],
+  ['context.broker', 338, 0, 'code · no model call'],
+  ['retrieval.hybrid', 201, 1, 'bm25 10 + vector 10 → rrf → rerank 30→6'],
+  ['memory.episodic', 88, 1, 'k=3 similar resolved cases'],
+  ['context.budget', 6, 1, '7,412 of 8,000 tokens used'],
+  ['council', 2140, 0, 'triggered · score 0.62'],
+  ['member.policy', 1802, 1, 'sees SOPs and lease only'],
+  ['member.history', 2010, 1, 'sees this unit and asset only'],
+  ['member.cost', 1640, 1, 'sees warranty and vendor data only'],
+  ['council.synthesis', 980, 1, 'reconciles, keeps dissent'],
+  ['dispatch.planner', 910, 0, 'sonnet · dispatch@v3'],
+  ['guardrails.policy', 120, 0, 'lease and SLA check'],
+  ['decision.gate', 3, 0, 'code · approval required']
+];
+const max = 2140;
+document.getElementById('tree').innerHTML = spans.map((s, i) => {
+  const pct = Math.round((s[1] / max) * 100);
+  const pad = s[2] ? 16 : 0;
+  const col = s[2] ? 'var(--text-secondary)' : 'var(--text-primary)';
+  return `<div data-i="${i}" style="display: flex; align-items: center; gap: 8px; padding-left: ${pad}px; cursor: pointer;">
+    <span style="flex: none; width: ${s[2] ? 132 : 148}px; color: ${col}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s[2] ? '└ ' : ''}${s[0]}</span>
+    <span style="flex: 1; height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden;"><span style="display: block; height: 100%; width: ${pct}%; background: ${s[2] ? '#85B7EB' : 'var(--fill-accent)'};"></span></span>
+    <span style="flex: none; width: 52px; text-align: right; color: var(--text-muted); font-size: 11px;">${s[1]}ms</span>
+  </div>`;
+}).join('');
+document.getElementById('tree').addEventListener('click', e => {
+  const row = e.target.closest('[data-i]'); if (!row) return;
+  const s = spans[row.dataset.i];
+  document.getElementById('d-name').textContent = s[0];
+  document.getElementById('d-model').textContent = s[3];
+});
+</script>
