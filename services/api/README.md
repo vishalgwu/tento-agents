@@ -11,12 +11,12 @@ FastAPI HTTP + SSE surface for Resident OS. Thin: routers, dependencies, request
 
 ## Contracts
 
-- OpenAPI spec: [docs/openapi.yaml](../../docs/openapi.yaml) *(A authors, B reviews)*
+- OpenAPI spec: [docs/openapi.yaml](../../docs/openapi.yaml) — hand-authored, single source of truth for API shapes.
 - All shapes here must round-trip cleanly to the generated types in [packages/shared-types](../../packages/shared-types).
 
 ## Owner
 
-Track **A** per [PHASES.md](../../docs/PHASES.md).
+Vishal. See [PHASES.md](../../docs/PHASES.md).
 
 ---
 > Resident OS — the AI operations layer for apartment communities.

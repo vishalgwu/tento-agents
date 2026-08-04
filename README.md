@@ -72,10 +72,6 @@ Each folder has its own scoped `README.md`. **Start with [docs/00-START-HERE.md]
 - An observability stack where a stranger can click one ticket and watch the whole reasoning replay.
 - A README a busy person understands in 90 seconds.
 
-## Two-developer parallelization contract
+## Build mode
 
-Track **A** (Brain — Vishal): `services/`, `knowledge/`, `evals/`, `infra/migrations`, `infra/seed`.
-Track **B** (Surface): `apps/web`, `packages/ui`, `infra/docker-compose*`, `.github/workflows/{ci,deploy}.yml`.
-`packages/shared-types/` is generated from `docs/openapi.yaml` — nobody edits it by hand.
-
-Details and the contract-change protocol in [docs/PHASES.md](docs/PHASES.md).
+**Solo — Vishal.** The directory contract in [docs/PHASES.md §2](docs/PHASES.md) still applies as the *code-organization* rule: each concern has one authoritative folder, so future refactors (and Claude Code) don't scatter the same logic across the tree. `packages/shared-types/` is generated from `docs/openapi.yaml` — never hand-edited. Contract-change protocol is in [PHASES.md §5](docs/PHASES.md).

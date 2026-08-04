@@ -2,7 +2,7 @@
 
 **Generated code. Do not hand-edit.**
 
-TypeScript types produced from `docs/openapi.yaml` and the SSE event catalogue. This is the mechanic that keeps `apps/web` (Track B) and `services/api` (Track A) from drifting — one contract, two consumers, zero duplicated definitions.
+TypeScript types produced from `docs/openapi.yaml` and the SSE event catalogue. This is the mechanic that keeps `apps/web` and `services/api` from drifting as the codebase evolves — one contract, two consumers, zero duplicated definitions.
 
 ## Regenerate
 

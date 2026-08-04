@@ -22,7 +22,7 @@ Per the Week 1–2 gate:
 
 ## Owner
 
-Track **A** per [PHASES.md](../../docs/PHASES.md).
+Vishal. See [PHASES.md](../../docs/PHASES.md).
 
 ---
 > Resident OS — the AI operations layer for apartment communities.

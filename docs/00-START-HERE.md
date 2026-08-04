@@ -63,17 +63,17 @@ A chain of N steps at 95% per-step reliability lands at 0.95^N end-to-end: ten s
 
 ## Reconciling this with the plan you already have
 
-You're building a community platform with a friend — interest groups, rich profiles, a marketplace, manager-vetted services, ratings — with AI in Phase 2. This blueprint does not throw that away. It reorders it, for one reason:
+Your earlier plan was a community platform — interest groups, rich profiles, a marketplace, manager-vetted services, ratings — with AI in Phase 2. This blueprint does not throw that away. It reorders it, for one reason:
 
-**The community app is a distribution and data wedge. The maintenance loop is the AI-engineering proof.** They serve different masters. The community app is what you sell to a builder in Pune or a mid-market operator in Virginia. The maintenance loop is what makes a hiring manager at a frontier lab or an FDE team stop scrolling.
+**The community app is a distribution and data wedge. The maintenance loop is the AI-engineering proof.** They serve different masters. The community app is what you eventually sell to a builder in Pune or a mid-market operator in Virginia. The maintenance loop is what makes a hiring manager at a frontier lab or an FDE team stop scrolling.
 
 Your job search is live *now*. So the sequencing in `04` is:
 
 - **Weeks 1–4:** maintenance loop vertical slice, deployed, with a public eval report. This is the recruiter artifact.
 - **Weeks 5–8:** evals, guardrails, Council, judge, dashboards. This is the interview artifact.
-- **Weeks 9–12:** community surface + marketplace on the same schema, plus notifications. This is the customer artifact and your friend's parallel track.
+- **Weeks 9–12:** community surface + marketplace on the same schema, plus notifications. This is the customer artifact.
 
-One repo, two surfaces, one spine. The community modules reuse the notification engine, the RLS schema, and the audit log — so nothing is wasted, and neither of you is blocked on the other.
+One repo, two surfaces, one spine. The community modules reuse the notification engine, the RLS schema, and the audit log — so the earlier phases pay directly into the later ones and nothing is wasted.
 
 ---
 

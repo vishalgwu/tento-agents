@@ -749,7 +749,7 @@ Three servers, split by trust:
 └───────────────────────────────────────────────────────────┘
 ```
 
-**Why MCP at all:** (a) tool definitions live in one place and are reusable across your LangGraph runtime, Claude Desktop, and Claude Code — which is genuinely useful when you and your friend are debugging; (b) the admin server means you can ask Claude Code "replay run 4471 and tell me why the priority was wrong" against real infrastructure, which is a fantastic live demo; (c) it's the emerging interop standard and demonstrates you track the ecosystem.
+**Why MCP at all:** (a) tool definitions live in one place and are reusable across your LangGraph runtime, Claude Desktop, and Claude Code — which is genuinely useful when you are debugging solo across three surfaces; (b) the admin server means you can ask Claude Code "replay run 4471 and tell me why the priority was wrong" against real infrastructure, which is a fantastic live demo; (c) it's the emerging interop standard and demonstrates you track the ecosystem.
 
 **Why MCP is not a security boundary:** the model can call anything it's given. Authorization is enforced server-side per (caller identity, tool, arguments) — an approval token issued by the decision gate, verified by the act server, single-use, scoped to one ticket and one action. Never rely on "the agent won't call it." Anyone who's thought about agent security will ask you this exact question.
 

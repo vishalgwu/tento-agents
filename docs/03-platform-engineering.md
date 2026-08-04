@@ -494,17 +494,17 @@ resident-os/
     └── deploy.yml
 ```
 
-**`CLAUDE.md` matters more than it looks.** You and your friend are both driving Claude Code. Put the invariants there in imperative form — *"Never let a non-orchestrator agent import a write tool. Never summarize policy text with an LLM. Every new agent needs a fixture test and an eval item. Prompts live in `prompts/` and are versioned; never inline a prompt string."* That file is what keeps two people plus two AI assistants from producing four architectures.
+**`CLAUDE.md` matters more than it looks.** You are driving Claude Code across a lot of directories on a solo build. Put the invariants there in imperative form — *"Never let a non-orchestrator agent import a write tool. Never summarize policy text with an LLM. Every new agent needs a fixture test and an eval item. Prompts live in `prompts/` and are versioned; never inline a prompt string."* That file is what keeps one human plus one AI assistant from producing two architectures three months apart.
 
-**Parallel work split** (your explicit constraint):
+**Directory contract** (see [PHASES.md §2](../docs/PHASES.md) for the full ownership map):
 
-| You (AI spine) | Your friend (product surface) |
-|---|---|
-| `services/brain`, `evals/`, `knowledge/`, MCP, gateway | `apps/web`, `packages/ui`, design system, community/marketplace modules |
-| Owns: prompts, retrieval, guardrails, evals, model routing | Owns: routes, components, auth flows, notification UI, CI/CD + deploy |
-| Interface: OpenAPI schema + generated TS types + SSE event contract | Same |
+| Concern | Path | Notes |
+|---|---|---|
+| AI spine | `services/brain`, `evals/`, `knowledge/`, MCP, gateway | prompts, retrieval, guardrails, evals, model routing |
+| Product surface | `apps/web`, `packages/ui`, design system | routes, components, auth flows, notification UI |
+| Infra + CI/CD | `infra/`, `.github/workflows/` | docker-compose, migrations, seed, deploy |
 
-The contract is `packages/shared-types`, generated. Agree on the SSE event names and the `TicketState` shape in week 1 and neither of you blocks the other again.
+The contract between spine and surface is `packages/shared-types`, generated from `docs/openapi.yaml`. Freeze the SSE event names and the `TicketState` shape in Phase 0 and you never fight yourself across the seam.
 
 ---
 
@@ -756,7 +756,7 @@ That "measure council lift, and cut it if it's zero" line is the single most sen
 
 ### 10.2 Environments
 
-`local` (docker-compose: postgres+pgvector, redis, litellm, langfuse, ollama — full stack offline, which makes onboarding your friend a one-command operation) → `preview` (per-PR Vercel + shared staging API + seeded DB branch) → `production`.
+`local` (docker-compose: postgres+pgvector, redis, litellm, langfuse, ollama — full stack offline, so bringing the project up on a new machine is a one-command operation) → `preview` (per-PR Vercel + shared staging API + seeded DB branch) → `production`.
 
 **Demo mode** deserves its own flag: `DEMO_MODE=true` seeds a synthetic property, disables all outbound channels (a demo that texts a real phone number is a career-limiting bug), and pins model temperature and seeds so the demo behaves the same at 9am and at midnight.
 

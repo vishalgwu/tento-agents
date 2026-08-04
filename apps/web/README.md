@@ -20,7 +20,7 @@ Next.js 15 (App Router) — the single web app that hosts **all four role shells
 
 ## Owner
 
-Track **B** per [PHASES.md](../../docs/PHASES.md). Track A must not edit files here.
+Vishal. Solo build — see [PHASES.md §2](../../docs/PHASES.md) for the directory-contract rules that keep the code organized.
 
 ---
 > Resident OS — the AI operations layer for apartment communities.

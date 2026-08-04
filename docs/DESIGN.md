@@ -1,7 +1,7 @@
 # DESIGN.md
 
 **Design system and per-surface specifications for Resident OS.**
-Owner: Track B (Surface) · Last updated: 2026-07-25
+Owner: Vishal (solo) · Last updated: 2026-08-04
 **Related:** `PRD.md` (users and jobs) · `ARCHITECTURE.md` (what the UI consumes) · `PHASES.md` (when each surface ships)
 
 ---

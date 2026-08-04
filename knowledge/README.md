@@ -34,7 +34,7 @@ tags: [plumbing, drain, chargeback]
 
 ## Owner
 
-Track **A** per [PHASES.md](../../docs/PHASES.md). The MVP target is 12 real SOP/policy documents by end of Week 2.
+Vishal. The MVP target is 12 real SOP/policy documents by end of Week 2. See [PHASES.md](../docs/PHASES.md).
 
 ---
 > Resident OS — the AI operations layer for apartment communities.

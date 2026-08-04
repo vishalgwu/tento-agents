@@ -4,13 +4,11 @@
 
 ## 1. The 12-week roadmap
 
-Assumption: you at roughly 25–30 focused hours/week on the AI spine, your friend at similar on the product surface. Everything is sized to be cut in half without collapsing.
+Assumption: solo build. Vishal at roughly 25–30 focused hours/week across the AI spine and the product surface. Everything is sized so any phase can be cut in half without collapsing.
 
 ### Weeks 1–2 — Foundation
 
-**You:** repo + monorepo scaffolding, `CLAUDE.md` and the six context docs, docker-compose local stack, schema + migrations, RLS with cross-tenant tests, seed generator (1 property, 400 units, 1,200 historical tickets, 40 assets, 8 vendors), KB with 12 real SOP/policy documents with front matter, ingestion + chunking + embeddings, hybrid retrieval with RRF, retrieval eval harness (recall@k on 50 hand-written query→doc pairs).
-
-**Friend:** Next.js shells for three roles, auth flows, design system, ticket submit + list + detail, SSE client scaffolding.
+**Deliverables:** repo + monorepo scaffolding, `CLAUDE.md` and the six context docs, docker-compose local stack, schema + migrations, RLS with cross-tenant tests, seed generator (1 property, 400 units, 1,200 historical tickets, 40 assets, 8 vendors), KB with 12 real SOP/policy documents with front matter, ingestion + chunking + embeddings, hybrid retrieval with RRF, retrieval eval harness (recall@k on 50 hand-written query→doc pairs), Next.js shells for three roles, auth flows, design system, ticket submit + list + detail, SSE client scaffolding.
 
 **Gate:** `docker compose up` gives a working local system. Hybrid search returns sane results and you have a number for recall@5.
 
@@ -18,35 +16,27 @@ Assumption: you at roughly 25–30 focused hours/week on the AI spine, your frie
 
 ### Weeks 3–4 — The vertical slice
 
-**You:** Safety Sentinel (rules + Haiku), Intake Normalizer, Context Broker with the token budgeter and provenance envelope, Diagnostician, Dispatch Planner, Policy Auditor, Communicator. LangGraph wiring with Postgres checkpointing and `interrupt()` on the approval node. Input/output guardrails v1. `agent_runs`/`agent_steps`/`llm_calls`/`decisions` writing on every run. Deploy to Fly + Vercel.
-
-**Friend:** approval queue UI with the reject-reason taxonomy, ticket timeline with streaming steps, owner dashboard v1, vendor signed-link page.
+**Deliverables:** Safety Sentinel (rules + Haiku), Intake Normalizer, Context Broker with the token budgeter and provenance envelope, Diagnostician, Dispatch Planner, Policy Auditor, Communicator. LangGraph wiring with Postgres checkpointing and `interrupt()` on the approval node. Input/output guardrails v1. `agent_runs`/`agent_steps`/`llm_calls`/`decisions` writing on every run. Approval queue UI with the reject-reason taxonomy, ticket timeline with streaming steps, owner dashboard v1, vendor signed-link page. Deploy to Fly + Vercel.
 
 **🎯 Gate — WEEK 4 IS THE RECRUITER CHECKPOINT.** A live URL where a stranger submits a ticket, watches the reasoning stream, sees the decision with citations, approves it in the manager console, and reads the audit record. If week 4 slips, cut Council and the owner dashboard, not this.
 
 ### Weeks 5–6 — Measurement
 
-**You:** label the 200-item golden set (block out two evenings; do not spread it out). Eval harness with DeepEval + Ragas. CI eval gate with tolerance bands. Red-team fair-housing parity suite. Judge (offline 100%, online 10%). Calibration fitting + reliability diagram. `GET /runs/{id}/replay`.
-
-**Friend:** trace viewer, retrieval inspector, eval dashboard, cost dashboard.
+**Deliverables:** label the 200-item golden set (block out two evenings; do not spread it out). Eval harness with DeepEval + Ragas. CI eval gate with tolerance bands. Red-team fair-housing parity suite. Judge (offline 100%, online 10%). Calibration fitting + reliability diagram. `GET /runs/{id}/replay`. Trace viewer, retrieval inspector, eval dashboard, cost dashboard.
 
 **Gate:** `evals/REPORT.md` exists with real numbers, published in the repo. CI fails on a deliberately-broken prompt. You can name your worst metric and why.
 
 ### Weeks 7–8 — Council, memory, robustness
 
-**You:** Council Mode with evidence-split members, deterministic reviewer, synthesis, triage scorer. **Measure council lift against solo on the golden set and publish the delta — including if it's negative.** Episodic memory + reflection with approval-gated promotion. Degradation ladder including rules-only mode. LiteLLM gateway + routing policy + budgets + caching. MCP servers.
-
-**Friend:** council visualization, agent health dashboard, governance/audit tab with export, notification UI.
+**Deliverables:** Council Mode with evidence-split members, deterministic reviewer, synthesis, triage scorer. **Measure council lift against solo on the golden set and publish the delta — including if it's negative.** Episodic memory + reflection with approval-gated promotion. Degradation ladder including rules-only mode. LiteLLM gateway + routing policy + budgets + caching. MCP servers. Council visualization, agent health dashboard, governance/audit tab with export, notification UI.
 
 **Gate:** kill the Anthropic API key in staging and watch the system degrade gracefully instead of erroring. Record that as a demo clip.
 
 ### Weeks 9–10 — Product surface
 
-**You:** notification policy engine (tiers, quiet hours, fatigue budgets, dedupe, escalation), amenity booking, vendor scorecards feeding dispatch, performance pass (cache hit rates, p95).
+**Deliverables:** notification policy engine (tiers, quiet hours, fatigue budgets, dedupe, escalation), amenity booking, vendor scorecards feeding dispatch, performance pass (cache hit rates, p95). Community surface (interest groups, profiles), marketplace CRUD with ratings, manager-vetted vendor directory, mobile polish.
 
-**Friend:** community surface (interest groups, profiles), marketplace CRUD with ratings, manager-vetted vendor directory, mobile polish.
-
-**Gate:** the product is demoable to a builder without you narrating the AI parts.
+**Gate:** the product is demoable to a builder without narrating the AI parts.
 
 ### Week 11 — Hardening & the artifacts
 

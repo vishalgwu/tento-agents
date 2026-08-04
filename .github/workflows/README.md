@@ -4,11 +4,11 @@ CI/CD pipelines.
 
 ## Planned pipelines
 
-| File | Owner | Purpose |
-|---|---|---|
-| `ci.yml` | Track **B** | Lint, typecheck, unit tests on every push. Cross-tenant RLS suite runs here. |
-| `evals.yml` | Track **A** | The eval gate — priority F1, groundedness, P0 recall, fair-housing red-team. Blocks merge on regression. |
-| `deploy.yml` | Track **B** | Deploy `apps/web` → Vercel and `services/*` → Fly on `main`. |
+| File | Purpose |
+|---|---|
+| `ci.yml` | Lint, typecheck, unit tests on every push. Cross-tenant RLS suite runs here. |
+| `evals.yml` | The eval gate — priority F1, groundedness, P0 recall, fair-housing red-team. Blocks merge on regression. |
+| `deploy.yml` | Deploy `apps/web` → Vercel and `services/*` → Fly on `main`. |
 
 ## Rules
 

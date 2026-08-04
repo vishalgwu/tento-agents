@@ -1,7 +1,7 @@
 # SCREENS.md — Build Reference
 
 **Every screen in Resident OS, specified enough to build from.**
-Owner: Track B (Surface), with data bindings owned by Track A
+Owner: Vishal (solo)
 **Related:** `DESIGN.md` (tokens and language) · `PRD.md` (requirement IDs) · `PHASES.md` (when each ships) · `DEMO.md` (the click path)
 
 > How to use this file: each screen has a wireframe, a component list, its **data bindings** (which table or endpoint feeds each element), its states, and acceptance criteria. If you are driving Claude Code, point it at the individual screen section rather than the whole file.

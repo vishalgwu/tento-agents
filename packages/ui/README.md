@@ -10,7 +10,7 @@ Shared component library consumed by `apps/web`. Design system tokens, primitive
 
 ## Owner
 
-Track **B** per [PHASES.md](../../docs/PHASES.md).
+Vishal. See [PHASES.md](../../docs/PHASES.md).
 
 ---
 > Resident OS — the AI operations layer for apartment communities.

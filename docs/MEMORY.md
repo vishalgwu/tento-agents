@@ -12,14 +12,13 @@
 
 **Update triggers:**
 
-| Trigger | What to add | Who |
-|---|---|---|
-| Phase completes | Phase log entry + metrics snapshot + carry-forward items | Both, together |
-| A decision is made | Decision Log row (+ an ADR file if expensive to reverse) | Whoever proposed it |
-| Something tried fails | "Tried and rejected" entry — **this is the highest-value section in the file** | Whoever tried it |
-| A contract changes | Contract Change Log row | The artifact owner |
-| A metric moves materially | Metrics History row | Track A |
-| Track ownership changes | Update §2 | Both |
+| Trigger | What to add |
+|---|---|
+| Phase completes | Phase log entry + metrics snapshot + carry-forward items |
+| A decision is made | Decision Log row (+ an ADR file if expensive to reverse) |
+| Something tried fails | "Tried and rejected" entry — **this is the highest-value section in the file** |
+| A contract changes | Contract Change Log row |
+| A metric moves materially | Metrics History row |
 
 **Never delete history from this file.** Mark things superseded; do not remove them. The record of what did not work is what stops you doing it again in November.
 
@@ -39,33 +38,29 @@ DEMO URL:         —
 EVAL REPORT:      not yet generated
 ```
 
-**Right now the next action is:** run Phase 0 (`PHASES.md` §3) — three days, both developers, producing eight frozen artifacts. Nothing else starts until all eight are committed.
+**Right now the next action is:** run Phase 0 (`PHASES.md` §3) — three focused days producing eight frozen artifacts. Nothing else starts until all eight are committed.
 
 ---
 
-## 2. Track assignment
+## 2. Build mode
 
-| Track | Owner | Paths |
-|---|---|---|
-| **A — Brain** | Vishal | `services/brain`, `services/api`, `services/worker`, `services/mcp`, `knowledge`, `evals`, `infra/migrations`, `infra/seed`, `.github/workflows/evals.yml` |
-| **B — Surface** | *(collaborator)* | `apps/web`, `packages/ui`, `infra/docker-compose*.yml`, `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `DESIGN.md` |
+**Solo — Vishal owns every path.** The directory contract in `PHASES.md` §2 still applies as the *code-organization* rule: each concern has one authoritative folder, so future refactors (and Claude Code) don't scatter the same logic across the tree.
 
-Split variant in use: **Brain / Surface** (see `PHASES.md` §2.2 for alternatives).
-Changed on: — · Reason: —
+Changed on: 2026-08-04 · Reason: project confirmed as solo build; earlier two-track structure retired.
 
 ---
 
 ## 3. Phase log
 
-Copy this template for each phase. Fill it at the integration checkpoint, together, before starting the next phase.
+Copy this template for each phase. Fill it at the integration checkpoint before starting the next phase.
 
 ```markdown
 ### Phase N — <name>
 **Dates:** YYYY-MM-DD → YYYY-MM-DD · **Tag:** phase-N-complete · **Status:** complete | partial
 
 **Shipped**
-- Track A:
-- Track B:
+- Brain (`services/`, `evals/`, `knowledge/`, `infra/`):
+- Surface (`apps/web`, `packages/ui`):
 
 **Definition of done — verified on preview deploy**
 - [ ] item
@@ -208,8 +203,8 @@ One row per eval run that changes a headline number. Always record the git SHA �
 | Q1 | Ship the community surface for the builder pitch, or stay maintenance-only for the hiring pitch? | Vishal | no | Phase 6 | open |
 | Q2 | Which jurisdictions get encoded SLA tables at launch? (VA/MD/DC proposed) | Vishal | Phase 2 KB | Phase 2 | open |
 | Q3 | Disclose "AI-assisted" on every resident message, or once at onboarding? | Vishal | no | Phase 4 | open |
-| Q4 | Real PMS read-adapter in Phase 7, or standalone through v1? | Both | no | Phase 7 | open |
-| Q5 | Marketplace: listings only, or resident-to-resident payments? (listings only proposed) | Track B | no | Phase 8 | open |
+| Q4 | Real PMS read-adapter in Phase 7, or standalone through v1? | Vishal | no | Phase 7 | open |
+| Q5 | Marketplace: listings only, or resident-to-resident payments? (listings only proposed) | Vishal | no | Phase 8 | open |
 | Q6 | Does Council actually earn its place? | Vishal | no | Phase 6 | **open — decided by measurement, not opinion** |
 
 ---
@@ -224,7 +219,7 @@ One row per eval run that changes a headline number. Always record the git SHA �
 
 ## 10. Glossary
 
-Shared vocabulary. If two people use different words for the same thing, add it here rather than arguing in a PR.
+Shared vocabulary. If you catch yourself using two words for the same thing across the codebase, add it here rather than letting the drift happen.
 
 | Term | Meaning |
 |---|---|

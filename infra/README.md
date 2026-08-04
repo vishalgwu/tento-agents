@@ -20,8 +20,7 @@ Success gate: hybrid search returns sane results and `recall@5` on the retrieval
 
 ## Owner
 
-Track **B** owns docker-compose and CI/CD workflows. Track **A** owns migrations and seed.
-See [docs/PHASES.md](../docs/PHASES.md).
+Vishal. See [docs/PHASES.md](../docs/PHASES.md).
 
 ---
 > Resident OS — the AI operations layer for apartment communities.
