@@ -1,0 +1,37 @@
+# Resident OS Phase 0 Python dependencies.
+#
+# Python 3.12 is the supported runtime (see docs/TECHNICAL-ARCHITECTURE.md).
+# Keep these direct dependencies exactly pinned; update them together only after
+# running the compatibility and contract test suites.
+
+# API and persistence
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+pydantic==2.11.7
+SQLAlchemy==2.0.41
+asyncpg==0.30.0
+alembic==1.16.2
+httpx==0.28.1
+redis==6.2.0
+
+# Model providers and orchestration
+anthropic==0.52.2
+openai==1.86.0
+langgraph==0.4.9
+langchain-core==0.3.65
+# LangGraph 0.4.9 leaves these internals as open lower bounds. Pinning them
+# prevents the resolver from selecting later 1.x packages with a different API.
+langgraph-checkpoint==2.1.2
+langgraph-prebuilt==0.2.3
+langgraph-sdk==0.1.74
+langsmith==0.3.45
+
+# Retrieval and privacy guardrails
+sentence-transformers==4.1.0
+presidio-analyzer==2.2.358
+
+# Test and static-analysis tooling
+pytest==8.4.0
+pytest-asyncio==0.26.0
+ruff==0.11.13
+mypy==1.16.0
