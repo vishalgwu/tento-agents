@@ -75,19 +75,23 @@ Update it when an accepted Phase-0 artifact changes.
   `.env`, `tento/`, and `.python312/` are local-only and must remain ignored by Git.
 - `infra/docker-compose.dev.yml` contains only two local dependencies: Postgres
   with `pgvector/pgvector:pg16` and Redis. Both bind only to loopback, have named
-  volumes and health checks, and must not gain API, worker, migration, or frontend
+  volumes and health checks, and must not gain API, worker, or frontend
   services until that code exists.
-- No Python, TypeScript, application-service, migration, route, worker, or test
-  source files exist yet. This is intentional; there is no runtime implementation
-  to refactor, lint, or debug at this checkpoint.
+- `infra/migrations/0001_init.sql` establishes the tenant-scoped domain, AI audit,
+  knowledge, and evaluation schema. `infra/migrations/0002_rls.sql` supplies the
+  RLS boundary and append-only audit protections. Both require a local Postgres
+  application test before the Phase-0 contract is accepted.
+- No Python, TypeScript, application-service, route, worker, or test source files
+  exist yet. This is intentional; there is no runtime implementation to refactor,
+  lint, or debug at this checkpoint.
 
 ### Required next work
 
-Remain in Phase 0. Before creating application services, complete and accept the
-initial schema and RLS migrations, domain vocabulary, OpenAPI contract, SSE event
-contract, typed Pydantic cross-agent contracts, threat model, and requirement-mapped
-test plan. Create a source folder only when one of those accepted artifacts requires
-it; do not manufacture a runnable skeleton to make the repository look complete.
+Remain in Phase 0. Apply and accept the initial schema and RLS migrations together
+with the domain vocabulary, OpenAPI contract, SSE event contract, typed Pydantic
+cross-agent contracts, threat model, and requirement-mapped test plan before creating
+application services. Create a source folder only when one of those accepted artifacts
+requires it; do not manufacture a runnable skeleton to make the repository look complete.
 
 ### Foundation verification commands
 

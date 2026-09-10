@@ -386,10 +386,12 @@ parallel spans sharing a horizontal track. **Label steps with no model call as
 reranked columns with a **budget cut line**. Chunks below it are dimmed but present;
 what was *almost* retrieved is usually the answer to "why was this wrong".
 
-**75. `infra/migrations/0003_ops.sql`** — `failure_events`, `prompt_versions`,
-`metric_rollups`, `label_queue`. `label_queue.expected` is nullable **on purpose** —
-a production failure enters an eval dataset only after a human writes the expected
-answer.
+**75. Evaluation-schema checkpoint** — No `0003_ops.sql` is required: the initial
+schema in `infra/migrations/0001_init.sql` already freezes `failure_events`,
+`prompt_versions`, `metric_rollups`, and `label_queue` with the rest of the Phase-0
+contract. `label_queue.expected` is nullable **on purpose** — a production failure
+enters an eval dataset only after a human writes the expected answer. Any later
+change to these tables requires an approved, forward-only migration.
 
 **76. `services/worker/src/worker/rollups.py`** — Hourly metric rollups. Every ops
 panel reads these; **no dashboard queries a raw event table**, because observability

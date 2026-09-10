@@ -276,8 +276,8 @@ CREATE TABLE roles (
         FOREIGN KEY (org_id, property_id) REFERENCES properties (org_id, id) ON DELETE RESTRICT
 );
 
-CREATE UNIQUE NULLS NOT DISTINCT INDEX roles_active_assignment_unique
-    ON roles (org_id, person_id, role, scope, property_id)
+CREATE UNIQUE INDEX roles_active_assignment_unique
+    ON roles (org_id, person_id, role, scope, property_id) NULLS NOT DISTINCT
     WHERE valid_to IS NULL;
 
 CREATE TABLE tenancies (
