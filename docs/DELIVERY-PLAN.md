@@ -33,7 +33,10 @@ This is the one build sequence for Resident OS, from an empty repository to prod
 
 Create these artifacts before feature code:
 
-1. `pyproject.toml` and web workspace manifests with pinned versions.
+1. A Python dependency manifest with pinned versions. `requirements.txt` is the
+   current source of truth; add `pyproject.toml` only when Python package metadata
+   or tool configuration requires it, and add web workspace manifests only when the
+   web application begins.
 2. `.env.example` with no secrets and clear environment ownership.
 3. Domain vocabulary: priority, status, trade, responsible party, authority, guardrail, rejection reason, decision mode, notification tier, and failure kind.
 4. OpenAPI and SSE event contracts for tickets, runs, decisions, approvals, and errors.

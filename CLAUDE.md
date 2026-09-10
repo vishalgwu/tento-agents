@@ -60,3 +60,39 @@ They are the canonical sources of truth; do not create a competing plan.
   rules-only, queue-and-acknowledge—and record every fallback.
 - In demo mode, use synthetic data and block every real outbound transport at the
   adapter boundary while recording a suppressed delivery receipt.
+
+## Current implementation checkpoint — 2026-09-10
+
+This is a session handoff aid, not a replacement for the canonical documents.
+Update it when an accepted Phase-0 artifact changes.
+
+### Verified foundation
+
+- `requirements.txt` pins the direct Python dependencies; `requirements.lock.txt`
+  fully resolves the local Windows x86_64 environment running Python 3.12.10 in
+  `tento`. `pip check` must remain clean and the lock must match `pip freeze --all`.
+- `.env.example` contains the complete configuration contract with no credentials.
+  `.env`, `tento/`, and `.python312/` are local-only and must remain ignored by Git.
+- `infra/docker-compose.dev.yml` contains only two local dependencies: Postgres
+  with `pgvector/pgvector:pg16` and Redis. Both bind only to loopback, have named
+  volumes and health checks, and must not gain API, worker, migration, or frontend
+  services until that code exists.
+- No Python, TypeScript, application-service, migration, route, worker, or test
+  source files exist yet. This is intentional; there is no runtime implementation
+  to refactor, lint, or debug at this checkpoint.
+
+### Required next work
+
+Remain in Phase 0. Before creating application services, complete and accept the
+initial schema and RLS migrations, domain vocabulary, OpenAPI contract, SSE event
+contract, typed Pydantic cross-agent contracts, threat model, and requirement-mapped
+test plan. Create a source folder only when one of those accepted artifacts requires
+it; do not manufacture a runnable skeleton to make the repository look complete.
+
+### Foundation verification commands
+
+```powershell
+.\tento\Scripts\python.exe -m pip check
+docker compose -f infra/docker-compose.dev.yml config --quiet
+docker compose -f infra/docker-compose.dev.yml config --services
+```
