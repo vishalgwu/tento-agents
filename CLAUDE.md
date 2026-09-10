@@ -77,6 +77,12 @@ Update it when an accepted Phase-0 artifact changes.
   with `pgvector/pgvector:pg16` and Redis. Both bind only to loopback, have named
   volumes and health checks, and must not gain API, worker, or frontend
   services until that code exists.
+- `infra/seed/generate.py` deterministically generates the synthetic development
+  organisation used by later demos: two properties, 400 units, 320 tenancies,
+  40 assets, eight vendors, and 1,200 historical tickets. It validates the
+  Unit 4B kitchen-drain and Unit 2C water-heater fixtures before writing and
+  after database insertion. Run the Phase 0 migrations first, then invoke it
+  with `--dry-run` or a local `DATABASE_URL`; it makes no external calls.
 - `infra/migrations/0001_init.sql` establishes the tenant-scoped domain, AI audit,
   knowledge, and evaluation schema. `infra/migrations/0002_rls.sql` supplies the
   RLS boundary and append-only audit protections. Both require a local Postgres
@@ -84,17 +90,18 @@ Update it when an accepted Phase-0 artifact changes.
 - `docs/vocabularies.md` freezes the database, API, event, agent, fixture, and
   evaluation wire values for the shared domain enums. It must move atomically
   with any future enum migration.
-- No Python, TypeScript, application-service, route, worker, or test source files
-  exist yet. This is intentional; there is no runtime implementation to refactor,
-  lint, or debug at this checkpoint.
+- Apart from `infra/seed/generate.py`, no Python, TypeScript, application-service,
+  route, worker, or test source files exist yet. The generator is a standalone
+  synthetic-data fixture, not a runtime service to refactor, lint, or debug.
 
 ### Required next work
 
-Remain in Phase 0. Apply and accept the initial schema and RLS migrations together
-with the domain vocabulary, OpenAPI contract, SSE event contract, typed Pydantic
-cross-agent contracts, threat model, and requirement-mapped test plan before creating
-application services. Create a source folder only when one of those accepted artifacts
-requires it; do not manufacture a runnable skeleton to make the repository look complete.
+The first Phase 1 artifact is the synthetic-data generator. Apply and accept the
+initial schema and RLS migrations, then run and verify the generator locally before
+creating API services. The remaining Phase 0 API/event contracts, typed Pydantic
+cross-agent contracts, threat model, and requirement-mapped test plan still need
+acceptance; no application service should be created until it directly supports an
+accepted contract.
 
 ### Foundation verification commands
 
