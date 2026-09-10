@@ -13,6 +13,9 @@ asyncpg==0.30.0
 alembic==1.16.2
 httpx==0.28.1
 redis==6.2.0
+# Verify Supabase asymmetric access tokens from the project's public JWKS.
+# The ``crypto`` extra supplies RSA, EC, and EdDSA verification support.
+PyJWT[crypto]==2.13.0
 
 # Model providers and orchestration
 anthropic==0.52.2

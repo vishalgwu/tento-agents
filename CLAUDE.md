@@ -83,6 +83,21 @@ Update it when an accepted Phase-0 artifact changes.
   Unit 4B kitchen-drain and Unit 2C water-heater fixtures before writing and
   after database insertion. Run the Phase 0 migrations first, then invoke it
   with `--dry-run` or a local `DATABASE_URL`; it makes no external calls.
+- `services/api/src/api/db.py` owns the public API's async SQLAlchemy engine,
+  session factory, and transaction-local RLS context path. It requires the
+  `postgresql+asyncpg` URL, disables SQL echoing, and has no service-role or
+  browser-facing client. Routes and jobs must use `tenant_session` or call
+  `set_rls_context` inside their own transaction before tenant data access.
+- `services/api/src/api/deps/auth.py` verifies user bearer tokens against the
+  public Supabase JWKS (never a service-role secret), checks issuer, audience,
+  expiry, and signing algorithm, and accepts only UUID `sub`, `org_id`, and
+  `person_id` claims plus a frozen application `role`. Configure a Supabase
+  Custom Access Token Hook to issue the organisation, person, and application
+  role claims before exposing authenticated routes.
+- `services/api/src/api/deps/tenancy.py` derives the request scope from those
+  verified claims, sets the transaction-local RLS context, and supplies the
+  mandatory explicit `org_id` query predicate. Every tenant-table query must
+  use that predicate in addition to RLS.
 - `infra/migrations/0001_init.sql` establishes the tenant-scoped domain, AI audit,
   knowledge, and evaluation schema. `infra/migrations/0002_rls.sql` supplies the
   RLS boundary and append-only audit protections. Both require a local Postgres
@@ -90,9 +105,10 @@ Update it when an accepted Phase-0 artifact changes.
 - `docs/vocabularies.md` freezes the database, API, event, agent, fixture, and
   evaluation wire values for the shared domain enums. It must move atomically
   with any future enum migration.
-- Apart from `infra/seed/generate.py`, no Python, TypeScript, application-service,
-  route, worker, or test source files exist yet. The generator is a standalone
-  synthetic-data fixture, not a runtime service to refactor, lint, or debug.
+- Apart from `infra/seed/generate.py` and the API foundation boundary, no Python,
+  TypeScript, application-service, route, worker, or test source files exist yet.
+  The generator is a standalone synthetic-data fixture; the API foundation does
+  not expose an endpoint.
 
 ### Required next work
 
