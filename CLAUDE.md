@@ -81,6 +81,9 @@ Update it when an accepted Phase-0 artifact changes.
   knowledge, and evaluation schema. `infra/migrations/0002_rls.sql` supplies the
   RLS boundary and append-only audit protections. Both require a local Postgres
   application test before the Phase-0 contract is accepted.
+- `docs/vocabularies.md` freezes the database, API, event, agent, fixture, and
+  evaluation wire values for the shared domain enums. It must move atomically
+  with any future enum migration.
 - No Python, TypeScript, application-service, route, worker, or test source files
   exist yet. This is intentional; there is no runtime implementation to refactor,
   lint, or debug at this checkpoint.
