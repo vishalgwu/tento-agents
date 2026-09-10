@@ -1,77 +1,44 @@
-# tento-agents · Resident OS
+# Resident OS
 
-**The multi-agent AI operating system for apartment communities.**
-An autonomous orchestration layer that sits on top of legacy PMS software (Yardi, Entrata, AppFolio, Buildium) and runs the workflows those systems only log — starting with the maintenance loop.
+Resident OS is an AI operations layer for apartment communities. It begins with one measurable workflow: maintenance. A resident report becomes a safe, cited, policy-checked, human-reviewable dispatch decision with an immutable audit trail.
 
-> Property management software records what happened. Nobody built the layer that decides what to do next. Resident OS is that layer, and every decision it makes comes with its receipts.
+The repository is intentionally documentation-first while the production system is rebuilt from scratch. It does not contain stale scaffolding, duplicated plans, or demo-only implementation folders.
 
-Working codename: **Resident OS**. Internal name for the AI spine: **the Ops Brain**.
-Author: Vishal Fulsundar. Status: planning + scaffolding.
+## Start here
 
----
+Read the three canonical documents in order:
 
-## The one-line thesis
+1. [Product requirements](docs/PRODUCT.md) - scope, users, requirements, experience, success targets, and release gate.
+2. [Technical architecture](docs/TECHNICAL-ARCHITECTURE.md) - invariants, agents, data, security, evaluation, operations, and production topology.
+3. [Delivery plan](docs/DELIVERY-PLAN.md) - the phased build sequence from contracts to production launch.
 
-In a regulated vertical (Fair Housing, ADA, Colorado AI Act, twelve state AGs pursuing AI discrimination claims), the durable product is not the smartest model — it is the **defensible decision record**. Every AI action ships with prompt hash, model version, retrieved citations, guardrail verdicts, confidence score, and a human approval trail.
+For a compact, printable version, see [Resident OS Production Blueprint](docs/Resident-OS-Production-Blueprint.pdf).
 
-## The wedge workflow: the Maintenance Loop
+## The product in one paragraph
 
-A US apartment portfolio generates ~3.3 maintenance requests per unit per year at ~$200 per request. Triage is still a human reading free text and guessing at four things: urgency, trade, who pays, and what the tech will need on arrival. Get it wrong in one direction and you send a licensed plumber for a garbage-disposal reset; get it wrong in the other and a no-heat call sits three days in January, which in CA/NY/TX/IL is a habitability statute with rent abatement attached.
+Property-management systems record work but rarely decide what should happen next. Resident OS sits alongside them and runs the Maintenance Loop: it acknowledges a report immediately, detects life-safety risk deterministically, assembles versioned evidence, proposes a decision, checks the decision against policy, obtains the required human approval, and records the complete receipt. The goal is not a more talkative bot. It is safer, explainable apartment operations.
 
-The maintenance loop wins the "which workflow first" argument for a reason most people miss: **it's the only apartment workflow with abundant, cheap ground truth.** Vendor accept/reject, reopen rate, human re-classification, first-time-fix — you get labels for free, so you can measure your agents instead of demoing them.
+## Core principles
 
-## The five principles that generate every decision
+- The model proposes; deterministic code validates and authorises.
+- Every consequential decision is grounded in versioned evidence.
+- Only the orchestrator holds side-effecting tool authority.
+- A model never decides whether or when to notify a person.
+- Tenant isolation, append-only audit records, and calibrated abstention are product features.
+- Measured evaluation results matter more than unverified claims.
 
-1. **Reliability compounds multiplicatively** — ≤ 5 LLM calls on the critical path (10 steps at 95% each = 60% end-to-end).
-2. **Decompose by blast radius, not job title** — split on permission / context / evaluability, not persona.
-3. **Read in parallel, write single-threaded** — many read agents, exactly one writer (the orchestrator).
-4. **The model proposes, deterministic code disposes** — every consequential outcome passes through code you can unit-test.
-5. **Calibrated abstention beats confident coverage** — "I'm not sure, here's why" is a first-class output.
+## Canonical scope
 
-## Repo layout
+The measured MVP is maintenance only: intake, life-safety screening, retrieval, decision proposal, policy audit, approval, dispatch proposal, trace, and evaluation. Community features, wellness, autonomous action, and payments are explicitly deferred until the maintenance loop is safe and measured.
 
-```
-tento-agents/
-├── apps/
-│   └── web/                     Next.js 15 — resident, manager, owner, tech, vendor shells
-├── packages/
-│   ├── ui/                      Shared component library
-│   └── shared-types/            Generated from docs/openapi.yaml — do not hand-edit
-├── services/
-│   ├── brain/                   The Ops Brain — 9 agents, Council, RAG, memory, guardrails
-│   ├── api/                     FastAPI HTTP + SSE surface
-│   ├── worker/                  Judge, embeddings, rollups, reflection, notifications
-│   └── mcp/                     kb-mcp, ops-mcp, policy-mcp (the only write tools live here)
-├── knowledge/                   Markdown KB — SOPs, policy, habitability, fair-housing
-├── evals/                       Golden set, suites, CI gate, published REPORT.md
-├── infra/
-│   ├── migrations/              Postgres DDL with RLS everywhere
-│   └── seed/                    Synthetic data generator for local + demo
-├── .github/workflows/           ci.yml, evals.yml, deploy.yml
-└── docs/                        The blueprint — read this first
-```
+## Planned production topology
 
-Each folder has its own scoped `README.md`. **Start with [docs/00-START-HERE.md](docs/00-START-HERE.md).**
+Next.js on Vercel serves the resident, manager, owner, technician, vendor, and operations surfaces. A FastAPI API, orchestration, and workers run on Cloud Run. Supabase Postgres with pgvector provides tenant-isolated data and retrieval; Redis and object storage support queues, caching, and media. Narrow internal tools connect approved actions to property-management, vendor, and notification systems.
 
-## Documentation
+## Project status
 
-| Doc | What's in it |
-|---|---|
-| [docs/00-START-HERE.md](docs/00-START-HERE.md) | One-paragraph pitch, ten up-front verdicts |
-| [docs/01-strategy-and-product.md](docs/01-strategy-and-product.md) | YC problem statement, segments, competitors, MVP, journeys, roadmap |
-| [docs/02-ai-architecture.md](docs/02-ai-architecture.md) | Nine agents, Council Mode, RAG, memory, guardrails, judge, gateway, MCP |
-| [docs/03-platform-engineering.md](docs/03-platform-engineering.md) | Schema, API, monorepo, infra, CI/CD, security, observability, scaling |
-| [docs/04-execution-and-career.md](docs/04-execution-and-career.md) | 12-week roadmap, milestones, demo plan, investor narrative |
-| [docs/PRD.md](docs/PRD.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/RULES.md](docs/RULES.md) · [docs/PHASES.md](docs/PHASES.md) · [docs/DESIGN.md](docs/DESIGN.md) | Working spec set — single source of truth, edit before code |
+Planning and contract-freeze stage. Follow `docs/DELIVERY-PLAN.md` Phase 0 before creating application code. All metrics in the documentation are targets until an evaluation run publishes reproducible results with a commit SHA.
 
-## What "done" looks like in 12 weeks
+## License
 
-- A deployed product at a real URL with demo accounts for `resident`, `manager`, `owner`.
-- A maintenance loop that triages, grounds, checks, decides, and escalates — with a visible trace for every decision.
-- A **public eval report** with real numbers: routing accuracy, priority F1, groundedness, escalation precision/recall, cost per ticket, p50/p95 latency. Including the ones we miss.
-- An observability stack where a stranger can click one ticket and watch the whole reasoning replay.
-- A README a busy person understands in 90 seconds.
-
-## Build mode
-
-**Solo — Vishal.** The directory contract in [docs/PHASES.md §2](docs/PHASES.md) still applies as the *code-organization* rule: each concern has one authoritative folder, so future refactors (and Claude Code) don't scatter the same logic across the tree. `packages/shared-types/` is generated from `docs/openapi.yaml` — never hand-edited. Contract-change protocol is in [PHASES.md §5](docs/PHASES.md).
+See [LICENSE](LICENSE).

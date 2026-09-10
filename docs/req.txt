@@ -1,0 +1,158 @@
+RESIDENT OS — REQUIREMENT REGISTER AND ACCEPTANCE MAP
+======================================================
+
+Document status: Draft baseline for Phase 0 (contract freeze)
+Last updated: 2026-09-09
+Companion document: ../req.txt
+
+USAGE
+-----
+This is the testable register for the whole project. Requirement IDs are stable.
+Use them in issue titles, pull requests, test names, evaluation reports, and
+release evidence. Do not mark an item complete because code exists: record a
+test, evaluation run, or operational rehearsal as its evidence.
+
+STATUS KEY
+----------
+Not started = no accepted implementation evidence.
+Planned     = scheduled for the stated delivery phase.
+Verified    = acceptance evidence is linked below.
+Blocked     = cannot progress without a named external decision or dependency.
+
+ALL CURRENT REQUIREMENTS ARE NOT STARTED UNLESS EVIDENCE IS ADDED.
+
+FUNCTIONAL REQUIREMENT ACCEPTANCE
+---------------------------------
+ID       Phase  Acceptance criteria
+-------  -----  -----------------------------------------------------------------
+FR-101   3      A resident can submit text, 0–5 photos, optional voice, access,
+                pets, and preferred window. Invalid media and missing required
+                inputs receive accessible problem details.
+FR-102   3      A persisted ticket ID is returned before model work begins; load
+                test evidence shows the acknowledgement target is met.
+FR-201   3      Unit and integration tests prove deterministic safety rules run
+                before normalization, retrieval, or generation.
+FR-202   3      Tests prove either deterministic or model safety signal escalates;
+                a false signal from the other source cannot suppress it.
+FR-203   3      End-to-end P0 fixture shows paging starts without a model call
+                after detection and records its delivery receipt.
+FR-301   3      Normalizer emits a schema-valid TicketFacts record or a defined
+                human-escalation result; malformed output is never passed on.
+FR-302   2      Retrieval result contains source ID, version, effective date,
+                authority, score fields, and only tenant-authorised material.
+FR-303   3      Citation verifier rejects unsupported material claims and accepts
+                explicitly labelled unknowns. Golden-set groundedness is reported.
+FR-401   3      Dispatch plan validates all required proposal fields and cannot
+                invoke a write tool directly.
+FR-402   3      Ranking fixture shows relevant vendor factors affect ranking and
+                excludes expired-insurance and out-of-area vendors.
+FR-501   3      Conflict fixtures prove statute > lease > internal SOP > vendor
+                contract; audit output gives the controlling source.
+FR-601   3      Queue ordering fixture ranks by SLA risk. A manager can approve,
+                edit, reassign, and reject without leaving the decision context.
+FR-701   3      A completed run exposes all listed trace fields, with prompt/model
+                identifiers and execution receipt, without logging forbidden PII.
+FR-702   3      Usability review confirms a non-engineer can follow the trace;
+                resident API/UI tests confirm internal artifacts never appear.
+FR-801   4      Notification state-machine tests own eligibility, timing, channel,
+                retry, escalation, and demo-mode suppression. Model output stays
+                within a validated template.
+FR-1001  5      Operations-console tests prove one time range drives every panel
+                and a non-admin principal receives 403 for every ops endpoint.
+
+SAFETY, SECURITY, AND GOVERNANCE ACCEPTANCE
+-------------------------------------------
+ID       Phase  Acceptance criteria
+-------  -----  -----------------------------------------------------------------
+SR-001   4      Static and integration checks show only the orchestrator can
+                invoke write tools and every tool call enforces the grant map.
+SR-002   3      P0 trace test has zero model-call spans between detection and page.
+SR-003   3      Unsupported, low-confidence, and high-blast-radius fixtures
+                demonstrably abstain or require the configured human approval.
+SR-004   1      Every public route and background job has cross-tenant tests;
+                database RLS is enabled for every tenant-scoped table.
+SR-005   1/4    Migration tests reject update/delete for audit tables; fact-history
+                tests show supersession with valid_to rather than overwrite.
+SR-006   4      Schema audit finds no protected/health attribute fields; PII and
+                log tests prove redaction before prompt assembly and persistence.
+SR-007   1      Repeating each mutation with the same Idempotency-Key returns the
+                original result and performs no duplicate effect.
+SR-008   4      Injection suite covers resident text, vendor replies, document
+                text, images, and integrations; untrusted input cannot reach a
+                write-authorised agent.
+SR-009   4      Fair-housing/safety blocks create a human-action item rather than
+                silently changing or sending the blocked draft.
+SR-010   1/3    Demo UI is labelled; integration test proves all outbound transport
+                adapters are disabled while DEMO_MODE is enabled.
+
+QUALITY, OPERABILITY, AND ACCESSIBILITY ACCEPTANCE
+--------------------------------------------------
+ID       Phase  Acceptance criteria
+-------  -----  -----------------------------------------------------------------
+QR-001   3/7    Trace shows no more than five model calls on the critical path;
+                outage drill produces the defined rules-only, safe fallback.
+QR-002   1/3    API contract tests require Idempotency-Key on mutations, cursor
+                pagination on collections, RFC 7807 errors, and valid SSE events.
+QR-003   2/5    Replay test runs against pinned prompt/model/knowledge versions
+                and returns an explicit comparison to the original result.
+QR-004   5      CI runs retrieval, safety, golden, injection, fair-housing, and
+                regression gates. A known-bad fixture demonstrably fails CI.
+QR-005   3/9    Accessibility audit covers keyboard navigation, WCAG AA contrast,
+                text priority labels, reduced motion, and mobile resident flow.
+QR-006   5      Every published metric links to data version, evaluation run, seed
+                when applicable, commit SHA, and an unaltered generated report.
+
+REQUIRED PHASE-0 CONTRACTS
+--------------------------
+The following are mandatory before feature implementation. Each must be accepted
+together because a partial contract freeze creates incompatible assumptions.
+
+1. Domain vocabulary for priority, ticket status, trade, responsible party,
+   authority, guardrail, rejection reason, decision mode, notification tier,
+   role, and failure kind.
+2. OpenAPI contract for tickets, runs, decisions, approvals, errors, pagination,
+   authentication, and idempotency.
+3. SSE event contract for step lifecycle, retrieval, guardrail, council,
+   decision, and failure events.
+4. Initial schema: property domain, AI/audit spine, knowledge, evaluation, tenant
+   RLS, append-only protections, and migrations.
+5. Typed cross-agent contracts: TicketFacts, ContextEnvelope, Claim, Diagnosis,
+   DispatchPlan, AuditResult, Decision, SafetyVerdict, and JudgeScores.
+6. Threat model: cross-tenant access, prompt injection, PII, tool authority,
+   vendor links, audit integrity, provider failure, and notification misuse.
+7. Test plan mapping every ID in this file to unit, integration, evaluation,
+   adversarial, and release evidence.
+
+RELEASE-EVIDENCE CHECKLIST
+--------------------------
+Before MVP release, record links/paths to the following evidence here:
+
+[ ] Synthetic end-to-end maintenance-loop demonstration.
+[ ] Cross-tenant RLS and authorisation test report for routes and jobs.
+[ ] P0 protocol and provider-failure drill results.
+[ ] Retrieval and golden-set evaluation report with commit SHA.
+[ ] CI run showing the deliberately broken prompt/guardrail fixture fails.
+[ ] Fair-housing and prompt-injection evaluation report.
+[ ] Cost, latency, and calibration report.
+[ ] Accessibility, mobile, and keyboard-flow audit.
+[ ] Demo-mode outbound-transport block test.
+[ ] Staging walkthrough, alert/trace verification, backup/restore, and rollback
+    rehearsal.
+
+TRACEABILITY RULES
+------------------
+- Code, tests, migrations, prompts, and dashboards must reference the applicable
+  requirement ID(s) in their issue or pull-request description.
+- Each requirement marked Verified must list durable evidence: a test path and
+  command, evaluation report path/run ID, or operational rehearsal date.
+- A requirement change updates ../req.txt and this file in the same change.
+- New requirements receive the next ID within their family (FR, SR, or QR) and
+  include a phase and acceptance criterion before implementation begins.
+- Metrics remain targets until the linked evidence proves the result.
+
+EVIDENCE LOG
+------------
+No acceptance evidence has been recorded yet. Add entries in this form:
+
+YYYY-MM-DD | Requirement ID | Status | Evidence path/run | Owner | Notes
+

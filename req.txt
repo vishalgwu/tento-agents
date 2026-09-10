@@ -1,0 +1,187 @@
+RESIDENT OS — WHOLE-PROJECT REQUIREMENTS
+=========================================
+
+Document status: Draft baseline for Phase 0 (contract freeze)
+Owner: Product and engineering
+Last updated: 2026-09-09
+
+PURPOSE
+-------
+Resident OS is an AI operations layer for apartment communities. It works beside,
+not in place of, a property-management system. The first release must prove one
+safe and measurable workflow: the Maintenance Loop.
+
+This file is the concise, whole-project requirements contract. The detailed,
+testable register is in docs/req.txt. The supporting product, technical, and
+delivery decisions remain in docs/PRODUCT.md, docs/TECHNICAL-ARCHITECTURE.md,
+and docs/DELIVERY-PLAN.md. When these documents disagree, this file and
+docs/req.txt must be updated in the same change before implementation changes.
+
+1. PRODUCT OUTCOME
+------------------
+The system shall turn a resident maintenance report into a safe, evidence-backed,
+human-reviewable dispatch decision and retain an immutable receipt that explains
+what happened. It must prioritise safety, tenant isolation, grounded claims, and
+human control over conversational fluency or autonomous action.
+
+2. USERS AND REQUIRED OUTCOMES
+------------------------------
+- Resident: submit an issue, receive an acknowledgement and ticket number in
+  under one second, and see an honest plain-language status.
+- Property manager: review the recommended action, evidence, risk, cost, and
+  SLA pressure together; approve, edit, reassign, or reject it.
+- Technician: see the authorised job context, access notes, safety context,
+  likely cause, and parts hint.
+- Vendor: accept or decline an authorised job through a signed, no-login link.
+- Asset owner: review operational cost, service outcomes, recurring failures,
+  human overrides, and audit coverage.
+- Operations/ML engineer: investigate model, retrieval, latency, cost, drift,
+  failure, and evaluation history through a restricted operations console.
+
+3. MEASURED MVP SCOPE
+---------------------
+Included:
+- Maintenance intake, acknowledgement, deterministic life-safety screening,
+  evidence retrieval, diagnosis proposal, policy audit, dispatch proposal,
+  human approval, controlled execution, resident/vendor communication, trace,
+  evaluation, and operations visibility.
+
+Explicitly excluded until a later, evidence-gated release:
+- Payments, rent collection, tenant screening, general legal advice, health data
+  or health inference, protected-attribute profiling, community feeds,
+  marketplace payments, and autonomous high-blast-radius action.
+
+4. FUNCTIONAL REQUIREMENTS
+--------------------------
+FR-101  A resident shall create a maintenance ticket with free text, up to five
+        photos, optional voice input, access permission, pets, and a preferred
+        access window.
+FR-102  The API shall persist a ticket and return its ticket number within one
+        second without waiting for a model response.
+FR-201  Every ticket shall pass deterministic life-safety detection before any
+        other processing.
+FR-202  A small-model safety opinion may escalate a ticket. Deterministic and
+        model safety signals shall combine with OR logic; neither may suppress
+        the other.
+FR-203  A P0 safety event shall activate the approved human paging path with no
+        intervening model call.
+FR-301  The system shall create a validated fact record covering category,
+        symptom, affected asset, access, pets, preferred window, and media facts.
+FR-302  The system shall retrieve relevant versioned SOPs, lease terms,
+        jurisdictional SLA policy, unit history, asset state, warranty, and
+        vendor information with source identifiers and retrieval scores.
+FR-303  A material factual claim in a generated recommendation shall cite
+        supporting evidence or be explicitly represented as unknown.
+FR-401  The system shall propose trade, in-house versus vendor routing, vendor,
+        time window, parts, estimated cost, and responsible party; it shall not
+        dispatch without the required approval.
+FR-402  Vendor proposals shall consider service area, availability, response
+        time, accept rate, first-time-fix rate, cost variance, and warranty
+        eligibility, and shall exclude uninsured or out-of-area vendors.
+FR-501  The policy audit shall apply deterministic authority precedence:
+        statute, lease, internal SOP, then vendor contract.
+FR-601  The manager queue shall be ordered by SLA risk, not arrival time, and
+        shall support approve, edit, reassign, and reject in context.
+FR-701  The system shall record execution steps, prompt/version hash, model
+        version, evidence and scores, guardrail outcome, confidence, tokens,
+        cost, latency, approval, and execution receipt.
+FR-702  The trace shall be understandable by a non-engineer. The resident view
+        shall not expose internal prompts, model names, or confidence scores.
+FR-801  Communications shall use urgency tiers U0–U3 and approved templates. A
+        model may draft inside a validated template but shall never determine
+        whether, when, or through which channel someone is notified.
+FR-1001 The admin-only operations console shall use one shared time range across
+        agents, prompts, models, outputs, evaluation, failures, cost, and drift.
+
+5. SAFETY, SECURITY, AND GOVERNANCE REQUIREMENTS
+------------------------------------------------
+SR-001  Only the orchestrator may hold credentials to invoke side-effecting
+        tools. Every side-effecting call shall have a server-side grant and a
+        single-use, action-scoped approval token when approval is required.
+SR-002  No model shall sit between P0 detection and human paging.
+SR-003  Every consequential decision shall pass deterministic validation before
+        execution; insufficiently supported or low-confidence outcomes shall
+        abstain or escalate.
+SR-004  Every tenant-scoped record shall have org_id and be protected by
+        database row-level security. Each request and background job shall set
+        tenant context and enforce authorisation independently.
+SR-005  Decisions, model calls, guardrail events, approvals, and audit receipts
+        shall be append-only. Corrected facts shall use temporal supersession,
+        not destructive overwrite.
+SR-006  Protected attributes and health inferences shall not be stored, logged,
+        or used as features. PII shall be redacted before prompt assembly and
+        raw payloads shall not be stored in agent-step logs.
+SR-007  All mutating API requests shall require idempotency protection.
+SR-008  Untrusted content shall be labelled by trust level, isolated from agents
+        holding write authority, and covered by injection evaluation tests.
+SR-009  Fair-housing or safety guardrail blocks shall route to a human; the
+        system shall not silently rewrite a blocked outcome.
+SR-010  Demo mode shall be visibly labelled, use synthetic data, and block all
+        real outbound transports.
+
+6. QUALITY AND OPERABILITY REQUIREMENTS
+---------------------------------------
+QR-001  The critical path shall use at most five model calls; independent reads
+        shall run in parallel. A provider outage shall fall back to rules-only
+        acknowledgement, safety screening, and human escalation.
+QR-002  API mutations shall use an Idempotency-Key. Reads shall use cursor
+        pagination. Long-running work shall return a run identifier and stream
+        documented status events through SSE.
+QR-003  Prompts, model calls, knowledge versions, and evaluation data shall be
+        versioned sufficiently to replay a run and compare outcomes.
+QR-004  The system shall evaluate retrieval, priority, routing, groundedness,
+        escalation, cost, latency, calibration, fair housing, and safety before
+        release. CI shall fail on a deliberately broken prompt or guardrail
+        fixture.
+QR-005  The resident flow shall be mobile-first; critical controls shall be
+        keyboard accessible, meet WCAG AA contrast, never depend on colour alone,
+        and respect reduced-motion preferences.
+QR-006  No stated performance or quality result shall be presented as achieved
+        until a reproducible evaluation run publishes the data version, commit
+        SHA, and measured result.
+
+7. LAUNCH TARGETS (NOT YET CLAIMED RESULTS)
+-------------------------------------------
+- Ticket acknowledgement: 99.9% under 1 second.
+- P0 life-safety recall: at least 0.99; precision: at least 0.70.
+- Priority macro-F1 for P1–P3: at least 0.85.
+- Trade-routing accuracy: at least 0.90.
+- Chargeback accuracy with abstention: at least 0.92.
+- Groundedness: at least 0.95.
+- Fair-housing guardrail leaks on red-team set: zero.
+- Escalation precision: at least 0.60.
+- Decision latency: p50 under 6 seconds; p95 under 20 seconds.
+- Cost per ticket: under USD 0.05.
+
+8. MVP RELEASE ACCEPTANCE
+-------------------------
+The measured MVP is release-ready only when a visitor can use a synthetic ticket
+to complete this demonstrable path:
+
+1. Submit a report and receive a ticket acknowledgement.
+2. Observe the safe processing timeline and cited recommendation.
+3. Review and authorise it in the manager console.
+4. Inspect the immutable, understandable audit trace.
+
+The release also requires successful tenant-isolation, P0, notification-block,
+provider-failure, accessibility, performance, and rollback checks; a published
+evaluation report with reproducible results and commit SHA; and a documented
+explained miss for every target that is not met.
+
+9. DELIVERY ORDER
+-----------------
+Phase 0: freeze domain/API/event contracts, schema, threat model, and test plan.
+Phase 1: establish a local, tenant-isolated running foundation.
+Phase 2: build and evaluate knowledge/retrieval before generation.
+Phase 3: complete the maintenance vertical slice.
+Phase 4: strengthen guardrails, approvals, and audit integrity.
+Phase 5: publish reproducible evaluation and ML operations evidence.
+Phases 6–9: add council/memory, resilience, notifications/community, and launch
+hardening only after the prior gate is met.
+
+10. CHANGE CONTROL
+------------------
+Every implementation change shall identify its requirement ID(s), test impact,
+security/evaluation impact, migration plan if applicable, rollback plan, and
+documentation update. A requirement is not complete until its acceptance evidence
+is recorded in docs/req.txt.
