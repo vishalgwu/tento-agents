@@ -98,6 +98,18 @@ Update it when an accepted Phase-0 artifact changes.
   verified claims, sets the transaction-local RLS context, and supplies the
   mandatory explicit `org_id` query predicate. Every tenant-table query must
   use that predicate in addition to RLS.
+- `services/api/src/api/middleware/` is the Phase-1 ingress boundary: public
+  `/v1` calls authenticate, establish one RLS-bound request transaction, apply
+  the Redis tenant/person rate limit, and require an `Idempotency-Key` for
+  POST, PUT, and PATCH. Idempotency stores only SHA-256 request/key digests and
+  a bounded, replay-safe response for 24 hours. It never uses a service-role
+  client or logs client payloads.
+- `infra/migrations/0003_idempotency_response_cache.sql` adds the durable
+  response cache and the resident-own-record RLS policy required for replay.
+  Apply migrations in order; do not alter `0001` or `0002` after deployment.
+- `services/api/src/api/main.py` supplies the Phase-1 app assembly and an
+  unauthenticated `/healthz` readiness response reporting only database and
+  Redis status. No public domain route exists until its OpenAPI contract does.
 - `infra/migrations/0001_init.sql` establishes the tenant-scoped domain, AI audit,
   knowledge, and evaluation schema. `infra/migrations/0002_rls.sql` supplies the
   RLS boundary and append-only audit protections. Both require a local Postgres

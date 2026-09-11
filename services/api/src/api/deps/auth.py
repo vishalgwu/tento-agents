@@ -309,17 +309,32 @@ def get_supabase_jwt_verifier() -> SupabaseJwtVerifier:
     return SupabaseJwtVerifier(SupabaseJwtSettings.from_environment())
 
 
+async def authenticate_bearer_authorization(
+    authorization_header: str | None,
+    verifier: SupabaseJwtVerifier,
+) -> AuthenticatedPrincipal:
+    """Verify one raw HTTP ``Authorization`` header without exposing its value."""
+
+    if authorization_header is None:
+        raise InvalidAccessToken
+    scheme, separator, encoded_token = authorization_header.partition(" ")
+    if scheme.lower() != "bearer" or not separator or not encoded_token.strip():
+        raise InvalidAccessToken
+    return await verifier.verify(encoded_token.strip())
+
+
 async def get_current_principal(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
     verifier: SupabaseJwtVerifier = Depends(get_supabase_jwt_verifier),
 ) -> AuthenticatedPrincipal:
     """FastAPI dependency requiring a verified bearer token with tenant claims."""
 
-    if credentials is None or credentials.scheme.lower() != "bearer":
-        raise _authentication_http_error()
-
     try:
-        return await verifier.verify(credentials.credentials)
+        if credentials is None:
+            raise InvalidAccessToken
+        return await authenticate_bearer_authorization(
+            f"{credentials.scheme} {credentials.credentials}", verifier
+        )
     except InvalidAccessToken as error:
         raise _authentication_http_error() from error
     except (JwtKeySetUnavailable, JwtConfigurationError) as error:
