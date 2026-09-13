@@ -1,0 +1,16 @@
+{
+  "name": "resident-os",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "build:web": "pnpm --filter @resident-os/web build",
+    "dev:web": "pnpm --filter @resident-os/web dev",
+    "generate:api": "pnpm --filter @resident-os/shared-types generate",
+    "typecheck:web": "pnpm --filter @resident-os/web typecheck"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.10.1",
+    "typescript": "^5.8.3"
+  }
+}

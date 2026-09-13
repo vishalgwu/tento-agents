@@ -87,8 +87,9 @@ PUT, PATCH. Cache the response by `Idempotency-Key` for 24h. Agentic systems ret
 without this, a retry becomes a duplicate real-world action — two work orders, two
 vendor dispatches, two texts to a resident.
 
-**16. `services/api/src/api/middleware/errors.py`** — RFC 7807 problem details with
-stable `type` URIs. Never return a raw exception string to a client.
+**16. `services/api/src/api/middleware/errors.py`** — RFC 9457 problem details
+(the current successor to RFC 7807) with stable `type` URIs. Never return a raw
+exception string to a client.
 
 **17. `services/api/src/api/main.py`** — Assemble the pipeline in order: auth →
 tenancy → rate limit → idempotency → routes → errors. Health check reporting DB and
@@ -116,6 +117,16 @@ else: the **status lamp** (priority, always paired with a text label so colour n
 carries meaning alone), the **evidence rail** (citation chips with two-way hover),
 and the **machine-blue / human-brass** semantic — blue means the system decided,
 brass means a person authorised.
+
+**Implementation checkpoint — 2026-09-12.** Steps 20–22 are implemented as a
+strict, non-production boundary. The Next.js routes make role access and review
+semantics visible without inventing an authentication, mutation, or dispatch API.
+The resident and staff forms are disabled integration boundaries; the vendor route
+performs fail-closed server-side HMAC validation of expiring no-account links.
+`packages/shared-types/src/api.generated.ts` is generated from
+`docs/openapi.yaml`, and the UI package supplies the three signature components
+with keyboard-accessible evidence interactions. Use `pnpm generate:api`,
+`pnpm typecheck:web`, and `pnpm build:web` before accepting changes in this area.
 
 ---
 

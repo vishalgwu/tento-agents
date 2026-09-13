@@ -13,12 +13,13 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.sql.elements import ColumnElement
 
 from api.db import AppRole, TenantContext, set_rls_context, tenant_session
 from api.deps.auth import AuthenticatedPrincipal, get_current_principal
+from api.middleware.errors import ProblemDetailsException, TENANT_CONTEXT_UNAVAILABLE
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,6 +80,29 @@ async def get_tenant_scope(
         role=principal.role,
         subject_id=principal.subject_id,
     )
+
+
+async def get_request_tenant_scope(request: Request) -> TenantScope:
+    """Return the scope installed by authenticated request middleware.
+
+    Public routes use this dependency rather than rebuilding a scope from
+    request input.  It also makes routes fail closed if middleware is omitted
+    from an application assembly or cannot establish the RLS boundary.
+    """
+
+    scope = getattr(request.state, "tenant_scope", None)
+    if not isinstance(scope, TenantScope):
+        raise ProblemDetailsException(TENANT_CONTEXT_UNAVAILABLE)
+    return scope
+
+
+async def get_request_session(request: Request) -> AsyncSession:
+    """Return the transaction that already has the request RLS context set."""
+
+    session = getattr(request.state, "db_session", None)
+    if not isinstance(session, AsyncSession):
+        raise ProblemDetailsException(TENANT_CONTEXT_UNAVAILABLE)
+    return session
 
 
 async def set_request_rls_context(session: AsyncSession, scope: TenantScope) -> None:

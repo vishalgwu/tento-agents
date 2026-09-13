@@ -97,7 +97,9 @@ def seed_timestamp(day: date, hour: int = 9, minute: int = 0) -> datetime:
 def build_units(
     properties: Sequence[tuple[object, ...]],
     buildings: Sequence[tuple[object, ...]],
-) -> tuple[list[tuple[object, ...]], dict[uuid.UUID, list[uuid.UUID]], dict[str, uuid.UUID]]:
+) -> tuple[
+    list[tuple[object, ...]], dict[uuid.UUID, list[uuid.UUID]], dict[str, uuid.UUID]
+]:
     """Build 200 uniquely named units per property.
 
     Virginia uses 1A through 20J so the documented 4B and 2C fixtures are
@@ -156,7 +158,9 @@ def choose_occupied_units(
         required_for_property = [unit_id for unit_id in unit_ids if unit_id in required]
         candidates = [unit_id for unit_id in unit_ids if unit_id not in required]
         randomizer.shuffle(candidates)
-        occupied.extend(required_for_property + candidates[: 160 - len(required_for_property)])
+        occupied.extend(
+            required_for_property + candidates[: 160 - len(required_for_property)]
+        )
     return occupied
 
 
@@ -220,7 +224,14 @@ def build_people_and_tenancies(
         reporter_by_unit[unit_id] = person_id
 
     staff_specs: tuple[tuple[uuid.UUID, str, str, str, str, uuid.UUID | None], ...] = (
-        (SEED_ADMIN_ID, "seed-admin", "Synthetic Operations Administrator", "operations_admin", "organisation", None),
+        (
+            SEED_ADMIN_ID,
+            "seed-admin",
+            "Synthetic Operations Administrator",
+            "operations_admin",
+            "organisation",
+            None,
+        ),
         (
             stable_id("staff", "va-manager"),
             "manager-va",
@@ -238,7 +249,14 @@ def build_people_and_tenancies(
             list(property_units)[1],
         ),
     )
-    for person_id, external_ref, display_name, role, scope, staff_property_id in staff_specs:
+    for (
+        person_id,
+        external_ref,
+        display_name,
+        role,
+        scope,
+        staff_property_id,
+    ) in staff_specs:
         people.append(
             (
                 person_id,
@@ -301,16 +319,28 @@ def build_assets(
     )
     candidate_units: list[uuid.UUID] = []
     for unit_ids in property_units.values():
-        candidates = [unit_id for unit_id in unit_ids if unit_id != special_water_heater_unit_id]
+        candidates = [
+            unit_id for unit_id in unit_ids if unit_id != special_water_heater_unit_id
+        ]
         randomizer.shuffle(candidates)
         candidate_units.extend(candidates[:20])
     randomizer.shuffle(candidate_units)
 
     for index, unit_id in enumerate(candidate_units[:39], start=2):
-        asset_type, manufacturer, model_number = asset_types[(index - 2) % len(asset_types)]
+        asset_type, manufacturer, model_number = asset_types[
+            (index - 2) % len(asset_types)
+        ]
         installed_year = randomizer.randint(2020, 2025)
-        installed_on = date(installed_year, randomizer.randint(1, 12), min(randomizer.randint(1, 28), 28))
-        warranty_expires_on = date(installed_year + randomizer.choice((3, 5, 7)), installed_on.month, installed_on.day)
+        installed_on = date(
+            installed_year,
+            randomizer.randint(1, 12),
+            min(randomizer.randint(1, 28), 28),
+        )
+        warranty_expires_on = date(
+            installed_year + randomizer.choice((3, 5, 7)),
+            installed_on.month,
+            installed_on.day,
+        )
         assets.append(
             (
                 stable_id("asset", index),
@@ -332,7 +362,9 @@ def build_assets(
     return assets
 
 
-def build_vendors(randomizer: random.Random) -> tuple[list[tuple[object, ...]], list[tuple[object, ...]]]:
+def build_vendors(
+    randomizer: random.Random,
+) -> tuple[list[tuple[object, ...]], list[tuple[object, ...]]]:
     """Create the eight region-scoped vendors used by later dispatch fixtures."""
 
     vendor_specs = (
@@ -386,7 +418,9 @@ def seasonal_submission_time(randomizer: random.Random, category: str) -> dateti
 
     while True:
         span_seconds = int((HISTORY_END - HISTORY_START).total_seconds())
-        candidate = HISTORY_START + timedelta(seconds=randomizer.randrange(span_seconds))
+        candidate = HISTORY_START + timedelta(
+            seconds=randomizer.randrange(span_seconds)
+        )
         if category == "hvac":
             weight = 4 if candidate.month in {12, 1, 2, 6, 7, 8} else 1
         elif category == "pest_control":
@@ -399,7 +433,9 @@ def seasonal_submission_time(randomizer: random.Random, category: str) -> dateti
             return candidate.replace(microsecond=0)
 
 
-def resolution_time(randomizer: random.Random, submitted_at: datetime, priority: str) -> datetime:
+def resolution_time(
+    randomizer: random.Random, submitted_at: datetime, priority: str
+) -> datetime:
     hours_by_priority = {
         "p0": (2, 12),
         "p1": (8, 60),
@@ -407,7 +443,9 @@ def resolution_time(randomizer: random.Random, submitted_at: datetime, priority:
         "p3": (48, 336),
     }
     lower, upper = hours_by_priority[priority]
-    return submitted_at + timedelta(hours=randomizer.randint(lower, upper), minutes=randomizer.randint(0, 59))
+    return submitted_at + timedelta(
+        hours=randomizer.randint(lower, upper), minutes=randomizer.randint(0, 59)
+    )
 
 
 def ticket_row(
@@ -426,7 +464,9 @@ def ticket_row(
 ) -> tuple[object, ...]:
     acknowledgement_delay_seconds = randomizer.randint(3, 50)
     acknowledged_at = submitted_at + timedelta(seconds=acknowledgement_delay_seconds)
-    preferred_start = submitted_at.replace(hour=10, minute=0, second=0, microsecond=0) + timedelta(days=1)
+    preferred_start = submitted_at.replace(
+        hour=10, minute=0, second=0, microsecond=0
+    ) + timedelta(days=1)
     preferred_end = preferred_start + timedelta(hours=4)
     return (
         stable_id("ticket", ticket_key),
@@ -483,9 +523,13 @@ def build_tickets(
         )
 
     occupied_unit_ids = list(reporter_by_unit)
-    scenarios, weights = zip(*((scenario, scenario[3]) for scenario in TRADE_SCENARIOS), strict=True)
+    scenarios, weights = zip(
+        *((scenario, scenario[3]) for scenario in TRADE_SCENARIOS), strict=True
+    )
     for ticket_key in range(4, EXPECTED_COUNTS["tickets"] + 1):
-        category, symptom_summary, priorities, _ = randomizer.choices(scenarios, weights=weights, k=1)[0]
+        category, symptom_summary, priorities, _ = randomizer.choices(
+            scenarios, weights=weights, k=1
+        )[0]
         unit_id = randomizer.choice(occupied_unit_ids)
         priority_weights = [0.2, 0.8] if len(priorities) == 2 else [1.0]
         priority = randomizer.choices(priorities, weights=priority_weights, k=1)[0]
@@ -600,7 +644,15 @@ def build_seed_data() -> SeedData:
         special_drain_unit_id,
     )
     data = SeedData(
-        orgs=[(DEMO_ORG_ID, "resident-os-demo", "Resident OS Synthetic Demo", "America/New_York", True)],
+        orgs=[
+            (
+                DEMO_ORG_ID,
+                "resident-os-demo",
+                "Resident OS Synthetic Demo",
+                "America/New_York",
+                True,
+            )
+        ],
         properties=properties,
         buildings=buildings,
         units=units,
@@ -633,7 +685,9 @@ def validate_seed_data(
         "tickets": len(data.tickets),
     }
     if actual_counts != EXPECTED_COUNTS:
-        raise AssertionError(f"Seed counts changed: expected {EXPECTED_COUNTS}, got {actual_counts}")
+        raise AssertionError(
+            f"Seed counts changed: expected {EXPECTED_COUNTS}, got {actual_counts}"
+        )
 
     drain_tickets = [
         ticket
@@ -685,9 +739,16 @@ async def seed_database(database_url: str, data: SeedData) -> None:
     connection = await asyncpg.connect(normalize_database_url(database_url))
     try:
         async with connection.transaction():
-            await connection.execute("SELECT set_config('app.current_org_id', $1, true)", str(DEMO_ORG_ID))
-            await connection.execute("SELECT set_config('app.current_person_id', $1, true)", str(SEED_ADMIN_ID))
-            await connection.execute("SELECT set_config('app.current_role', 'operations_admin', true)")
+            await connection.execute(
+                "SELECT set_config('app.current_org_id', $1, true)", str(DEMO_ORG_ID)
+            )
+            await connection.execute(
+                "SELECT set_config('app.current_person_id', $1, true)",
+                str(SEED_ADMIN_ID),
+            )
+            await connection.execute(
+                "SELECT set_config('app.current_role', 'operations_admin', true)"
+            )
 
             await upsert_rows(
                 connection,
@@ -887,7 +948,9 @@ async def verify_database_seed(connection: asyncpg.Connection) -> None:
         DEMO_ORG_ID,
     )
     if drain_count != 3:
-        raise RuntimeError(f"Unit 4B has {drain_count} kitchen-drain tickets; expected 3")
+        raise RuntimeError(
+            f"Unit 4B has {drain_count} kitchen-drain tickets; expected 3"
+        )
 
     warranty_count = await connection.fetchval(
         """
@@ -921,7 +984,9 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--database-url",
-        default=os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/resident_os"),
+        default=os.environ.get(
+            "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/resident_os"
+        ),
         help="PostgreSQL URL. Defaults to DATABASE_URL or the local Compose database.",
     )
     parser.add_argument(
@@ -945,7 +1010,13 @@ async def async_main() -> None:
 def main() -> int:
     try:
         asyncio.run(async_main())
-    except (AssertionError, asyncpg.PostgresError, OSError, ValueError, RuntimeError) as error:
+    except (
+        AssertionError,
+        asyncpg.PostgresError,
+        OSError,
+        ValueError,
+        RuntimeError,
+    ) as error:
         print(f"Seed generation failed: {error}", file=sys.stderr)
         return 1
     return 0

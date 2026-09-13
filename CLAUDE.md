@@ -33,8 +33,9 @@ They are the canonical sources of truth; do not create a competing plan.
    attributes or health data. Redact PII before prompt assembly and never put raw
    payloads in agent-step logs.
 10. **Treat mutations as retryable contracts.** Require `Idempotency-Key` for all
-    mutations; use cursor pagination for collections, RFC 7807 problem details for
-    errors, and documented SSE events for long-running work.
+   mutations; use cursor pagination for collections, RFC 9457 problem details
+   (the current successor to RFC 7807) for errors, and documented SSE events for
+   long-running work.
 11. **Keep policy and communication deterministic.** Policy precedence is statute,
     lease, internal SOP, then vendor contract. Notification eligibility, timing,
     channel, retry, and escalation are state machines—not model decisions.
@@ -61,7 +62,7 @@ They are the canonical sources of truth; do not create a competing plan.
 - In demo mode, use synthetic data and block every real outbound transport at the
   adapter boundary while recording a suppressed delivery receipt.
 
-## Current implementation checkpoint — 2026-09-10
+## Current implementation checkpoint — 2026-09-12
 
 This is a session handoff aid, not a replacement for the canonical documents.
 Update it when an accepted Phase-0 artifact changes.
@@ -98,18 +99,21 @@ Update it when an accepted Phase-0 artifact changes.
   verified claims, sets the transaction-local RLS context, and supplies the
   mandatory explicit `org_id` query predicate. Every tenant-table query must
   use that predicate in addition to RLS.
-- `services/api/src/api/middleware/` is the Phase-1 ingress boundary: public
-  `/v1` calls authenticate, establish one RLS-bound request transaction, apply
-  the Redis tenant/person rate limit, and require an `Idempotency-Key` for
-  POST, PUT, and PATCH. Idempotency stores only SHA-256 request/key digests and
-  a bounded, replay-safe response for 24 hours. It never uses a service-role
-  client or logs client payloads.
+- `services/api/src/api/middleware/` is the Phase-1 ingress boundary: every
+  request receives a safe `X-Request-ID`; public `/v1` calls then authenticate,
+  establish one RLS-bound request transaction, apply the Redis tenant/person
+  rate limit, and require an `Idempotency-Key` for POST, PUT, and PATCH.
+  Idempotency stores only SHA-256 request/key digests and a bounded,
+  replay-safe response for 24 hours. It never uses a service-role client or
+  logs client payloads.
 - `infra/migrations/0003_idempotency_response_cache.sql` adds the durable
   response cache and the resident-own-record RLS policy required for replay.
   Apply migrations in order; do not alter `0001` or `0002` after deployment.
 - `services/api/src/api/main.py` supplies the Phase-1 app assembly and an
   unauthenticated `/healthz` readiness response reporting only database and
-  Redis status. No public domain route exists until its OpenAPI contract does.
+  Redis status. It registers only the ticket read routes accepted in
+  `docs/openapi.yaml`; do not add another public domain route until its
+  OpenAPI contract does.
 - `infra/migrations/0001_init.sql` establishes the tenant-scoped domain, AI audit,
   knowledge, and evaluation schema. `infra/migrations/0002_rls.sql` supplies the
   RLS boundary and append-only audit protections. Both require a local Postgres
@@ -117,24 +121,52 @@ Update it when an accepted Phase-0 artifact changes.
 - `docs/vocabularies.md` freezes the database, API, event, agent, fixture, and
   evaluation wire values for the shared domain enums. It must move atomically
   with any future enum migration.
-- Apart from `infra/seed/generate.py` and the API foundation boundary, no Python,
-  TypeScript, application-service, route, worker, or test source files exist yet.
-  The generator is a standalone synthetic-data fixture; the API foundation does
-  not expose an endpoint.
+- The API foundation has unit coverage for JWT verification, tenant scoping,
+  safe problem responses, rate-limit decisions, idempotency replay behavior,
+  ticket keyset pagination, and the health endpoint. `test_tenancy.py` is a
+  route matrix: every registered `/v1` route must add an organisation-isolation
+  case before CI will pass. `.github/workflows/api-quality.yml` executes that
+  matrix, the API checks, and seed invariants on pull requests and `main`.
+- `apps/web` is a strict TypeScript Next.js 15 App Router foundation. Its public
+  role routes are `/app`, `/manage`, `/owner`, `/tech`, and `/v/[token]`; the
+  resident magic-link and staff password-plus-TOTP pages are present only as
+  disabled integration boundaries. They do not send mail, accept credentials,
+  verify a TOTP, or persist a browser session before an approved API/identity
+  contract exists.
+- `apps/web/lib/vendor-link.ts` verifies no-account vendor links on the server as
+  `base64url(payload).base64url(HMAC-SHA-256(payload))`. The payload must contain
+  non-empty `workOrderId` and `vendorId` strings plus a future integer
+  `expiresAt`. It uses timing-safe signature comparison and fails closed when
+  `VENDOR_LINK_SIGNING_SECRET` is absent, malformed, expired, or tampered. It
+  does not mint links or expose job data beyond the signed claims.
+- `packages/shared-types/src/api.generated.ts` is generated only by
+  `pnpm --filter @resident-os/shared-types generate` from `docs/openapi.yaml`.
+  Do not edit it or create browser-side replicas of API schema types.
+- `packages/ui` contains the status lamp (always a textual label plus colour),
+  keyboard-accessible two-way evidence rail, and explicit machine-blue/human-brass
+  decision marker. Use shadcn primitives for ordinary controls.
 
 ### Required next work
 
-The first Phase 1 artifact is the synthetic-data generator. Apply and accept the
-initial schema and RLS migrations, then run and verify the generator locally before
-creating API services. The remaining Phase 0 API/event contracts, typed Pydantic
-cross-agent contracts, threat model, and requirement-mapped test plan still need
-acceptance; no application service should be created until it directly supports an
-accepted contract.
+The remaining Phase 0 API and SSE contracts, typed Pydantic cross-agent contracts,
+threat model, and requirement-mapped test plan still need acceptance. Do not turn
+the web boundary into a live login, mutation, or dispatch path until its API and
+identity contracts are approved. The next Phase-1 acceptance work is live database
+migration/seed verification; the route-matrix test is deliberately retained as CI
+coverage for every registered public route.
 
 ### Foundation verification commands
 
 ```powershell
 .\tento\Scripts\python.exe -m pip check
+.\tento\Scripts\ruff.exe format --check services/api infra/seed
+.\tento\Scripts\ruff.exe check services/api infra/seed
+.\tento\Scripts\python.exe -m mypy
+.\tento\Scripts\python.exe -m pytest -q
+.\tento\Scripts\python.exe infra/seed/generate.py --dry-run
 docker compose -f infra/docker-compose.dev.yml config --quiet
 docker compose -f infra/docker-compose.dev.yml config --services
+pnpm generate:api
+pnpm typecheck:web
+pnpm build:web
 ```

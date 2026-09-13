@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import uuid4
 
 import pytest
+from redis.asyncio import Redis
 
 from api.deps.tenancy import TenantScope
 from api.middleware.rate_limit import RateLimitSettings, RedisFixedWindowRateLimiter
@@ -35,8 +37,8 @@ def _scope() -> TenantScope:
 async def test_rate_limit_allows_requests_within_budget() -> None:
     redis = _Redis(count=2, ttl=45)
     limiter = RedisFixedWindowRateLimiter(
-        redis, RateLimitSettings(requests_per_window=3, window_seconds=60)
-    )  # type: ignore[arg-type]
+        cast(Redis, redis), RateLimitSettings(requests_per_window=3, window_seconds=60)
+    )
 
     decision = await limiter.check(_scope())
 
@@ -49,7 +51,7 @@ async def test_rate_limit_allows_requests_within_budget() -> None:
 @pytest.mark.asyncio
 async def test_rate_limit_rejects_requests_over_budget() -> None:
     limiter = RedisFixedWindowRateLimiter(
-        _Redis(count=4, ttl=1),  # type: ignore[arg-type]
+        cast(Redis, _Redis(count=4, ttl=1)),
         RateLimitSettings(requests_per_window=3, window_seconds=60),
     )
 

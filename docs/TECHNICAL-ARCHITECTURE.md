@@ -57,6 +57,31 @@ docs/                     the three canonical plans and final reference PDF
 
 Python is 3.12 with typed public APIs, Ruff, and strict type checks in the brain. TypeScript is strict. API models are defined once in OpenAPI and generate client types; browser components never hand-type API-shaped payloads.
 
+### Phase-1 web boundary
+
+`apps/web` is a Next.js 15 App Router workspace containing the resident (`/app`),
+manager (`/manage`), owner (`/owner`), technician (`/tech`), and vendor
+(`/v/[token]`) surfaces. The resident magic-link and staff password-plus-TOTP
+screens are intentionally presentation-only until an identity provider, tenant
+membership checks, session lifecycle, and their API contracts are accepted. They
+must not send email, receive a password/TOTP, or persist a browser session in the
+interim.
+
+The vendor surface has no account. It verifies an expiring HMAC-SHA-256 token on
+the server before it renders a minimal signed context. The token is a canonical
+`base64url(JSON payload).base64url(signature)` pair; the JSON contains only a
+work-order reference, vendor reference, and integer Unix expiry. Verification is
+timing-safe and fail-closed when the configured secret is absent, signature is
+malformed, or expiry has passed. Only the future authorised dispatch flow may mint
+links or expose additional job data.
+
+`packages/shared-types/src/api.generated.ts` is generated from
+`docs/openapi.yaml` with `pnpm --filter @resident-os/shared-types generate`; it is
+not hand-edited. `packages/ui` owns the status lamp (text plus colour), evidence
+rail (keyboard-accessible two-way claim/citation focus), and decision marker. The
+marker makes a machine proposal (blue) and human authorisation (brass) explicit in
+text as well as colour; ordinary controls remain shadcn primitives.
+
 ## Domain and data design
 
 The core domain is organisation -> property -> building -> unit, connected to people, roles, tenancies, assets, vendors, tickets, work orders, and media. Every row has `org_id`; tenant scope is set in both API middleware and Postgres RLS.
@@ -67,7 +92,7 @@ Facts use temporal supersession (`valid_to`) rather than destructive overwrite. 
 
 ## API and event contract
 
-The API is versioned under `/v1`. Mutations require `Idempotency-Key`; reads use cursor pagination on `(created_at, id)`; long-running work returns a run identifier and streams step events over SSE. Errors use RFC 7807 problem details with stable types.
+The API is versioned under `/v1`. Mutations require `Idempotency-Key`; reads use cursor pagination on `(created_at, id)`; long-running work returns a run identifier and streams step events over SSE. Errors use RFC 9457 problem details (the current successor to RFC 7807) with stable types.
 
 Initial resources are tickets, runs, decisions, approvals, vendors, knowledge search, operations health, and inbound vendor webhooks. Core events are `step.started`, `step.finished`, `retrieval.done`, `guardrail.hit`, `council.opened`, `council.member`, `decision.ready`, and `run.failed`. Schema and event contracts are frozen in phase 0, generated for TypeScript consumers, and changed only through a single complete migration.
 

@@ -35,8 +35,9 @@ Create these artifacts before feature code:
 
 1. A Python dependency manifest with pinned versions. `requirements.txt` is the
    current source of truth; add `pyproject.toml` only when Python package metadata
-   or tool configuration requires it, and add web workspace manifests only when the
-   web application begins.
+   or tool configuration requires it. The web workspace manifests now exist for
+   the Phase-1 route and type-generation foundation; do not add a browser API
+   client or identity integration until its contracts are accepted.
 2. `.env.example` with no secrets and clear environment ownership.
 3. Domain vocabulary: priority, status, trade, responsible party, authority, guardrail, rejection reason, decision mode, notification tier, and failure kind.
 4. OpenAPI and SSE event contracts for tickets, runs, decisions, approvals, and errors.
@@ -52,6 +53,13 @@ No route, worker, or component is created until it supports one of these accepte
 ### Foundation
 
 Create the monorepo layout, local Compose services, migration runner, deterministic synthetic seed, and continuous integration. Add API middleware in this order: request ID, authentication, tenant RLS context, rate limit, idempotency, routing, and error conversion. Test that an organisation-A principal cannot read or mutate organisation-B data on every public route.
+
+The initial web foundation may make role and security boundaries visible, but it
+must remain non-operative until the matching backend contracts exist. In
+particular, disabled resident magic-link and staff password-plus-TOTP pages do not
+contact an identity provider; the vendor page only verifies an expiring server-side
+HMAC link and cannot dispatch, accept, decline, or mutate a job. OpenAPI types are
+generated as part of this boundary, never copied by hand into browser code.
 
 ### Evidence before generation
 

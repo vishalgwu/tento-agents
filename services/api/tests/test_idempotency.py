@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
@@ -20,6 +20,8 @@ from api.middleware.idempotency import (
     CachedResponse,
     ConflictingIdempotencyRecord,
     IdempotencyMiddleware,
+    IdempotencyLookup,
+    IdempotencyRequest,
     NewIdempotencyRecord,
     PostgresIdempotencyStore,
     ReplayedIdempotencyRecord,
@@ -43,24 +45,26 @@ class _RequestStateMiddleware(BaseHTTPMiddleware):
 
 class _InMemoryStore(PostgresIdempotencyStore):
     def __init__(self) -> None:
-        self.lookup: object = NewIdempotencyRecord(uuid4())
+        self.lookup: IdempotencyLookup = NewIdempotencyRecord(uuid4())
         self.completed: list[CachedResponse] = []
         self.released = 0
 
-    async def begin(self, _session: AsyncSession, _request: object) -> object:
+    async def begin(
+        self, _session: AsyncSession, _request: IdempotencyRequest
+    ) -> IdempotencyLookup:
         return self.lookup
 
     async def complete(
         self,
         _session: AsyncSession,
-        _request: object,
-        _record_id: object,
+        _request: IdempotencyRequest,
+        _record_id: UUID,
         response: CachedResponse,
     ) -> None:
         self.completed.append(response)
 
     async def release(
-        self, _session: AsyncSession, _request: object, _record_id: object
+        self, _session: AsyncSession, _request: IdempotencyRequest, _record_id: UUID
     ) -> None:
         self.released += 1
 

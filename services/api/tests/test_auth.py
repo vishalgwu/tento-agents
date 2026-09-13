@@ -6,7 +6,10 @@ from uuid import UUID, uuid4
 
 import jwt
 import pytest
-from cryptography.hazmat.primitives.asymmetric.rsa import generate_private_key
+from cryptography.hazmat.primitives.asymmetric.rsa import (
+    RSAPrivateKey,
+    generate_private_key,
+)
 from jwt.algorithms import RSAAlgorithm
 
 from api.deps.auth import (
@@ -20,7 +23,7 @@ from api.deps.auth import (
 
 
 @pytest.fixture
-def signing_material() -> tuple[object, dict[str, object]]:
+def signing_material() -> tuple[RSAPrivateKey, dict[str, object]]:
     private_key = generate_private_key(public_exponent=65_537, key_size=2_048)
     public_jwk = json.loads(RSAAlgorithm.to_jwk(private_key.public_key()))
     public_jwk.update(
@@ -40,7 +43,7 @@ def settings() -> SupabaseJwtSettings:
 
 
 def _signed_token(
-    private_key: object,
+    private_key: RSAPrivateKey,
     settings: SupabaseJwtSettings,
     **overrides: object,
 ) -> str:
@@ -65,7 +68,8 @@ def _signed_token(
 
 @pytest.mark.asyncio
 async def test_verifier_accepts_signed_token_with_required_tenant_claims(
-    signing_material: tuple[object, dict[str, object]], settings: SupabaseJwtSettings
+    signing_material: tuple[RSAPrivateKey, dict[str, object]],
+    settings: SupabaseJwtSettings,
 ) -> None:
     private_key, public_jwk = signing_material
     verifier = SupabaseJwtVerifier(settings)
@@ -86,7 +90,8 @@ async def test_verifier_accepts_signed_token_with_required_tenant_claims(
 
 @pytest.mark.asyncio
 async def test_verifier_rejects_signed_token_without_person_claim(
-    signing_material: tuple[object, dict[str, object]], settings: SupabaseJwtSettings
+    signing_material: tuple[RSAPrivateKey, dict[str, object]],
+    settings: SupabaseJwtSettings,
 ) -> None:
     private_key, public_jwk = signing_material
     verifier = SupabaseJwtVerifier(settings)
@@ -102,7 +107,8 @@ async def test_verifier_rejects_signed_token_without_person_claim(
 
 @pytest.mark.asyncio
 async def test_verifier_rejects_wrong_audience_before_claims_are_trusted(
-    signing_material: tuple[object, dict[str, object]], settings: SupabaseJwtSettings
+    signing_material: tuple[RSAPrivateKey, dict[str, object]],
+    settings: SupabaseJwtSettings,
 ) -> None:
     private_key, public_jwk = signing_material
     verifier = SupabaseJwtVerifier(settings)
@@ -117,7 +123,7 @@ async def test_verifier_rejects_wrong_audience_before_claims_are_trusted(
 
 
 def test_jwks_rejects_symmetric_or_duplicate_key_material(
-    signing_material: tuple[object, dict[str, object]],
+    signing_material: tuple[RSAPrivateKey, dict[str, object]],
 ) -> None:
     symmetric_key = {
         "kid": "symmetric",

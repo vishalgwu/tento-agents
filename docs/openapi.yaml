@@ -1,0 +1,201 @@
+openapi: 3.1.0
+info:
+  title: Resident OS API
+  version: 0.1.0
+  description: |
+    Initial public read contract for tenant-scoped maintenance tickets. All
+    versioned routes require a verified Supabase bearer token. The API returns
+    RFC 9457 problem details for failures.
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+paths:
+  /tickets:
+    get:
+      operationId: listTickets
+      summary: List tickets visible to the caller's organisation
+      parameters:
+        - $ref: '#/components/parameters/TicketCursor'
+        - $ref: '#/components/parameters/PageLimit'
+      responses:
+        '200':
+          description: A page ordered by descending created_at and id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketListResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '422':
+          $ref: '#/components/responses/InvalidRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+  /tickets/{ticket_id}:
+    get:
+      operationId: getTicket
+      summary: Get one ticket visible to the caller's organisation
+      parameters:
+        - name: ticket_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The ticket.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketDetail'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TicketCursor:
+      name: cursor
+      in: query
+      description: Opaque keyset continuation token. Do not construct it.
+      schema:
+        type: string
+        maxLength: 512
+    PageLimit:
+      name: limit
+      in: query
+      description: Number of tickets to return; the default is 50.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+  responses:
+    AuthenticationRequired:
+      description: No valid bearer token was provided.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    DependencyUnavailable:
+      description: A required dependency or the tenant context is unavailable.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InvalidRequest:
+      description: The request or cursor could not be validated.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: The requested ticket does not exist or is not visible.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    RateLimited:
+      description: The caller exceeded the request limit.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    TicketSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - ticket_number
+        - property_id
+        - building_id
+        - unit_id
+        - status
+        - priority
+        - category
+        - symptom_summary
+        - submitted_at
+        - closed_at
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        ticket_number:
+          type: integer
+          format: int64
+        property_id:
+          type: string
+          format: uuid
+        building_id:
+          type: string
+          format: uuid
+        unit_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        priority:
+          type: [string, 'null']
+        category:
+          type: [string, 'null']
+        symptom_summary:
+          type: [string, 'null']
+        submitted_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: [string, 'null']
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    TicketDetail:
+      allOf:
+        - $ref: '#/components/schemas/TicketSummary'
+    TicketListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketSummary'
+        next_cursor:
+          type: [string, 'null']
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, detail, instance]
+      properties:
+        type:
+          type: string
+          format: uri
+          example: urn:resident-os:problem:not-found
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string

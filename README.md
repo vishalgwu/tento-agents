@@ -2,7 +2,7 @@
 
 Resident OS is an AI operations layer for apartment communities. It begins with one measurable workflow: maintenance. A resident report becomes a safe, cited, policy-checked, human-reviewable dispatch decision with an immutable audit trail.
 
-The repository is intentionally documentation-first while the production system is rebuilt from scratch. It does not contain stale scaffolding, duplicated plans, or demo-only implementation folders.
+The repository is intentionally documentation-first while the production system is rebuilt from scratch. The implemented foundation stays tightly scoped to accepted contracts; it does not include stale plans or a pretend end-to-end demo.
 
 ## Start here
 
@@ -37,7 +37,42 @@ Next.js on Vercel serves the resident, manager, owner, technician, vendor, and o
 
 ## Project status
 
-Planning and contract-freeze stage. Follow `docs/DELIVERY-PLAN.md` Phase 0 before creating application code. All metrics in the documentation are targets until an evaluation run publishes reproducible results with a commit SHA.
+The repository currently contains a local, non-production foundation: the
+tenant-scoped schema and RLS migrations, deterministic synthetic seed, and a
+FastAPI reliability boundary (request correlation, JWT verification, RLS context,
+rate limiting, idempotency, safe errors, readiness), and the initial
+tenant-scoped ticket read contract. [`docs/openapi.yaml`](docs/openapi.yaml)
+defines `GET /v1/tickets` and `GET /v1/tickets/{id}`; their database queries use
+keyset pagination and an explicit organisation predicate in addition to RLS. The
+repository also includes the Next.js 15 role-surface foundation (`/app`,
+`/manage`, `/owner`, `/tech`, and `/v/[token]`), generated TypeScript OpenAPI
+types, and the shared evidence/decision visual primitives. It intentionally has
+no connected authentication provider, API mutation, live ticket data, or outbound
+email/notification transport. Vendor links fail closed unless their server-side
+HMAC secret is configured. The remaining OpenAPI and SSE contracts, public
+mutations, and agent workflow remain deliberately pending; do not treat the
+foundation as an MVP release. All metrics in the documentation are targets until
+an evaluation run publishes reproducible results with a commit SHA.
+
+## Web workspace
+
+The web foundation is a pnpm workspace. It is designed to make the intended
+access boundaries clear without simulating an integration that does not exist.
+
+```powershell
+pnpm install
+pnpm generate:api
+pnpm typecheck:web
+pnpm build:web
+pnpm dev:web
+```
+
+`packages/shared-types/src/api.generated.ts` is generated from
+[`docs/openapi.yaml`](docs/openapi.yaml); regenerate it instead of editing it.
+See [the web README](apps/web/README.md),
+[the shared-types README](packages/shared-types/README.md), and
+[the UI README](packages/ui/README.md) for the route, security, and component
+contracts.
 
 ## License
 

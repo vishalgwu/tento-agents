@@ -1,8 +1,8 @@
 """FastAPI application assembly for the Resident OS public API.
 
-Runtime request order is problem conversion -> authentication -> tenant RLS ->
-rate limit -> idempotency -> routing.  The problem layer is registered last so
-it wraps the other middleware and renders failures after they propagate.
+Runtime request order is request ID -> problem conversion -> authentication ->
+tenant RLS -> rate limit -> idempotency -> routing. The problem layer wraps the
+authenticated pipeline and renders failures after they propagate.
 """
 
 from __future__ import annotations
@@ -23,12 +23,14 @@ from api.db import create_database_engine, create_session_factory
 from api.middleware.authentication import AuthenticationMiddleware
 from api.middleware.errors import ProblemDetailsMiddleware, install_problem_handlers
 from api.middleware.idempotency import IdempotencyMiddleware, PostgresIdempotencyStore
+from api.middleware.request_id import RequestIdMiddleware
 from api.middleware.rate_limit import (
     RateLimitMiddleware,
     RateLimitSettings,
     RedisFixedWindowRateLimiter,
 )
 from api.middleware.tenancy import TenantRlsContextMiddleware
+from api.routers.tickets import router as tickets_router
 
 
 _LOCAL_DATABASE_URL: Final = (
@@ -75,7 +77,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    """Build the API with the documented ingress order and no speculative routes."""
+    """Build the API with the documented ingress order and accepted routes."""
 
     app = FastAPI(
         title="Resident OS API",
@@ -94,8 +96,10 @@ def create_app() -> FastAPI:
     app.add_middleware(TenantRlsContextMiddleware)
     app.add_middleware(AuthenticationMiddleware)
     app.add_middleware(ProblemDetailsMiddleware)
+    app.add_middleware(RequestIdMiddleware)
 
     app.add_api_route("/healthz", health, methods=["GET"], include_in_schema=False)
+    app.include_router(tickets_router)
     return app
 
 

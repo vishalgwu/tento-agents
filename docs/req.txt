@@ -19,7 +19,8 @@ Planned     = scheduled for the stated delivery phase.
 Verified    = acceptance evidence is linked below.
 Blocked     = cannot progress without a named external decision or dependency.
 
-ALL CURRENT REQUIREMENTS ARE NOT STARTED UNLESS EVIDENCE IS ADDED.
+NO CURRENT REQUIREMENT IS VERIFIED UNTIL ACCEPTANCE EVIDENCE IS ADDED. Foundation
+code may exist before its full integration and release acceptance is recorded.
 
 FUNCTIONAL REQUIREMENT ACCEPTANCE
 ---------------------------------
@@ -92,7 +93,7 @@ ID       Phase  Acceptance criteria
 QR-001   3/7    Trace shows no more than five model calls on the critical path;
                 outage drill produces the defined rules-only, safe fallback.
 QR-002   1/3    API contract tests require Idempotency-Key on mutations, cursor
-                pagination on collections, RFC 7807 errors, and valid SSE events.
+                pagination on collections, RFC 9457 errors, and valid SSE events.
 QR-003   2/5    Replay test runs against pinned prompt/model/knowledge versions
                 and returns an explicit comparison to the original result.
 QR-004   5      CI runs retrieval, safety, golden, injection, fair-housing, and
@@ -155,4 +156,3 @@ EVIDENCE LOG
 No acceptance evidence has been recorded yet. Add entries in this form:
 
 YYYY-MM-DD | Requirement ID | Status | Evidence path/run | Owner | Notes
-
