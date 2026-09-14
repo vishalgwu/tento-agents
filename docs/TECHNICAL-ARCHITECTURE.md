@@ -50,9 +50,9 @@ services/mcp/             narrow read/write tool servers
 packages/ui/              shared visual primitives
 packages/shared-types/    generated OpenAPI and SSE types
 infra/                    migrations, local compose, seed, deployment configuration
-knowledge/                versioned SOP, lease, SLA, policy, and vendor sources
+knowledge/                versioned sources; current files are evaluation-only fixtures
 evals/                    golden datasets, suites, CI gate, published reports
-docs/                     the three canonical plans and final reference PDF
+docs/                     the three canonical Markdown plans and archived visual snapshots
 ```
 
 Python is 3.12 with typed public APIs, Ruff, and strict type checks in the brain. TypeScript is strict. API models are defined once in OpenAPI and generate client types; browser components never hand-type API-shaped payloads.
@@ -114,7 +114,7 @@ Deterministic code handles triage routing, confidence calibration, decision gati
 
 ## Retrieval, context, and memory
 
-Knowledge is versioned Markdown with typed front matter. Retrieval combines lexical search and pgvector, reciprocal-rank fusion, metadata filtering, optional cross-encoder reranking, parent expansion, and bounded extractive compression. Measure recall before adding agents; retain a reranker only if it produces a measured lift.
+Knowledge is versioned Markdown with typed front matter. Retrieval combines lexical search and pgvector, reciprocal-rank fusion, metadata filtering, optional cross-encoder reranking, parent expansion, and bounded extractive compression. The indexer must enforce lifecycle status: the current `temporary_fixture` corpus is evaluation-only and cannot be served in production. Measure recall before adding agents; retain a reranker only if it produces a measured lift.
 
 The provenance envelope contains bracketed citations with source ID, version, effective date, jurisdiction, authority, and source span. The context broker preserves cited text and places unsupported material in an explicit unknowns section.
 

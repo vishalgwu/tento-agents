@@ -12,7 +12,11 @@ Read the three canonical documents in order:
 2. [Technical architecture](docs/TECHNICAL-ARCHITECTURE.md) - invariants, agents, data, security, evaluation, operations, and production topology.
 3. [Delivery plan](docs/DELIVERY-PLAN.md) - the phased build sequence from contracts to production launch.
 
-For a compact, printable version, see [Resident OS Production Blueprint](docs/Resident-OS-Production-Blueprint.pdf).
+The three PDFs and architecture posters in `docs/` are archived planning
+snapshots, retained for visual context only. They are not implementation
+authority and are not kept in lockstep with the canonical Markdown documents;
+in particular, use the current Markdown rather than their older fixture counts
+or phase checkpoints.
 
 ## The product in one paragraph
 
@@ -53,6 +57,12 @@ HMAC secret is configured. The remaining OpenAPI and SSE contracts, public
 mutations, and agent workflow remain deliberately pending; do not treat the
 foundation as an MVP release. All metrics in the documentation are targets until
 an evaluation run publishes reproducible results with a commit SHA.
+
+The eleven files under [`knowledge/`](knowledge/README.md) are temporary,
+evaluation-only fixtures. They exercise metadata, source precedence, citations,
+and safe abstention; they are neither approved operating policy nor eligible for
+a production retrieval index. Their named replacement owners and promotion
+checklist are maintained in the knowledge register.
 
 ## Web workspace
 

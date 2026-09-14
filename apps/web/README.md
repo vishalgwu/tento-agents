@@ -28,6 +28,11 @@ pnpm build:web
 pnpm dev:web
 ```
 
+The `web-quality.yml` workflow installs from `pnpm-lock.yaml`, audits production
+dependencies at the high-severity threshold, verifies that OpenAPI generation is
+current, type-checks, and builds the production bundle on every relevant pull
+request and change to `main`.
+
 ## Vendor link contract
 
 `lib/vendor-link.ts` accepts only the server-side format

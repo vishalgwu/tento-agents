@@ -99,6 +99,7 @@ export function EvidenceClaim({ children, className, evidenceId }: EvidenceClaim
         className,
       )}
       onBlur={deactivate}
+      onClick={activate}
       onFocus={activate}
       onKeyDown={handleKeyDown}
       onMouseEnter={activate}

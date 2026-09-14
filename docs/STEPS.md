@@ -1,7 +1,9 @@
 # Resident OS — Build Steps
 
 **File-by-file, in the order you create them.**
-Companion to the 3-page architecture poster and the Claude Code task kit.
+The Markdown in this file is canonical. The PDF and 3-page architecture poster
+are archived planning snapshots and may lag behind accepted implementation
+checkpoints.
 
 Each step is one file (or one small group). Build them in order — every step
 depends only on things above it. Steps marked **[HUMAN]** you write yourself;
@@ -132,34 +134,68 @@ with keyboard-accessible evidence interactions. Use `pnpm generate:api`,
 
 ## Phase 2 — Knowledge and retrieval
 
-**23. `knowledge/**/*.md`** **[HUMAN]** — Twelve real documents: plumbing, HVAC,
-electrical and appliance SOPs, an emergency procedure, a lease template, two
-jurisdiction habitability SLA tables, community rules, vendor procedures, resident
-FAQ. Every file needs front matter with `id`, `version`, `effective_from`,
-`effective_to`, `jurisdiction`, and `authority`. Include verbatim: **SOP-PLM-04**
-("after two failed drain-clearing attempts within 12 months, replace the P-trap
-assembly") and **lease §7.3** (owner pays for normal wear and tear). Generated
-documents will be generically plausible and every downstream eval will be measuring
-against fiction.
+**23. `knowledge/**/*.md`** **[HUMAN]** — The current repository has eleven
+temporary evaluation fixtures: plumbing, HVAC, electrical and appliance SOPs, an
+emergency procedure, a lease excerpt, two jurisdiction research notes, community
+rules, vendor procedures, and a resident FAQ. The prior brief called this set
+“twelve” while enumerating eleven; do not invent a twelfth source. Every file
+needs front matter with `id`, `version`, `effective_from`, `effective_to`,
+`jurisdiction`, `authority`, lifecycle `status`, and source provenance. Preserve
+verbatim **SOP-PLM-04** ("after two failed drain-clearing attempts within 12
+months, replace the P-trap assembly") and **lease §7.3** (owner pays for normal
+wear and tear) for evaluation coverage. These fixtures are intentionally not
+human-reviewed sources and must be excluded from production retrieval until each
+named owner supplies a verified replacement; see `knowledge/README.md`.
 
 **24. `services/brain/src/brain/retrieval/chunking.py`** — A strategy per corpus:
 leases clause-level keeping the section path, SOPs heading-aware at 300–600 tokens
 with 15% overlap, community rules one per chunk, work-order history one chunk per
 ticket embedding `symptom + resolution`.
 
+**Implementation checkpoint — 2026-09-13.** Step 24 is implemented as a pure,
+deterministic chunking boundary with exact source spans and content hashes. It
+supports lease clauses, SOP heading scopes, top-level community rules, and one
+redacted symptom-plus-resolution payload per resolved ticket. It performs no
+file I/O, metadata/lifecycle promotion, embeddings, persistence, retrieval, or
+side effects; those remain separate Phase-2 responsibilities.
+
 **25. `services/brain/src/brain/retrieval/embed.py`** — `text-embedding-3-small`,
 stored as `halfvec(1536)` to halve index memory, cached by `sha256(text) + model`.
+
+**Implementation checkpoint — 2026-09-13.** Step 25 provides a typed async
+OpenAI adapter for `text-embedding-3-small` at 1536 dimensions, a process-local
+digest-plus-model cache adapter, batch de-duplication, finite-vector validation,
+and parameter-safe `halfvec` serialization. It has no database writes, no
+environment loading, and no provider call unless a caller supplies the adapter
+and authorised text; durable caching and `kb_chunks` persistence remain part of
+the ingestion step.
 
 **26. `services/brain/src/brain/retrieval/ingest.py`** — Parse front matter, validate
 `authority` against the enum and **fail loudly** on a bad value (a silent default
 corrupts precedence forever), chunk, embed, upsert. Skip any document whose
 `content_sha256` is unchanged.
 
+**Implementation checkpoint — 2026-09-13.** Step 26 now parses only the bounded
+scalar front-matter contract, validates authority against the four database enum
+values, selects a corpus strategy, chunks, embeds, and atomically upserts through
+a tenant-scoped repository. It skips an identical content hash before provider
+work and rejects a content change under the same document version. Temporary
+fixtures are denied by default and may be ingested only into an explicitly
+configured evaluation path as database `draft` records.
+
 **27. `evals/datasets/retrieval_v1.jsonl`** **[HUMAN]** — 50 query → expected-document
 pairs, written **before** the retriever exists so you don't unconsciously write
 queries it already handles. Six types: natural resident phrasing, identifier lookups
 ("SOP-PLM-04", "lease section 7.3"), synonym/paraphrase, jurisdiction-specific,
 effective-date sensitive, and five that should return nothing.
+
+**Implementation checkpoint — 2026-09-14.** Step 27 now has a human-authored,
+50-case JSONL benchmark aligned to the eleven evaluation-only knowledge fixtures.
+It covers the prescribed six query types, uses only resolvable source IDs, and
+records UTC `ticket_occurred_at` values for effective-date cases so the future
+retriever can filter by ticket time rather than `now()`. A regression test guards
+the schema, distribution, source IDs, and date applicability; it does not invoke a
+retriever while asserting the labels.
 
 **28. `services/brain/src/brain/retrieval/hybrid.py`** — BM25 over `tsvector` (GIN)
 and dense over `pgvector` (HNSW), each top 30, fused with reciprocal rank fusion

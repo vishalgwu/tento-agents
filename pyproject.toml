@@ -1,14 +1,17 @@
 [tool.pytest.ini_options]
-testpaths = ["services/api/tests", "infra/seed"]
+testpaths = ["services/api/tests", "services/brain/tests", "infra/seed"]
 python_files = ["test_*.py"]
 asyncio_mode = "strict"
+pythonpath = ["services/brain/src"]
 
 [tool.mypy]
 python_version = "3.12"
-mypy_path = ["services/api/src"]
+mypy_path = ["services/api/src", "services/brain/src"]
 files = [
     "services/api/src/api",
     "services/api/tests",
+    "services/brain/src/brain",
+    "services/brain/tests",
     "infra/seed/generate.py",
     "infra/seed/test_generate.py",
 ]

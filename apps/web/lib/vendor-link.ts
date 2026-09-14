@@ -15,7 +15,7 @@ export type VendorLinkClaim = {
  */
 export function verifyVendorLink(token: string): VendorLinkClaim | null {
   const secret = process.env.VENDOR_LINK_SIGNING_SECRET;
-  if (!secret) {
+  if (!secret || !secret.trim()) {
     return null;
   }
 
@@ -67,9 +67,9 @@ function isVendorLinkClaim(value: unknown): value is VendorLinkClaim {
   const claim = value as Record<string, unknown>;
   return (
     typeof claim.workOrderId === "string" &&
-    claim.workOrderId.length > 0 &&
+    claim.workOrderId.trim().length > 0 &&
     typeof claim.vendorId === "string" &&
-    claim.vendorId.length > 0 &&
+    claim.vendorId.trim().length > 0 &&
     typeof claim.expiresAt === "number" &&
     Number.isSafeInteger(claim.expiresAt)
   );

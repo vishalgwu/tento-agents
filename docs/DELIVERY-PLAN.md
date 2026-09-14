@@ -11,6 +11,8 @@ This is the one build sequence for Resident OS, from an empty repository to prod
 - Change a contract in one change set: source schema, generated types, consumers, fixtures, tests, and docs move together.
 - Record durable decisions in the pull request or issue that made them. Do not maintain a separate stale memory document.
 - Use synthetic data only until written production data-governance approval exists.
+- Treat temporary knowledge fixtures as evaluation-only: they cannot enter a
+  production index, establish an SLA, or authorize an operational decision.
 - Never invent a metric, customer, benchmark, or demo outcome. Use `[TBD from eval run]` until measured.
 - A feature is complete only when its observability, test, fallback, and documentation are complete.
 
@@ -63,7 +65,14 @@ generated as part of this boundary, never copied by hand into browser code.
 
 ### Evidence before generation
 
-Write the initial human-reviewed corpus: plumbing, HVAC, electrical, appliance, emergency, lease, jurisdictional SLA, vendor, and resident communication sources. Add front matter with ID, version, effective date, authority, jurisdiction, and tags. Ship ingestion, chunking, lexical/vector retrieval, reranking measurement, and citation rendering before the diagnostician.
+Use the temporary, versioned knowledge fixtures only to build and evaluate
+ingestion, chunking, lexical/vector retrieval, reranking measurement, citation
+rendering, and abstention. Before a production index exists, accountable owners
+must replace each fixture with a human-reviewed plumbing, HVAC, electrical,
+appliance, emergency, lease, jurisdictional, vendor, or resident-communication
+source. Add front matter with ID, version, effective date, authority,
+jurisdiction, source provenance, and a lifecycle status. Ship the evidence path
+before the diagnostician.
 
 ### Vertical slice
 
@@ -94,6 +103,8 @@ Every change states the requirement, security/evaluation impact, migration plan,
 - All MVP release-gate requirements in `PRODUCT.md` are demonstrably met.
 - RLS and authorisation tests pass for every tenant-scoped route and background job.
 - No real resident data or secret appears in source, fixtures, logs, screenshots, or demonstrations.
+- No `temporary_fixture` knowledge document is searchable in a production or
+  resident-facing retrieval path.
 - P0 protocol, notification suppression in demo mode, and provider-failure degradation are tested end to end.
 - Evaluation report, model/prompt versions, data version, and commit SHA are published together.
 - Accessibility, mobile resident flow, manager keyboard flow, and signed vendor-link flows are validated.

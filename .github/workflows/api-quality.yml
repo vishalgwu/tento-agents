@@ -1,21 +1,29 @@
-name: API quality
+name: Python quality
 
 on:
   pull_request:
     paths:
       - '.github/workflows/api-quality.yml'
+      - 'knowledge/**'
+      - 'infra/migrations/**'
       - 'infra/seed/**'
       - 'pyproject.toml'
       - 'requirements.txt'
+      - 'requirements.lock.txt'
       - 'services/api/**'
+      - 'services/brain/**'
   push:
     branches: [main]
     paths:
       - '.github/workflows/api-quality.yml'
+      - 'knowledge/**'
+      - 'infra/migrations/**'
       - 'infra/seed/**'
       - 'pyproject.toml'
       - 'requirements.txt'
+      - 'requirements.lock.txt'
       - 'services/api/**'
+      - 'services/brain/**'
 
 permissions:
   contents: read
@@ -37,10 +45,10 @@ jobs:
       - name: Verify environment
         run: python -m pip check
       - name: Format check
-        run: python -m ruff format --check services/api infra/seed
+        run: python -m ruff format --check services/api services/brain infra/seed
       - name: Lint
-        run: python -m ruff check services/api infra/seed
+        run: python -m ruff check services/api services/brain infra/seed
       - name: Type check
         run: python -m mypy
-      - name: Test API and seed invariants
+      - name: Test API, retrieval, and seed invariants
         run: python -m pytest -q

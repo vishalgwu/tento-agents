@@ -121,12 +121,15 @@ Update it when an accepted Phase-0 artifact changes.
 - `docs/vocabularies.md` freezes the database, API, event, agent, fixture, and
   evaluation wire values for the shared domain enums. It must move atomically
   with any future enum migration.
-- The API foundation has unit coverage for JWT verification, tenant scoping,
+- The Python foundation has unit coverage for JWT verification, tenant scoping,
   safe problem responses, rate-limit decisions, idempotency replay behavior,
-  ticket keyset pagination, and the health endpoint. `test_tenancy.py` is a
+  ticket keyset pagination, health endpoint, and retrieval ingestion boundary.
+  `test_tenancy.py` is a
   route matrix: every registered `/v1` route must add an organisation-isolation
-  case before CI will pass. `.github/workflows/api-quality.yml` executes that
-  matrix, the API checks, and seed invariants on pull requests and `main`.
+  case before CI will pass. `.github/workflows/api-quality.yml` executes the
+  Python checks, route matrix, retrieval checks, and seed invariants; the
+  separate `web-quality.yml` regenerates API types, type-checks, and builds the
+  web workspace on relevant pull requests and `main`.
 - `apps/web` is a strict TypeScript Next.js 15 App Router foundation. Its public
   role routes are `/app`, `/manage`, `/owner`, `/tech`, and `/v/[token]`; the
   resident magic-link and staff password-plus-TOTP pages are present only as

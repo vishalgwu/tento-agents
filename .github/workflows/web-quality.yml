@@ -1,0 +1,51 @@
+name: Web quality
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/web-quality.yml'
+      - 'apps/web/**'
+      - 'docs/openapi.yaml'
+      - 'package.json'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/web-quality.yml'
+      - 'apps/web/**'
+      - 'docs/openapi.yaml'
+      - 'package.json'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Node 22 quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
+      - name: Verify generated OpenAPI types
+        run: pnpm generate:api && git diff --exit-code -- packages/shared-types/src/api.generated.ts
+      - name: Type check
+        run: pnpm typecheck:web
+      - name: Production build
+        run: pnpm build:web
