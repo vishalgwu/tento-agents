@@ -64,6 +64,12 @@ and safe abstention; they are neither approved operating policy nor eligible for
 a production retrieval index. Their named replacement owners and promotion
 checklist are maintained in the knowledge register.
 
+The Phase-2 retrieval foundation validates and versions those sources, chunks and
+embeds them, and supplies a read-only hybrid BM25/pgvector candidate layer. It
+fuses 30 lexical and 30 dense candidates before applying lifecycle, jurisdiction,
+authority, model, and ticket-time effective-date checks. It is not connected to a
+production index, API route, model workflow, or operational action.
+
 ## Web workspace
 
 The web foundation is a pnpm workspace. It is designed to make the intended

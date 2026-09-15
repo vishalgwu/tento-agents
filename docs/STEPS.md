@@ -203,6 +203,15 @@ at `1/(60 + rank)`. Metadata filters applied **after** fusion — pre-filtering 
 selective predicate collapses HNSW recall. Effective-date filter uses the ticket's
 timestamp, not `now()`.
 
+**Implementation checkpoint — 2026-09-15.** Step 28 now collects tenant-scoped
+GIN lexical and HNSW halfvec candidate lists concurrently (30 each), records both
+source ranks, and applies deterministic reciprocal-rank fusion using `1 / (60 +
+rank)`. It fetches document metadata only after fusion, then enforces lifecycle,
+jurisdiction, authority, embedding-model compatibility, and an explicit
+timezone-aware ticket timestamp. Production defaults to `active` sources; an
+offline evaluation caller must opt into `draft` fixtures deliberately. The adapter
+uses parameter-bound SQL and makes no writes to the retrieval audit tables.
+
 **29. `services/brain/src/brain/retrieval/rerank.py`** — `bge-reranker-v2-m3`
 cross-encoder, 30 → 6. Load the model **once at module level**; per-request loading
 would dominate the latency budget. Persist `rerank_score` into `retrievals.results`.
