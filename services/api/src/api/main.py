@@ -11,7 +11,6 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Final
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
@@ -33,12 +32,6 @@ from api.middleware.tenancy import TenantRlsContextMiddleware
 from api.routers.tickets import router as tickets_router
 
 
-_LOCAL_DATABASE_URL: Final = (
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/resident_os"
-)
-_LOCAL_REDIS_URL: Final = "redis://localhost:6379/0"
-
-
 @dataclass(frozen=True, slots=True)
 class ApiSettings:
     """Runtime infrastructure settings; secrets never enter request state or logs."""
@@ -49,9 +42,16 @@ class ApiSettings:
     @classmethod
     def from_environment(cls) -> ApiSettings:
         return cls(
-            database_url=os.environ.get("DATABASE_URL", _LOCAL_DATABASE_URL),
-            redis_url=os.environ.get("REDIS_URL", _LOCAL_REDIS_URL),
+            database_url=_required_environment_value("DATABASE_URL"),
+            redis_url=_required_environment_value("REDIS_URL"),
         )
+
+
+def _required_environment_value(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise ValueError(f"{name} must be configured")
+    return value
 
 
 @asynccontextmanager

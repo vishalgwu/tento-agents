@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from api.main import create_app
+from api.main import ApiSettings, create_app
 from api.middleware.request_id import REQUEST_ID_HEADER
 
 
@@ -20,6 +20,20 @@ def test_application_registers_the_documented_request_order() -> None:
         "RateLimitMiddleware",
         "IdempotencyMiddleware",
     ]
+
+
+def test_api_settings_fail_fast_without_infrastructure_urls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("REDIS_URL", raising=False)
+
+    with pytest.raises(ValueError, match="DATABASE_URL must be configured"):
+        ApiSettings.from_environment()
+
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://database/resident_os")
+    with pytest.raises(ValueError, match="REDIS_URL must be configured"):
+        ApiSettings.from_environment()
 
 
 @pytest.mark.asyncio

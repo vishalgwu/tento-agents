@@ -62,7 +62,7 @@ They are the canonical sources of truth; do not create a competing plan.
 - In demo mode, use synthetic data and block every real outbound transport at the
   adapter boundary while recording a suppressed delivery receipt.
 
-## Current implementation checkpoint — 2026-09-12
+## Current implementation checkpoint — 2026-09-16
 
 This is a session handoff aid, not a replacement for the canonical documents.
 Update it when an accepted Phase-0 artifact changes.
@@ -132,8 +132,12 @@ Update it when an accepted Phase-0 artifact changes.
   web workspace on relevant pull requests and `main`.
 - `apps/web` is a strict TypeScript Next.js 15 App Router foundation. Its public
   role routes are `/app`, `/manage`, `/owner`, `/tech`, and `/v/[token]`; the
-  resident magic-link and staff password-plus-TOTP pages are present only as
-  disabled integration boundaries. They do not send mail, accept credentials,
+  resident `/app/report` route supplies a browser-only three-step maintenance
+  draft with category, optional camera-first photo selection, access permission,
+  and preferred-window controls. It does not upload media, create a ticket, queue
+  work, or fabricate an acknowledgement before an approved API mutation contract
+  exists. The resident magic-link and staff password-plus-TOTP pages are likewise
+  disabled integration boundaries: they do not send mail, accept credentials,
   verify a TOTP, or persist a browser session before an approved API/identity
   contract exists.
 - `apps/web/lib/vendor-link.ts` verifies no-account vendor links on the server as
@@ -148,6 +152,29 @@ Update it when an accepted Phase-0 artifact changes.
 - `packages/ui` contains the status lamp (always a textual label plus colour),
   keyboard-accessible two-way evidence rail, and explicit machine-blue/human-brass
   decision marker. Use shadcn primitives for ordinary controls.
+
+### Implemented Phase 3 foundation — pending vertical-slice integration
+
+- `services/brain/src/brain/gateway/client.py` is the single audited Anthropic
+  model boundary. It routes typed task classes to configured small/mid/large
+  model identities, content-hashes versioned Jinja prompt assets, caches only
+  their static prefixes, has a timeout/two-retry/provider-breaker policy, and
+  persists append-only prompt and call receipts without raw prompt or response
+  content. The only Anthropic SDK call in the repository is inside this module.
+- `services/brain/src/brain/agents/safety.py` executes deterministic P0 regex
+  screening over resident text and photo captions before all model work. Any
+  signal is terminal for the safety path; a small-model opinion can only add a
+  P0 escalation when the deterministic screen is clear. `p0_protocol.py`
+  creates fixed push/SMS/voice page plans, dispatches those channels
+  concurrently when the orchestrator invokes it, and suppresses every outbound
+  transport in demo mode.
+- `services/brain/src/brain/agents/intake.py` normalizes a report into strict
+  `TicketFacts`, keeps resident-supplied access/pet/window data authoritative,
+  permits one schema-repair retry, then produces a typed human-review state.
+  `context/broker.py` fetches policy, unit/asset facts, similar cases, and
+  episodic memory concurrently, budgets the result, and persists every
+  retrieval score plus whether the chunk entered context. Context slot counts
+  now include final rendered separators.
 
 ### Required next work
 

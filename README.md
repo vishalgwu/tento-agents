@@ -70,6 +70,34 @@ fuses 30 lexical and 30 dense candidates before applying lifecycle, jurisdiction
 authority, model, and ticket-time effective-date checks. It is not connected to a
 production index, API route, model workflow, or operational action.
 
+Its optional cross-encoder stage uses a process-wide `BAAI/bge-reranker-v2-m3`
+model to score the top 30 hybrid candidates, records every score in the
+tenant-scoped retrieval trace, and returns at most six results for later context
+assembly. The model is lazy-loaded once per worker and inference runs outside the
+event loop; it remains a retrieval component, not a decision maker.
+
+Before a source reaches a model context, the extractive compression boundary
+selects only query-supported, verbatim source sentences and preserves their
+source offsets. It never summarizes lease, safety, or policy language; unsupported
+queries contribute no policy text and must remain explicit unknowns downstream.
+
+Context assembly assigns deterministic `[C#]` citations and `[F#]` facts, retaining
+each source's version, effective date range, and section. The model's static
+grounding instruction requires every factual statement to cite that evidence or
+remain an explicit unknown. A `tiktoken`-enforced 8,000-token budget then admits
+whole, pre-ranked blocks into fixed system, policy, fact, history, summary, ticket,
+and output-reserve slots; it never truncates the current ticket or turns facts into
+an opaque JSON dump.
+
+The retrieval evaluation runner compares dense, lexical, hybrid RRF, and hybrid
+plus rerank results against the human-authored 50-query corpus. It writes its
+recall@5/10, MRR, nDCG@10, no-match, and reranker-retention table only from real
+rankings and stamps it with the current Git SHA; no benchmark values are claimed
+until that run is published. The resident `/app/report` surface is an accessible
+three-step browser draft, not a hidden write API: it never fabricates a ticket
+number, media upload, queue, or acknowledgement while the documented mutation
+contract remains pending.
+
 ## Web workspace
 
 The web foundation is a pnpm workspace. It is designed to make the intended

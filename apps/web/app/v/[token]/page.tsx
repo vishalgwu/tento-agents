@@ -6,6 +6,7 @@ import { verifyVendorLink } from "@/lib/vendor-link";
 
 export const metadata = { title: "Vendor work order" };
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type VendorLinkPageProps = {
   params: Promise<{ token: string }>;
@@ -17,6 +18,11 @@ export default async function VendorLinkPage({ params }: VendorLinkPageProps) {
   if (!claim) {
     notFound();
   }
+  const expiry = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date(claim.expiresAt * 1_000));
 
   return (
     <main className="mx-auto grid min-h-screen w-full max-w-2xl place-items-center px-6 py-10">
@@ -41,7 +47,7 @@ export default async function VendorLinkPage({ params }: VendorLinkPageProps) {
             </div>
             <div className="grid gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
               <dt className="text-muted-foreground">Link expiry</dt>
-              <dd>{new Date(claim.expiresAt * 1000).toLocaleString()}</dd>
+              <dd>{expiry} UTC</dd>
             </div>
           </dl>
         </CardContent>

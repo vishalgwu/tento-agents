@@ -4,7 +4,7 @@ This is the Next.js 15 App Router foundation for the five public role surfaces:
 
 | Route | Audience | Current boundary |
 | --- | --- | --- |
-| `/app` | Resident | Read-only route shell; ticket creation waits for a documented mutation contract. |
+| `/app` | Resident | Maintenance workspace and an accessible three-step report draft at `/app/report`; ticket creation still waits for a documented mutation contract. |
 | `/manage` | Property manager | Evidence and decision-provenance component demonstration; no live dispatch. |
 | `/owner` | Asset owner | No metrics until a reproducible evaluation defines them. |
 | `/tech` | Maintenance technician | No active-job reads or work-status mutation. |
@@ -55,3 +55,18 @@ place the signing secret in `NEXT_PUBLIC_*`, browser code, logs, or a link.
   evidence rail supports pointer and keyboard interaction in both directions.
 - Use the existing shadcn primitives in `components/ui` for ordinary controls.
 - Keep server-only code such as HMAC verification out of Client Components.
+
+## Resident report boundary
+
+`/app/report` is a mobile-first three-step form: six category tiles, a
+camera-first optional photo sheet, then access permission and preferred-window
+choices. It is intentionally a browser-only draft until the API accepts a
+tenant-safe `POST /v1/tickets` contract and media upload contract. The form does
+not upload media, claim a ticket number, enqueue a model request, or fabricate
+an acknowledgement.
+
+That API contract must persist and enqueue the report before it returns an
+acknowledgement, with model work strictly off the acknowledgement path and a
+measured response under one second. Do not replace this boundary with an
+in-memory queue or a browser-generated ticket number; either would misrepresent
+resident state after a refresh or server restart.

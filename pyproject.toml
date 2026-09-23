@@ -1,5 +1,5 @@
 [tool.pytest.ini_options]
-testpaths = ["services/api/tests", "services/brain/tests", "infra/seed"]
+testpaths = ["services/api/tests", "services/brain/tests", "infra/seed", "evals"]
 python_files = ["test_*.py"]
 asyncio_mode = "strict"
 pythonpath = ["services/brain/src"]
@@ -12,6 +12,8 @@ files = [
     "services/api/tests",
     "services/brain/src/brain",
     "services/brain/tests",
+    "evals/retrieval.py",
+    "evals/test_retrieval.py",
     "infra/seed/generate.py",
     "infra/seed/test_generate.py",
 ]

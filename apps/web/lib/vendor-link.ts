@@ -1,5 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+const MAX_VENDOR_LINK_TOKEN_LENGTH = 4_096;
+const MAX_VENDOR_LINK_PAYLOAD_BYTES = 3_072;
+const MAX_VENDOR_LINK_IDENTIFIER_LENGTH = 255;
+const MAX_VENDOR_LINK_EXPIRY_SECONDS = 8_640_000_000_000;
+
 export type VendorLinkClaim = {
   expiresAt: number;
   vendorId: string;
@@ -15,7 +20,7 @@ export type VendorLinkClaim = {
  */
 export function verifyVendorLink(token: string): VendorLinkClaim | null {
   const secret = process.env.VENDOR_LINK_SIGNING_SECRET;
-  if (!secret || !secret.trim()) {
+  if (!secret || !secret.trim() || token.length > MAX_VENDOR_LINK_TOKEN_LENGTH) {
     return null;
   }
 
@@ -35,6 +40,7 @@ export function verifyVendorLink(token: string): VendorLinkClaim | null {
 
   if (
     payload.length === 0 ||
+    payload.length > MAX_VENDOR_LINK_PAYLOAD_BYTES ||
     payload.toString("base64url") !== encodedPayload ||
     suppliedSignature.length !== 32 ||
     suppliedSignature.toString("base64url") !== encodedSignature
@@ -66,11 +72,21 @@ function isVendorLinkClaim(value: unknown): value is VendorLinkClaim {
 
   const claim = value as Record<string, unknown>;
   return (
-    typeof claim.workOrderId === "string" &&
-    claim.workOrderId.trim().length > 0 &&
-    typeof claim.vendorId === "string" &&
-    claim.vendorId.trim().length > 0 &&
+    isOpaqueIdentifier(claim.workOrderId) &&
+    isOpaqueIdentifier(claim.vendorId) &&
     typeof claim.expiresAt === "number" &&
-    Number.isSafeInteger(claim.expiresAt)
+    Number.isSafeInteger(claim.expiresAt) &&
+    claim.expiresAt > 0 &&
+    claim.expiresAt <= MAX_VENDOR_LINK_EXPIRY_SECONDS
+  );
+}
+
+function isOpaqueIdentifier(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length <= MAX_VENDOR_LINK_IDENTIFIER_LENGTH &&
+    value === value.trim() &&
+    value.length > 0 &&
+    !/[\u0000-\u001F\u007F]/.test(value)
   );
 }

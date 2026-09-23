@@ -18,18 +18,18 @@ export default function ResidentWorkspacePage() {
       <div className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
         <Card>
           <CardHeader>
-            <Badge variant="outline">Phase 1 boundary</Badge>
+            <Badge variant="outline">Resident report</Badge>
             <CardTitle>Report a maintenance issue</CardTitle>
             <CardDescription>
-              The current API deliberately supports ticket reads only. No web form can create a ticket until a documented POST contract, tenant policy, and evidence requirements are approved.
+              Use the guided report flow to describe an issue, select photos, and choose access preferences. Ticket creation remains unavailable until its tenant-safe POST contract is accepted.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm leading-6 text-muted-foreground">
-            Sign in with a resident magic link when the identity provider is connected. This scaffold does not send email, store a session, or collect issue details.
+            The form preserves a clear boundary: it does not upload media, queue a model call, or invent an acknowledgement while the write API is pending.
           </CardContent>
           <CardFooter>
-            <Button render={<Link href="/resident/sign-in" />} variant="outline">
-              View magic-link sign-in
+            <Button render={<Link href="/app/report" />}>
+              Start a report
             </Button>
           </CardFooter>
         </Card>

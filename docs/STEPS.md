@@ -17,7 +17,7 @@ delegating them defeats the purpose.
 moved between releases, so an unpinned install will break you. Core set: `fastapi`,
 `uvicorn`, `pydantic`, `sqlalchemy`, `asyncpg`, `alembic`, `httpx`, `redis`,
 `anthropic`, `openai`, `langgraph`, `langchain-core`, `sentence-transformers`,
-`presidio-analyzer`, `pytest`, `pytest-asyncio`, `ruff`, `mypy`.
+`tiktoken`, `presidio-analyzer`, `pytest`, `pytest-asyncio`, `ruff`, `mypy`.
 
 **2. `.env` / `.env.example`** — API keys (Anthropic, OpenAI for embeddings, Google
 for the judge), `DATABASE_URL`, `REDIS_URL`, R2 credentials, Supabase keys, plus
@@ -214,15 +214,44 @@ uses parameter-bound SQL and makes no writes to the retrieval audit tables.
 
 **29. `services/brain/src/brain/retrieval/rerank.py`** — `bge-reranker-v2-m3`
 cross-encoder, 30 → 6. Load the model **once at module level**; per-request loading
-would dominate the latency budget. Persist `rerank_score` into `retrievals.results`.
+would dominate the latency budget. Persist `rerank_score` into `retrieval_results`.
+
+**Implementation checkpoint — 2026-09-15.** Step 29 now uses the fixed
+`BAAI/bge-reranker-v2-m3` cross-encoder through a one-per-process module singleton.
+The first model load and all synchronous inference run off the event loop; later
+requests reuse the instance. It scores no more than 30 RRF-ranked candidates,
+persists every finite score to the tenant-scoped `retrieval_results.rerank_score`
+column in one checked update, and returns the top six with deterministic tie
+handling. This supplies retrieval evidence only; it does not make a decision or
+invoke an operational tool.
 
 **30. `services/brain/src/brain/retrieval/parent.py`** — Expand each retrieved chunk
 to its containing section. A policy clause is meaningless without its surrounding
 conditions.
 
+**Implementation checkpoint — 2026-09-23.** Step 30 now expands each selected
+retrieval chunk to every persisted chunk in the same document-local heading path
+through one tenant-scoped query. It reconstructs the full persisted source span in a
+deterministic order, preserves the selected chunk's exact absolute offsets, and
+fails closed when the repository returns a partial, cross-scope, duplicate, or
+conflicting response. Because the schema stores source spans rather than a
+second raw-document copy, unretrieved whitespace gaps are represented only as
+same-length whitespace; the expansion never creates policy text. It remains a
+read-only retrieval operation, leaving extractive selection and context budgeting
+to Steps 31 and 33.
+
 **31. `services/brain/src/brain/context/compress.py`** — **Extractive** sentence
 selection against the query. Never abstractive: summarising policy text introduces
 errors upstream of the model, on exactly the text that carries legal weight.
+
+**Implementation checkpoint — 2026-09-15.** Step 31 now provides deterministic,
+dependency-free sentence selection over already-authorized source spans. Each
+selected sentence is an exact source substring with absolute character offsets,
+its source ID, and a lexical relevance score; it never calls a model or rewrites
+policy language. Markdown list/table lines remain intact, ties are reproducible,
+and zero lexical support returns no policy text rather than a plausible summary.
+Parent expansion, context budgeting, and provenance-envelope assembly remain
+separate steps.
 
 **32. `services/brain/src/brain/context/envelope.py`** — Assemble context with
 provenance IDs (`[C1]`, `[F1]`) carrying source, version, effective date, and
@@ -235,14 +264,44 @@ policy 1,600, unit/asset facts 700 (key-value, never JSON dumps), similar cases
 1,300, conversation summary 500, current ticket 600 (never truncated), output
 reserve 2,300.
 
+**Implementation checkpoint — 2026-09-15.** Steps 32–33 now assemble a
+deterministic, citation-bearing envelope before context allocation. Source evidence
+receives stable `[C#]` or `[F#]` identifiers and retains source, version,
+effective-date range, and section metadata. The static grounding rule requires every
+factual claim to cite evidence or be explicitly placed in `Unknowns`; source text is
+treated as data rather than instructions. The `tiktoken` `o200k_base` encoder
+enforces a fixed 8,000-token allocation: 1,000 system/schema, 1,600 policy, 700
+key-value unit/asset facts, 1,300 similar cases, 500 conversation summary, 600
+untruncated current ticket, and 2,300 output reserve. Optional blocks are selected
+whole in caller-provided rank order, with omissions retained in the trace.
+
 **34. `evals/retrieval.py`** — Measure recall@5/10, MRR, nDCG@10 across four
 strategies: dense only, lexical only, hybrid RRF, hybrid + rerank. **Publish the
 table with the git SHA.** If reranking doesn't help, delete it.
+
+**Implementation checkpoint — 2026-09-15.** Step 34 now validates the
+human-authored JSONL corpus and separately supplied, complete document rankings
+for all four strategies. It computes macro recall@5/10, MRR, nDCG@10, and the
+no-match accuracy required by the five abstention probes, then writes a Markdown
+table stamped with the checked-out Git SHA. `--require-rerank-lift` fails the
+run when hybrid + rerank has no non-regressing measured lift over hybrid RRF;
+the report states that the cross-encoder must be deleted. No static report is
+committed because there is no real index run to support a number.
 
 **35. `apps/web/src/app/(resident)/app/report/`** — Three-step submission: six large
 category tiles (no dropdowns), camera-first photo sheet, access permission and
 preferred window. **The acknowledgment must return in under a second and must never
 wait on a model call** — enqueue, then respond.
+
+**Implementation checkpoint — 2026-09-15.** Step 35 is implemented at the
+repository's actual App Router path, `apps/web/app/(resident)/app/report/`, as a
+mobile-first three-step resident report draft. It has six large category tiles,
+an optional camera-first image sheet limited to five images, and accessible
+access/window choices. Because the current OpenAPI contract exposes ticket reads
+only, this surface does not create a synthetic ticket, upload an image, or claim
+an acknowledgement. The future tenant-safe `POST /v1/tickets` contract must
+persist and enqueue before returning its sub-second receipt, without waiting for
+any model call.
 
 ---
 
