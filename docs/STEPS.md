@@ -348,6 +348,15 @@ re-running history.
 recommended actions. A plain async function with no tools and no LangGraph import;
 context is pushed to it, not pulled.
 
+**Implementation checkpoint — 2026-09-23.** Step 43 now accepts only strict ticket
+facts, bounded caller-supplied context, and provenance IDs. It invokes the central
+gateway once with the mid-tier diagnosis task and returns a typed cause hypothesis,
+proposal-only actions, and explicit unknowns. Every cause and action carries one or
+more provenance IDs that must be present in the pushed context; an unavailable
+provider, invalid schema, missing evidence, or unsupported citation produces a
+typed abstention. The module has no retrieval, persistence, filesystem, tool, or
+orchestration dependency.
+
 **44. `services/brain/src/brain/guardrails/citations.py`** — Deterministic
 verification: every cited ID exists in the envelope, every sentence containing a
 number, date, dollar amount or `§` carries a citation, and every cited figure appears

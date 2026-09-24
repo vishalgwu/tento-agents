@@ -175,6 +175,12 @@ Update it when an accepted Phase-0 artifact changes.
   episodic memory concurrently, budgets the result, and persists every
   retrieval score plus whether the chunk entered context. Context slot counts
   now include final rendered separators.
+- `services/brain/src/brain/agents/diagnostician.py` accepts only pushed ticket
+  facts, bounded grounded context, and provenance IDs. It proposes a cited cause
+  hypothesis and non-executing actions through the central gateway, or returns a
+  typed abstention when evidence, schema, provider availability, or citation
+  membership is insufficient. It has no retrieval, tool, persistence, or
+  orchestration authority.
 
 ### Required next work
 
