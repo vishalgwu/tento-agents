@@ -131,6 +131,7 @@ def _gateway(
 def test_task_classes_have_explicit_cost_quality_tiers() -> None:
     assert TASK_TIER_ROUTING[TaskClass.SAFETY_SECOND_OPINION] is ModelTier.SMALL
     assert TASK_TIER_ROUTING[TaskClass.DIAGNOSIS] is ModelTier.MID
+    assert TASK_TIER_ROUTING[TaskClass.CITATION_REPAIR] is ModelTier.MID
     assert TASK_TIER_ROUTING[TaskClass.ESCALATED_REVIEW] is ModelTier.LARGE
     assert set(TASK_TIER_ROUTING) == set(TaskClass)
 

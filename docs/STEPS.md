@@ -364,6 +364,15 @@ verbatim in the referenced chunk. One targeted regeneration naming the specific
 claims, then a human. **The highest-value anti-hallucination component in the
 project, and it costs nothing.**
 
+**Implementation checkpoint — 2026-09-23.** Step 44 now deterministically checks
+generated prose against a supplied provenance envelope. It rejects unknown IDs,
+numeric/date/currency/section claims without citations, and cited figures absent
+from every cited source text without normalising formatting. A passing candidate
+does not call a model. A failed candidate receives exactly one mid-tier,
+versioned repair request carrying only the specific failed claims and its evidence;
+if that repair is unavailable, malformed, or still invalid, the text is withheld
+and a typed human-review result retains the latest violations.
+
 **45. `services/brain/src/brain/policy/precedence.py`** — Conflict resolution in code:
 `statute > lease > internal_sop > vendor_contract`.
 
@@ -371,6 +380,18 @@ project, and it costs nothing.**
 vendor selection scored on accept rate and first-time-fix, window, parts, cost
 estimate. Never propose a vendor with expired insurance or outside their service
 area. **Proposes only — never writes.**
+
+**Implementation checkpoint — 2026-09-23.** Steps 45–46 now provide separate,
+deterministic proposal controls. Policy claims are resolved against the frozen
+authority order, retaining lower-priority claims for audit; conflicting outcomes at
+the same highest authority deliberately withhold a controlling answer for human
+review. Dispatch receives only caller-supplied, cited ticket context, diagnosis, and
+vendor snapshots. Its model proposes a trade and in-house/vendor route but never
+sees vendor data or names a vendor. Code excludes inactive, wrong-trade,
+expired-or-missing-insurance, out-of-area, and unusable-window candidates before
+using a fixed 35/30/15/10/10 accept-rate, first-time-fix, window, parts-readiness,
+and cost score. It returns only a reviewable plan or typed human-review state; it
+does not query persistence, create work orders, schedule visits, or contact anyone.
 
 **47. `services/brain/src/brain/agents/auditor.py`** — Check the decision against
 lease, statute and SOP. It sees the decision output and the policy and
@@ -380,6 +401,18 @@ reasoning agrees with itself far more than the reasoning deserves.
 **48. `services/brain/src/brain/graph/state.py`** — The shared `TicketState` carrying
 facts, envelope, diagnosis, plan, audit result, decision, confidence, retries and
 trace.
+
+**Implementation checkpoint — 2026-09-23.** Steps 47–48 now establish an
+independent audit and a checkpointable handoff contract. The auditor accepts only a
+proposed dispatch plan plus cited statute, lease, and internal-SOP policy claims and
+context; it has no diagnosis field. It resolves precedence before the small-tier
+audit call, routes same-rank conflicts, missing evidence, invalid schema, provider
+failures, unsupported citations, and incomplete policy coverage to typed human
+review, and never executes. `TicketState` is a frozen, strict Pydantic model that
+carries each existing typed output plus a cited decision proposal, bounded retry
+records, calibrated-confidence slot, and ordered digest-only trace. It imports no
+LangGraph, persistence layer, or tool adapter; later graph nodes can therefore
+checkpoint these handoffs without storing raw resident input or model text.
 
 **49. `services/brain/src/brain/graph/nodes.py`** — Three-line wrappers around the
 plain agent functions. This is the only place LangGraph is imported outside the

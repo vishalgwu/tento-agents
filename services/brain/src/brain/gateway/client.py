@@ -110,6 +110,7 @@ class TaskClass(str, Enum):
     POLICY_AUDIT = "policy_audit"
     COMMUNICATION_DRAFT = "communication_draft"
     DIAGNOSIS = "diagnosis"
+    CITATION_REPAIR = "citation_repair"
     DISPATCH_PLANNING = "dispatch_planning"
     COUNCIL_REVIEW = "council_review"
     JUDGE_REVIEW = "judge_review"
@@ -122,6 +123,7 @@ TASK_TIER_ROUTING: Final[Mapping[TaskClass, ModelTier]] = {
     TaskClass.POLICY_AUDIT: ModelTier.SMALL,
     TaskClass.COMMUNICATION_DRAFT: ModelTier.SMALL,
     TaskClass.DIAGNOSIS: ModelTier.MID,
+    TaskClass.CITATION_REPAIR: ModelTier.MID,
     TaskClass.DISPATCH_PLANNING: ModelTier.MID,
     TaskClass.COUNCIL_REVIEW: ModelTier.MID,
     TaskClass.JUDGE_REVIEW: ModelTier.MID,

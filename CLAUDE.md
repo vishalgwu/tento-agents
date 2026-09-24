@@ -181,6 +181,31 @@ Update it when an accepted Phase-0 artifact changes.
   typed abstention when evidence, schema, provider availability, or citation
   membership is insufficient. It has no retrieval, tool, persistence, or
   orchestration authority.
+- `services/brain/src/brain/guardrails/citations.py` deterministically verifies
+  generated citations against the supplied envelope before release. Numeric,
+  date, currency, and section claims require known citations that contain each
+  exact figure. One versioned, narrowly scoped repair may run; an unavailable or
+  still-invalid repair withholds text and returns typed human-review failures.
+- `services/brain/src/brain/policy/precedence.py` applies the frozen statute,
+  lease, internal-SOP, then vendor-contract authority order without a model. It
+  retains superseded claims for audit and turns conflicting outcomes at the same
+  highest authority into typed human review rather than choosing arbitrarily.
+- `services/brain/src/brain/agents/dispatch.py` receives only caller-pushed,
+  cited context and a vendor snapshot. Its mid-tier model proposes the trade and
+  in-house/vendor route but cannot see or name vendors; deterministic code
+  filters inactive, uninsured, out-of-area, wrong-trade, and unavailable
+  candidates, then ranks the remainder by accept rate, first-time fix, window,
+  parts readiness, and cost. It has no persistence, scheduling, or contact path.
+- `services/brain/src/brain/agents/auditor.py` evaluates only a proposed dispatch
+  plan and cited statute, lease, and internal-SOP policy evidence. It runs
+  deterministic precedence first, stops unresolved same-rank policy conflicts
+  before any model call, and requires a cited, complete finding for every
+  resolved policy key. It deliberately cannot receive diagnostic reasoning or
+  perform a write.
+- `services/brain/src/brain/graph/state.py` defines the frozen, typed workflow
+  handoff for one tenant-scoped ticket run. It carries safety, facts, envelope,
+  diagnosis, dispatch plan, audit, decision proposal, confidence, retries, and
+  an ordered digest-only trace, without importing LangGraph or granting a tool.
 
 ### Required next work
 
