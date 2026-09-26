@@ -26,9 +26,12 @@ langchain-core==0.3.65
 # LangGraph 0.4.9 leaves these internals as open lower bounds. Pinning them
 # prevents the resolver from selecting later 1.x packages with a different API.
 langgraph-checkpoint==2.1.2
+langgraph-checkpoint-postgres==2.0.21
 langgraph-prebuilt==0.2.3
 langgraph-sdk==0.1.74
 langsmith==0.3.45
+# The binary extra keeps checkpoint imports reproducible on Windows CI and local dev.
+psycopg[binary]==3.3.6
 
 # Retrieval and privacy guardrails
 sentence-transformers==4.1.0

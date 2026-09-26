@@ -39,6 +39,7 @@ jsonpointer==3.1.1
 langchain-core==0.3.65
 langgraph==0.4.9
 langgraph-checkpoint==2.1.2
+langgraph-checkpoint-postgres==2.0.21
 langgraph-prebuilt==0.2.3
 langgraph-sdk==0.1.74
 langsmith==0.3.45
@@ -65,6 +66,9 @@ pluggy==1.6.0
 preshed==3.0.13
 presidio_analyzer==2.2.358
 pycparser==3.0
+psycopg==3.3.6
+psycopg-binary==3.3.6
+psycopg-pool==3.3.3
 pydantic==2.11.7
 pydantic_core==2.33.2
 Pygments==2.21.0
@@ -107,6 +111,7 @@ transformers==4.57.6
 typer==0.27.2
 typing-inspection==0.4.4
 typing_extensions==4.16.0
+tzdata==2026.4
 urllib3==2.7.0
 uvicorn==0.34.2
 wasabi==1.1.3

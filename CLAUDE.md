@@ -206,6 +206,12 @@ Update it when an accepted Phase-0 artifact changes.
   handoff for one tenant-scoped ticket run. It carries safety, facts, envelope,
   diagnosis, dispatch plan, audit, decision proposal, confidence, retries, and
   an ordered digest-only trace, without importing LangGraph or granting a tool.
+- `services/brain/src/brain/graph/nodes.py` and `builder.py` provide the sole
+  LangGraph orchestration boundary. They keep raw resident input outside
+  checkpoint state, route deterministic P0 screening ahead of model-backed work,
+  pause before approval, and bind a hard twelve-step cap to every public run.
+  Durable production composition uses the pinned PostgreSQL checkpoint saver;
+  schema setup is an explicit bootstrap action rather than request-time DDL.
 
 ### Required next work
 

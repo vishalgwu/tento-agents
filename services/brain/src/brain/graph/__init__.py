@@ -1,1 +1,1 @@
-"""Framework-free workflow contracts; LangGraph wiring belongs in later steps."""
+"""Framework-independent state plus the dedicated LangGraph orchestration layer."""

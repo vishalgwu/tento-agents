@@ -423,6 +423,16 @@ conditional edges (safety → P0 or context; gate → auto / approve / escalate)
 `PostgresSaver` checkpointing so a recycled container resumes rather than restarts,
 `interrupt_before=["approval"]`, and a hard 12-node step cap.
 
+**Implementation checkpoint — 2026-09-26.** Steps 49–50 now add a dedicated
+LangGraph boundary. `nodes.py` is the only adapter layer around the typed plain
+agents; it reloads authorised ticket inputs through tenant-scoped dependencies,
+keeps raw resident content out of checkpoint state, and makes P0 paging the first
+possible side effect. `builder.py` compiles the P0-first routes, pauses before the
+approval node, enforces a fixed 12-step recursion limit through its public graph
+surface, and accepts a durable checkpoint saver. It provides synchronous
+`PostgresSaver` and async `AsyncPostgresSaver` lifecycle helpers, with schema
+initialisation reserved for a controlled bootstrap/migration job.
+
 **51. `services/brain/src/brain/guardrails/tool_auth.py`** — Server-side grant map
 checked on every tool call. Side-effecting tools additionally require a single-use,
 action-scoped approval token. A prompt saying "you may only read" is a suggestion;

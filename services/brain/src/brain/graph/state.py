@@ -105,6 +105,7 @@ class TraceStage(str, Enum):
     """Stable workflow stages rendered by the later decision trace UI."""
 
     SAFETY = "safety"
+    P0 = "p0"
     INTAKE = "intake"
     CONTEXT = "context"
     DIAGNOSIS = "diagnosis"
@@ -191,6 +192,13 @@ class TicketState(BaseModel):
     confidence: Decimal | None = Field(default=None, ge=Decimal("0"), le=Decimal("1"))
     retries: tuple[RetryRecord, ...] = Field(default=())
     trace: tuple[TraceEntry, ...] = Field(default=())
+
+    @field_validator("retries", "trace", mode="before")
+    @classmethod
+    def _restore_checkpoint_sequences(cls, value: object) -> object:
+        """Restore LangGraph's JSON list encoding to immutable handoff tuples."""
+
+        return tuple(value) if isinstance(value, list) else value
 
     @field_validator("retries")
     @classmethod
