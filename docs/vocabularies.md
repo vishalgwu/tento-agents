@@ -90,6 +90,13 @@ Database type: `reject_reason`.
 | `policy_conflict` | The proposal conflicts with controlling policy. |
 | `other` | A reason outside this taxonomy; accompanying free-text rationale is required. |
 
+The public manager rejection endpoint deliberately accepts the five structured
+labels above `other`: `insufficient_evidence`, `incorrect_priority`,
+`incorrect_routing`, `cost_or_scope`, and `policy_conflict`. Those five values
+are the stable human-feedback labels for evaluation. The retained database-only
+`other` value is reserved for a separately governed, rationale-capturing
+workflow; it is not a shortcut around the evaluation taxonomy.
+
 ## `decision_mode`
 
 Database type: `decision_mode`.

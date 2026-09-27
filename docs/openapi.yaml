@@ -3,9 +3,10 @@ info:
   title: Resident OS API
   version: 0.1.0
   description: |
-    Initial public read contract for tenant-scoped maintenance tickets. All
-    versioned routes require a verified Supabase bearer token. The API returns
-    RFC 9457 problem details for failures.
+    Tenant-scoped maintenance API. All versioned routes require a verified
+    bearer token. Mutations also require an Idempotency-Key and the API returns
+    RFC 9457 problem details for failures. The SSE payload contract lives in
+    docs/events.md.
 servers:
   - url: /v1
 security:
@@ -59,6 +60,155 @@ paths:
           $ref: '#/components/responses/RateLimited'
         '503':
           $ref: '#/components/responses/DependencyUnavailable'
+  /runs/{run_id}/stream:
+    get:
+      operationId: streamRun
+      summary: Replay the current safe workflow timeline for one run
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: |
+            A finite SSE snapshot. timeline.ready is the first event; the exact
+            event framing and payloads are defined in docs/events.md.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: no-cache
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+  /approvals:
+    get:
+      operationId: listApprovals
+      summary: List the caller's pending approvals by SLA risk
+      description: |
+        The sort is approval SLA expiry, then operational priority, then stable
+        request fields. It is never arrival-time order. An approval SLA is the
+        decision's action deadline, not a promised resident repair time.
+      parameters:
+        - $ref: '#/components/parameters/ApprovalCursor'
+        - $ref: '#/components/parameters/PageLimit'
+      responses:
+        '200':
+          description: A deadline-ordered page of actionable approvals.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalQueueResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/InvalidRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+  /approvals/{approval_id}/approve:
+    post:
+      operationId: approveApproval
+      summary: Append an immutable approval receipt
+      parameters:
+        - $ref: '#/components/parameters/ApprovalId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApprovalActionCreated'
+        '400':
+          $ref: '#/components/responses/IdempotencyKeyRequired'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+  /approvals/{approval_id}/reject:
+    post:
+      operationId: rejectApproval
+      summary: Append an immutable rejection receipt with a structured label
+      parameters:
+        - $ref: '#/components/parameters/ApprovalId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectApprovalRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApprovalActionCreated'
+        '400':
+          $ref: '#/components/responses/IdempotencyKeyRequired'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '422':
+          $ref: '#/components/responses/InvalidRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+  /approvals/{approval_id}/reassign:
+    post:
+      operationId: reassignApproval
+      summary: Append a reassignment receipt and create a new pending request
+      parameters:
+        - $ref: '#/components/parameters/ApprovalId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReassignApprovalRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApprovalActionCreated'
+        '400':
+          $ref: '#/components/responses/IdempotencyKeyRequired'
+        '401':
+          $ref: '#/components/responses/AuthenticationRequired'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '422':
+          $ref: '#/components/responses/InvalidRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
 components:
   securitySchemes:
     bearerAuth:
@@ -82,6 +232,29 @@ components:
         minimum: 1
         maximum: 100
         default: 50
+    ApprovalCursor:
+      name: cursor
+      in: query
+      description: Opaque continuation token for the deadline-ordered approval queue.
+      schema:
+        type: string
+        maxLength: 512
+    ApprovalId:
+      name: approval_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Unique replay-protection key for this mutation.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
   responses:
     AuthenticationRequired:
       description: No valid bearer token was provided.
@@ -91,6 +264,24 @@ components:
             $ref: '#/components/schemas/Problem'
     DependencyUnavailable:
       description: A required dependency or the tenant context is unavailable.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: The caller cannot act on this approval role or resource.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    IdempotencyConflict:
+      description: The key is in progress or was used for a different request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    IdempotencyKeyRequired:
+      description: The mutation did not include exactly one Idempotency-Key.
       content:
         application/problem+json:
           schema:
@@ -118,6 +309,12 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+    ApprovalActionCreated:
+      description: A new immutable human-action receipt was persisted.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApprovalActionReceipt'
   schemas:
     TicketSummary:
       type: object
@@ -182,6 +379,133 @@ components:
             $ref: '#/components/schemas/TicketSummary'
         next_cursor:
           type: [string, 'null']
+    ApprovalQueueItem:
+      type: object
+      additionalProperties: false
+      required:
+        - approval_id
+        - decision_id
+        - required_role
+        - requested_at
+        - sla_expires_at
+        - priority
+        - proposed_trade
+        - proposed_responsible_party
+        - estimated_cost_cents
+        - citation_verified
+        - ticket_id
+        - ticket_number
+        - symptom_summary
+      properties:
+        approval_id:
+          type: string
+          format: uuid
+        decision_id:
+          type: string
+          format: uuid
+        required_role:
+          type: string
+          enum: [property_manager, asset_owner, operations_admin]
+        requested_at:
+          type: string
+          format: date-time
+        sla_expires_at:
+          type: string
+          format: date-time
+          description: Approval action deadline used for SLA-risk ordering.
+        priority:
+          type: [string, 'null']
+          enum: [p0, p1, p2, p3, null]
+        proposed_trade:
+          type: [string, 'null']
+        proposed_responsible_party:
+          type: string
+        estimated_cost_cents:
+          type: [integer, 'null']
+          format: int64
+          minimum: 0
+        citation_verified:
+          type: boolean
+        ticket_id:
+          type: string
+          format: uuid
+        ticket_number:
+          type: integer
+          format: int64
+        symptom_summary:
+          type: [string, 'null']
+    ApprovalQueueResponse:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApprovalQueueItem'
+        next_cursor:
+          type: [string, 'null']
+    RejectApprovalRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          description: One of the five evaluation-ready human rejection labels.
+          enum:
+            - insufficient_evidence
+            - incorrect_priority
+            - incorrect_routing
+            - cost_or_scope
+            - policy_conflict
+    ReassignApprovalRequest:
+      type: object
+      additionalProperties: false
+      required: [required_role]
+      properties:
+        required_role:
+          type: string
+          enum: [property_manager, asset_owner]
+    ApprovalActionReceipt:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - approval_chain_id
+        - status
+        - action
+        - rejection_reason
+        - acted_at
+        - replacement_approval_id
+      properties:
+        id:
+          type: string
+          format: uuid
+        approval_chain_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [approved, rejected]
+        action:
+          type: string
+          enum: [approve, reassign, reject]
+        rejection_reason:
+          type: [string, 'null']
+          enum:
+            - insufficient_evidence
+            - incorrect_priority
+            - incorrect_routing
+            - cost_or_scope
+            - policy_conflict
+            - null
+        acted_at:
+          type: string
+          format: date-time
+        replacement_approval_id:
+          type: [string, 'null']
+          format: uuid
     Problem:
       type: object
       additionalProperties: false

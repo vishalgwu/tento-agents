@@ -38,6 +38,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/runs/{run_id}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Replay the current safe workflow timeline for one run */
+        get: operations["streamRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the caller's pending approvals by SLA risk
+         * @description The sort is approval SLA expiry, then operational priority, then stable
+         *     request fields. It is never arrival-time order. An approval SLA is the
+         *     decision's action deadline, not a promised resident repair time.
+         */
+        get: operations["listApprovals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/approvals/{approval_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Append an immutable approval receipt */
+        post: operations["approveApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/approvals/{approval_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Append an immutable rejection receipt with a structured label */
+        post: operations["rejectApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/approvals/{approval_id}/reassign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Append a reassignment receipt and create a new pending request */
+        post: operations["reassignApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -69,6 +159,64 @@ export interface components {
             items: components["schemas"]["TicketSummary"][];
             next_cursor: string | null;
         };
+        ApprovalQueueItem: {
+            /** Format: uuid */
+            approval_id: string;
+            /** Format: uuid */
+            decision_id: string;
+            /** @enum {string} */
+            required_role: "property_manager" | "asset_owner" | "operations_admin";
+            /** Format: date-time */
+            requested_at: string;
+            /**
+             * Format: date-time
+             * @description Approval action deadline used for SLA-risk ordering.
+             */
+            sla_expires_at: string;
+            /** @enum {string|null} */
+            priority: "p0" | "p1" | "p2" | "p3" | null;
+            proposed_trade: string | null;
+            proposed_responsible_party: string;
+            /** Format: int64 */
+            estimated_cost_cents: number | null;
+            citation_verified: boolean;
+            /** Format: uuid */
+            ticket_id: string;
+            /** Format: int64 */
+            ticket_number: number;
+            symptom_summary: string | null;
+        };
+        ApprovalQueueResponse: {
+            items: components["schemas"]["ApprovalQueueItem"][];
+            next_cursor: string | null;
+        };
+        RejectApprovalRequest: {
+            /**
+             * @description One of the five evaluation-ready human rejection labels.
+             * @enum {string}
+             */
+            reason: "insufficient_evidence" | "incorrect_priority" | "incorrect_routing" | "cost_or_scope" | "policy_conflict";
+        };
+        ReassignApprovalRequest: {
+            /** @enum {string} */
+            required_role: "property_manager" | "asset_owner";
+        };
+        ApprovalActionReceipt: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            approval_chain_id: string;
+            /** @enum {string} */
+            status: "approved" | "rejected";
+            /** @enum {string} */
+            action: "approve" | "reassign" | "reject";
+            /** @enum {string|null} */
+            rejection_reason: "insufficient_evidence" | "incorrect_priority" | "incorrect_routing" | "cost_or_scope" | "policy_conflict" | null;
+            /** Format: date-time */
+            acted_at: string;
+            /** Format: uuid */
+            replacement_approval_id: string | null;
+        };
         Problem: {
             /**
              * Format: uri
@@ -93,6 +241,33 @@ export interface components {
         };
         /** @description A required dependency or the tenant context is unavailable. */
         DependencyUnavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description The caller cannot act on this approval role or resource. */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description The key is in progress or was used for a different request. */
+        IdempotencyConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description The mutation did not include exactly one Idempotency-Key. */
+        IdempotencyKeyRequired: {
             headers: {
                 [name: string]: unknown;
             };
@@ -128,12 +303,26 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description A new immutable human-action receipt was persisted. */
+        ApprovalActionCreated: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ApprovalActionReceipt"];
+            };
+        };
     };
     parameters: {
         /** @description Opaque keyset continuation token. Do not construct it. */
         TicketCursor: string;
         /** @description Number of tickets to return; the default is 50. */
         PageLimit: number;
+        /** @description Opaque continuation token for the deadline-ordered approval queue. */
+        ApprovalCursor: string;
+        ApprovalId: string;
+        /** @description Unique replay-protection key for this mutation. */
+        IdempotencyKey: string;
     };
     requestBodies: never;
     headers: never;
@@ -192,6 +381,148 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationRequired"];
             404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["DependencyUnavailable"];
+        };
+    };
+    streamRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /**
+             * @description A finite SSE snapshot. timeline.ready is the first event; the exact
+             *     event framing and payloads are defined in docs/events.md.
+             */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            401: components["responses"]["AuthenticationRequired"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["DependencyUnavailable"];
+        };
+    };
+    listApprovals: {
+        parameters: {
+            query?: {
+                /** @description Opaque continuation token for the deadline-ordered approval queue. */
+                cursor?: components["parameters"]["ApprovalCursor"];
+                /** @description Number of tickets to return; the default is 50. */
+                limit?: components["parameters"]["PageLimit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A deadline-ordered page of actionable approvals. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalQueueResponse"];
+                };
+            };
+            401: components["responses"]["AuthenticationRequired"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["InvalidRequest"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["DependencyUnavailable"];
+        };
+    };
+    approveApproval: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique replay-protection key for this mutation. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                approval_id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: components["responses"]["ApprovalActionCreated"];
+            400: components["responses"]["IdempotencyKeyRequired"];
+            401: components["responses"]["AuthenticationRequired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["IdempotencyConflict"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["DependencyUnavailable"];
+        };
+    };
+    rejectApproval: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique replay-protection key for this mutation. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                approval_id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectApprovalRequest"];
+            };
+        };
+        responses: {
+            201: components["responses"]["ApprovalActionCreated"];
+            400: components["responses"]["IdempotencyKeyRequired"];
+            401: components["responses"]["AuthenticationRequired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["IdempotencyConflict"];
+            422: components["responses"]["InvalidRequest"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["DependencyUnavailable"];
+        };
+    };
+    reassignApproval: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique replay-protection key for this mutation. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                approval_id: components["parameters"]["ApprovalId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReassignApprovalRequest"];
+            };
+        };
+        responses: {
+            201: components["responses"]["ApprovalActionCreated"];
+            400: components["responses"]["IdempotencyKeyRequired"];
+            401: components["responses"]["AuthenticationRequired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["IdempotencyConflict"];
+            422: components["responses"]["InvalidRequest"];
             429: components["responses"]["RateLimited"];
             503: components["responses"]["DependencyUnavailable"];
         };

@@ -8,6 +8,7 @@ from brain.agents.safety import (
     ModelOpinionStatus,
     SafetyCategory,
     SafetySecondOpinion,
+    SafetyVerdict,
     assess_safety,
     screen_deterministic_safety,
 )
@@ -184,6 +185,36 @@ def test_known_near_misses_do_not_trigger_the_deterministic_p0_screen(
 def test_invalid_model_opinion_cannot_claim_p0_without_a_category() -> None:
     with pytest.raises(ValueError, match="exactly when categories"):
         SafetySecondOpinion(p0=True, categories=())
+
+
+@pytest.mark.parametrize(
+    ("status", "model_categories", "message"),
+    [
+        (
+            ModelOpinionStatus.UNAVAILABLE,
+            (SafetyCategory.GAS,),
+            "unavailable model opinions",
+        ),
+        (
+            ModelOpinionStatus.SKIPPED_DETERMINISTIC_P0,
+            (SafetyCategory.GAS,),
+            "only deterministic P0",
+        ),
+    ],
+)
+def test_safety_verdict_rejects_model_categories_when_the_model_did_not_run(
+    status: ModelOpinionStatus,
+    model_categories: tuple[SafetyCategory, ...],
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        SafetyVerdict(
+            p0=True,
+            categories=model_categories,
+            deterministic_signals=(),
+            model_categories=model_categories,
+            model_opinion_status=status,
+        )
 
 
 def test_model_schema_accepts_gateway_json_output() -> None:

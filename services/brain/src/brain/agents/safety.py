@@ -103,10 +103,21 @@ class SafetyVerdict(BaseModel):
             raise ValueError("categories must not contain duplicates")
         if len(self.model_categories) != len(set(self.model_categories)):
             raise ValueError("model_categories must not contain duplicates")
-        if deterministic_categories and (
-            self.model_opinion_status is not ModelOpinionStatus.SKIPPED_DETERMINISTIC_P0
+        if deterministic_categories:
+            if (
+                self.model_opinion_status
+                is not ModelOpinionStatus.SKIPPED_DETERMINISTIC_P0
+            ):
+                raise ValueError("deterministic P0 must skip the model second opinion")
+            if self.model_categories:
+                raise ValueError("skipped model opinions cannot contain categories")
+        elif self.model_opinion_status is ModelOpinionStatus.SKIPPED_DETERMINISTIC_P0:
+            raise ValueError("only deterministic P0 may skip the model second opinion")
+        elif (
+            self.model_opinion_status is ModelOpinionStatus.UNAVAILABLE
+            and self.model_categories
         ):
-            raise ValueError("deterministic P0 must skip the model second opinion")
+            raise ValueError("unavailable model opinions cannot contain categories")
         return self
 
 

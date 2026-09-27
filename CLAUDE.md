@@ -212,15 +212,47 @@ Update it when an accepted Phase-0 artifact changes.
   pause before approval, and bind a hard twelve-step cap to every public run.
   Durable production composition uses the pinned PostgreSQL checkpoint saver;
   schema setup is an explicit bootstrap action rather than request-time DDL.
+- `services/brain/src/brain/guardrails/tool_auth.py` fixes the current narrow-tool
+  grant map in server code. Read permits cannot consume an approval token; every
+  write scope binds the tool, ticket, and server-persisted action ID, then requires
+  an injected token store to atomically record a single successful use before the
+  adapter invokes its provider. Token-store errors deny the action. Future MCP
+  write adapters must use this boundary rather than infer authority from agent text.
+- `services/brain/src/brain/degraded.py` is the zero-model fallback after a ticket
+  has been durably numbered. It runs only deterministic P0 screening, emits fixed
+  resident acknowledgement copy, applies documented operational category defaults,
+  triggers the existing P0 page protocol when required, and returns an escalated
+  non-executing result for every ticket.
+- `services/api/src/api/routers/stream.py` projects one tenant-scoped run as the
+  frozen `docs/events.md` SSE snapshot. It emits the full pending workflow shape
+  before replaying safe persisted step state, closes without retaining an RLS-bound
+  database transaction, and does not expose digests, prompts, ticket text, or tokens.
+- `services/api/src/api/routers/approvals.py` lists current human approvals by their
+  persisted action-expiry SLA deadline rather than arrival time. It is restricted to
+  the required approver role (or operations administration), writes only append-only
+  successor receipts, accepts five evaluation-ready rejection labels, and never
+  grants or returns execution authority.
+- `apps/web/app/(manager)/manage/` renders one generated-contract-shaped approval
+  preview at a time. It provides keyboard-first review and visibly flags uncited
+  claims, but it keeps approve, reject, and reassign interaction local until browser
+  identity and idempotency-key issuance have an accepted contract.
+- `services/api/Dockerfile` and `infra/deploy/deploy-api.ps1` define the public API
+  runtime baseline: a non-root Cloud Run image, one minimum API instance, and
+  `DEMO_MODE=true`. The script deliberately does not deploy worker, MCP, or
+  observability services; their later deployments must retain zero minimum instances.
+- `services/brain/src/brain/guardrails/shield.py` establishes the local-first
+  content-safety boundary. Its deterministic local check cannot be replaced or
+  bypassed by managed classifiers; managed results combine pessimistically and
+  failures degrade safely after 250ms with logs limited to safe operational metadata.
 
 ### Required next work
 
-The remaining Phase 0 API and SSE contracts, typed Pydantic cross-agent contracts,
-threat model, and requirement-mapped test plan still need acceptance. Do not turn
-the web boundary into a live login, mutation, or dispatch path until its API and
-identity contracts are approved. The next Phase-1 acceptance work is live database
-migration/seed verification; the route-matrix test is deliberately retained as CI
-coverage for every registered public route.
+The remaining Phase 0 API contracts beyond ticket reads, run snapshots, and approval
+decisions; typed Pydantic cross-agent contracts; threat model; and requirement-mapped
+test plan still need acceptance. Do not turn the web boundary into a live login,
+mutation, or dispatch path until its API and identity contracts are approved. The next
+Phase-1 acceptance work is live database migration/seed verification; the route-matrix
+test is deliberately retained as CI coverage for every registered public route.
 
 ### Foundation verification commands
 

@@ -443,6 +443,16 @@ keyword safety screen, category default SLA, fixed acknowledgment, everything ma
 escalated. With zero model providers reachable, a resident still gets a ticket number
 and a gas leak still pages the on-call.
 
+**Implementation checkpoint — 2026-09-26.** Steps 51–52 now provide the
+framework-independent control and fallback path. `tool_auth.py` has an immutable,
+server-owned grant map and derives every write scope from the named tool, ticket, and
+server-persisted action ID. It requires an injected durable store to atomically consume
+an unexpired approval-token hash before returning a write permit; unavailable storage
+fails closed. `degraded.py` has no model gateway: it runs the existing deterministic
+safety screen, uses conservative category response targets, sends the fixed
+acknowledgement after a ticket number has been persisted, pages P0 through the existing
+all-channel protocol, and returns only an escalated, non-executing result.
+
 **53. `services/api/src/api/routers/stream.py`** — SSE emitting the `docs/events.md`
 contract. The step timeline renders immediately with pending steps hollow — structure
 arrives before content, and it is the most persuasive eight seconds in the product.
@@ -450,6 +460,16 @@ arrives before content, and it is the most persuasive eight seconds in the produ
 **54. `services/api/src/api/routers/approvals.py`** — The queue **ordered by SLA risk,
 never arrival time**, plus approve, reject (with a five-option reason taxonomy that
 becomes your eval labels), and reassign.
+
+**Implementation checkpoint — 2026-09-26.** Steps 53–54 now add the safe public
+workflow projection and manager decision boundary. `docs/events.md` freezes compact
+SSE framing; the stream sends `timeline.ready` with every normal stage pending before
+replaying only digest-free persisted step state. It is a finite snapshot rather than a
+fictional live broker. The approval queue orders actionable records by their persisted
+approval-expiry SLA deadline, then priority, and every approve/reject/reassign action
+inserts an immutable successor receipt. Reassignment creates a new pending record in
+the same chain. Rejection accepts exactly five evaluation-ready labels; the route never
+returns an approval token or performs an external action.
 
 **55. `apps/web/src/app/(manager)/manage/`** — The approval queue: one card, one
 screen, no scrolling. Keyboard-first (`j`/`k`, `a`, `e`, `r` then `1–5`, `t`). The
@@ -463,6 +483,15 @@ makes, and the cross-encoder must stay resident); worker, MCP and observability 
 to zero. Frontend to Vercel. **Set `DEMO_MODE=true` in production** until you have
 verified every outbound channel is blocked.
 
+**Implementation checkpoint — 2026-09-27.** The manager route now provides a
+single-card, no-scroll keyboard preview backed by the generated approval shape.
+It visibly distinguishes unsupported claims, flips the decision marker to human
+on interaction, and does not make a browser mutation before browser identity and
+idempotency-key issuance exist. The API Docker image runs as a non-root user; the
+Cloud Build/Cloud Run script deploys only the API with one warm instance and
+`DEMO_MODE=true`. Future worker, MCP, and observability deployments remain
+separate and must use zero minimum instances.
+
 ---
 
 ## Phase 4 — Guardrails
@@ -472,6 +501,12 @@ with `LocalShield` as the always-on implementation. Managed providers augment it
 later, combine pessimistically (any block is a block), and time out at 250ms into a
 logged degradation rather than a failed request. **A classifier is a filter; the
 architecture is the boundary.**
+
+**Implementation checkpoint — 2026-09-27.** Step 57 is implemented and covered by
+focused tests. `Shield` always evaluates the deterministic local boundary before
+concurrently querying optional managed classifiers. Any valid block wins; a managed
+timeout, failure, or malformed response becomes a safe 250ms-bounded degradation
+log containing only provider, stage, and content digest—never raw resident content.
 
 **58. `services/brain/src/brain/guardrails/pii.py`** — Presidio plus regex for SSN,
 card, phone, email, DOB. Redact before any prompt is assembled. `agent_steps` stores

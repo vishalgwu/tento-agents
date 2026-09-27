@@ -5,7 +5,7 @@ This is the Next.js 15 App Router foundation for the five public role surfaces:
 | Route | Audience | Current boundary |
 | --- | --- | --- |
 | `/app` | Resident | Maintenance workspace and an accessible three-step report draft at `/app/report`; ticket creation still waits for a documented mutation contract. |
-| `/manage` | Property manager | Evidence and decision-provenance component demonstration; no live dispatch. |
+| `/manage` | Property manager | Keyboard-first, SLA-ordered approval preview; actions are intentionally local-only until browser identity and idempotency-key issuance are wired. |
 | `/owner` | Asset owner | No metrics until a reproducible evaluation defines them. |
 | `/tech` | Maintenance technician | No active-job reads or work-status mutation. |
 | `/v/[token]` | External vendor | Server-verified, expiring, no-account HMAC link. |
@@ -70,3 +70,16 @@ acknowledgement, with model work strictly off the acknowledgement path and a
 measured response under one second. Do not replace this boundary with an
 in-memory queue or a browser-generated ticket number; either would misrepresent
 resident state after a refresh or server restart.
+
+## Manager approval boundary
+
+`/manage` renders one synthetic, generated-contract-shaped approval card at a
+time. `j` and `k` move through the SLA-ordered preview; `a`, `e`, `r` then
+`1`–`5`, and `t` exercise approve, evidence, reject-reason, and reassignment
+flows. The decision marker becomes human-authorised immediately on interaction.
+The page labels every uncited claim as **Unsupported** rather than implying it
+has supporting evidence.
+
+This is intentionally a local interaction preview. It sends no browser request
+and does not claim an approval was recorded. Wiring it to the approval API
+requires verified browser identity and server-generated idempotency keys.

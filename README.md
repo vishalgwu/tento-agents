@@ -45,18 +45,20 @@ The repository currently contains a local, non-production foundation: the
 tenant-scoped schema and RLS migrations, deterministic synthetic seed, and a
 FastAPI reliability boundary (request correlation, JWT verification, RLS context,
 rate limiting, idempotency, safe errors, readiness), and the initial
-tenant-scoped ticket read contract. [`docs/openapi.yaml`](docs/openapi.yaml)
-defines `GET /v1/tickets` and `GET /v1/tickets/{id}`; their database queries use
-keyset pagination and an explicit organisation predicate in addition to RLS. The
-repository also includes the Next.js 15 role-surface foundation (`/app`,
+tenant-scoped ticket, run-snapshot, and approval-review contracts.
+[`docs/openapi.yaml`](docs/openapi.yaml) defines ticket reads, the documented SSE
+run projection, and role-protected approval list/action routes; their database
+queries use keyset pagination and an explicit organisation predicate in addition
+to RLS. The repository also includes the Next.js 15 role-surface foundation (`/app`,
 `/manage`, `/owner`, `/tech`, and `/v/[token]`), generated TypeScript OpenAPI
 types, and the shared evidence/decision visual primitives. It intentionally has
-no connected authentication provider, API mutation, live ticket data, or outbound
-email/notification transport. Vendor links fail closed unless their server-side
-HMAC secret is configured. The remaining OpenAPI and SSE contracts, public
-mutations, and agent workflow remain deliberately pending; do not treat the
-foundation as an MVP release. All metrics in the documentation are targets until
-an evaluation run publishes reproducible results with a commit SHA.
+no connected browser authentication provider, live ticket data, or outbound
+email/notification transport. The manager review surface is a local-only preview,
+not a browser approval mutation. Vendor links fail closed unless their server-side
+HMAC secret is configured. Further public mutations and the end-to-end agent
+workflow remain deliberately pending; do not treat the foundation as an MVP
+release. All metrics in the documentation are targets until an evaluation run
+publishes reproducible results with a commit SHA.
 
 The eleven files under [`knowledge/`](knowledge/README.md) are temporary,
 evaluation-only fixtures. They exercise metadata, source precedence, citations,
