@@ -27,6 +27,7 @@ from brain.context.envelope import ContextEnvelope
 _PROVENANCE_ID_PATTERN: Final = re.compile(r"^\[(?:C|F)[1-9]\d*\]$")
 _DIGEST_PATTERN: Final = re.compile(r"^[0-9a-f]{64}$")
 _FAILURE_CODE_PATTERN: Final = re.compile(r"^[a-z][a-z0-9_]{0,79}$")
+_RULE_VERSION_PATTERN: Final = re.compile(r"^[a-z][a-z0-9._-]{0,79}$")
 
 
 class DecisionMode(str, Enum):
@@ -125,6 +126,86 @@ class TraceOutcome(str, Enum):
     SKIPPED = "skipped"
 
 
+class GuardrailKind(str, Enum):
+    """Frozen, persistence-aligned vocabulary for a guardrail receipt."""
+
+    TENANT_AUTHORISATION = "tenant_authorisation"
+    RATE_LIMIT = "rate_limit"
+    PAYLOAD_SIZE = "payload_size"
+    PII_REDACTION = "pii_redaction"
+    PROMPT_INJECTION = "prompt_injection"
+    CONTENT_SAFETY = "content_safety"
+    SCHEMA_VALIDATION = "schema_validation"
+    CITATION_VERIFICATION = "citation_verification"
+    NUMERIC_SANITY = "numeric_sanity"
+    POLICY_COMPLIANCE = "policy_compliance"
+    FAIR_HOUSING = "fair_housing"
+    OUTPUT_PII = "output_pii"
+    GRANT_SCOPE = "grant_scope"
+    IDEMPOTENCY = "idempotency"
+    COST_BUDGET = "cost_budget"
+    LATENCY_BUDGET = "latency_budget"
+
+
+class GuardrailStage(str, Enum):
+    """The point at which a receipt was recorded."""
+
+    API_INGRESS = "api_ingress"
+    PRE_MODEL = "pre_model"
+    POST_MODEL = "post_model"
+    PRE_DECISION = "pre_decision"
+    PRE_SEND = "pre_send"
+    TOOL_INVOCATION = "tool_invocation"
+    GATEWAY = "gateway"
+
+
+class GuardrailOutcome(str, Enum):
+    """Frozen, persistence-aligned outcome for a guardrail receipt."""
+
+    PASSED = "passed"
+    BLOCKED = "blocked"
+    ESCALATED = "escalated"
+    DEGRADED = "degraded"
+
+
+class GuardrailEvent(BaseModel):
+    """A digest-only guardrail receipt awaiting append-only persistence.
+
+    The fields intentionally mirror ``guardrail_events`` without carrying a
+    database identifier or timestamp. The persistence boundary owns both.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    kind: GuardrailKind
+    stage: GuardrailStage
+    outcome: GuardrailOutcome
+    rule_version: str = Field(min_length=1, max_length=80)
+    content_digest: str | None = Field(default=None, min_length=64, max_length=64)
+    reason_code: str = Field(min_length=1, max_length=80)
+
+    @field_validator("rule_version")
+    @classmethod
+    def _validate_rule_version(cls, value: str) -> str:
+        if _RULE_VERSION_PATTERN.fullmatch(value) is None:
+            raise ValueError("rule_version must be a safe stable identifier")
+        return value
+
+    @field_validator("content_digest")
+    @classmethod
+    def _validate_content_digest(cls, value: str | None) -> str | None:
+        if value is not None and _DIGEST_PATTERN.fullmatch(value) is None:
+            raise ValueError("content_digest must be lowercase SHA-256 hex")
+        return value
+
+    @field_validator("reason_code")
+    @classmethod
+    def _validate_reason_code(cls, value: str) -> str:
+        if _FAILURE_CODE_PATTERN.fullmatch(value) is None:
+            raise ValueError("reason_code must be a safe snake_case code")
+        return value
+
+
 class TraceEntry(BaseModel):
     """A digest-only event suitable for later append-only audit persistence."""
 
@@ -191,9 +272,10 @@ class TicketState(BaseModel):
     decision: DecisionProposal | None = None
     confidence: Decimal | None = Field(default=None, ge=Decimal("0"), le=Decimal("1"))
     retries: tuple[RetryRecord, ...] = Field(default=())
+    guardrail_events: tuple[GuardrailEvent, ...] = Field(default=())
     trace: tuple[TraceEntry, ...] = Field(default=())
 
-    @field_validator("retries", "trace", mode="before")
+    @field_validator("retries", "guardrail_events", "trace", mode="before")
     @classmethod
     def _restore_checkpoint_sequences(cls, value: object) -> object:
         """Restore LangGraph's JSON list encoding to immutable handoff tuples."""

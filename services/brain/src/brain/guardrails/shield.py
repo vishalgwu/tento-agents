@@ -13,7 +13,7 @@ import asyncio
 import hashlib
 import logging
 import re
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from enum import Enum
 from typing import Final, Protocol
 
@@ -23,6 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 DEFAULT_MANAGED_PROVIDER_TIMEOUT_SECONDS: Final = 0.25
 LOCAL_SHIELD_NAME: Final = "local"
 LOCAL_SHIELD_VERSION: Final = "local-v1"
+DEGRADATION_INTERLOCK_NAME: Final = "degradation_interlock"
 _PROVIDER_NAME_PATTERN: Final = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 _REASON_CODE_PATTERN: Final = re.compile(r"^[a-z][a-z0-9_]{0,79}$")
 _LOGGER = logging.getLogger(__name__)
@@ -38,6 +39,15 @@ class ShieldStage(str, Enum):
     PRE_SEND = "pre_send"
     TOOL_INVOCATION = "tool_invocation"
     GATEWAY = "gateway"
+
+
+# These boundaries can lead to an externally visible decision or communication.
+# A managed classification outage therefore becomes a safe block rather than an
+# unsafe allow. Pre-model filtering remains available in rules-only mode so an
+# unavailable optional provider does not prevent a safe acknowledgement path.
+DEFAULT_FAIL_CLOSED_DEGRADATION_STAGES: Final[frozenset[ShieldStage]] = frozenset(
+    {ShieldStage.PRE_DECISION, ShieldStage.PRE_SEND}
+)
 
 
 class ShieldOutcome(str, Enum):
@@ -231,6 +241,9 @@ class Shield:
         managed_providers: Sequence[ShieldProvider] = (),
         *,
         managed_provider_timeout_seconds: float = DEFAULT_MANAGED_PROVIDER_TIMEOUT_SECONDS,
+        fail_closed_on_degradation_stages: Collection[
+            ShieldStage
+        ] = DEFAULT_FAIL_CLOSED_DEGRADATION_STAGES,
         logger: logging.Logger | None = None,
     ) -> None:
         if (
@@ -241,8 +254,18 @@ class Shield:
             raise ValueError("managed_provider_timeout_seconds must be positive")
         self._managed_providers = tuple(managed_providers)
         self._timeout_seconds = float(managed_provider_timeout_seconds)
+        self._fail_closed_on_degradation_stages = frozenset(
+            fail_closed_on_degradation_stages
+        )
         self._logger = logger or _LOGGER
         _validate_managed_provider_names(self._managed_providers)
+        if any(
+            not isinstance(stage, ShieldStage)
+            for stage in self._fail_closed_on_degradation_stages
+        ):
+            raise ValueError(
+                "fail_closed_on_degradation_stages must contain ShieldStage values"
+            )
 
     async def inspect(self, request: ShieldRequest) -> ShieldAssessment:
         """Return a local-first, pessimistically combined content-safety result.
@@ -274,6 +297,19 @@ class Shield:
                 findings.append(finding)
             if degradation is not None:
                 degradations.append(degradation)
+        if degradations and request.stage in self._fail_closed_on_degradation_stages:
+            findings.append(
+                ShieldFinding(
+                    provider=DEGRADATION_INTERLOCK_NAME,
+                    outcome=ShieldOutcome.BLOCK,
+                    reason_codes=("managed_provider_degraded",),
+                )
+            )
+            self._logger.warning(
+                "shield_degradation_fail_closed stage=%s content_digest=%s",
+                request.stage.value,
+                request.content_digest,
+            )
         outcome = (
             ShieldOutcome.BLOCK
             if any(finding.outcome is ShieldOutcome.BLOCK for finding in findings)
@@ -342,6 +378,10 @@ def _validate_managed_provider_names(providers: Sequence[ShieldProvider]) -> Non
             )
         if name == LOCAL_SHIELD_NAME:
             raise ValueError("managed providers cannot replace the local shield")
+        if name == DEGRADATION_INTERLOCK_NAME:
+            raise ValueError(
+                "managed providers cannot replace the degradation interlock"
+            )
         names.append(name)
     if len(names) != len(set(names)):
         raise ValueError("managed provider names must be unique")

@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Protocol
@@ -56,12 +56,24 @@ from brain.context.envelope import ContextEnvelope
 from brain.graph.state import (
     DecisionMode,
     DecisionProposal,
+    GuardrailEvent,
+    GuardrailKind,
+    GuardrailOutcome,
+    GuardrailStage,
     RetryRecord,
     RetryStage,
     TicketState,
     TraceEntry,
     TraceOutcome,
     TraceStage,
+)
+from brain.guardrails.shield import (
+    LOCAL_SHIELD_VERSION,
+    Shield,
+    ShieldAssessment,
+    ShieldOutcome,
+    ShieldRequest,
+    ShieldStage,
 )
 from brain.policy.precedence import PolicyClaim
 
@@ -105,16 +117,12 @@ class WorkflowInputRepository(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class DecisionGatePolicy:
-    """Explicit deployment policy for the otherwise non-executing auto branch."""
+    """Current deployment policy: every proposal requires human approval.
 
-    automatic_confidence_threshold: Decimal = Decimal("1")
-    automatic_decisions_enabled: bool = False
-
-    def __post_init__(self) -> None:
-        if not Decimal("0") <= self.automatic_confidence_threshold <= Decimal("1"):
-            raise ValueError(
-                "automatic_confidence_threshold must be between zero and one"
-            )
+    ``TicketState.confidence`` is retained as an auditable observation for the
+    future calibration component. It is deliberately not an authority signal
+    until that component and its acceptance evidence exist.
+    """
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,6 +138,7 @@ class GraphDependencies:
     demo_mode: bool
     safety_second_opinion_gateway: SafetySecondOpinionGateway | None = None
     decision_gate_policy: DecisionGatePolicy = DecisionGatePolicy()
+    shield: Shield = field(default_factory=Shield)
 
 
 async def safety_node(
@@ -144,7 +153,17 @@ async def safety_node(
         photo_captions=intake.photo_captions,
         second_opinion_gateway=dependencies.safety_second_opinion_gateway,
     )
-    return _completed(state, TraceStage.SAFETY, safety=verdict)
+    if verdict.p0:
+        return _completed(state, TraceStage.SAFETY, safety=verdict)
+
+    guardrail_events = await _shield_intake_content(intake, dependencies.shield)
+    changes = {
+        "safety": verdict,
+        "guardrail_events": (*state.guardrail_events, *guardrail_events),
+    }
+    if any(event.outcome is GuardrailOutcome.BLOCKED for event in guardrail_events):
+        return _human_review(state, TraceStage.SAFETY, **changes)
+    return _completed(state, TraceStage.SAFETY, **changes)
 
 
 async def p0_node(
@@ -244,19 +263,13 @@ async def audit_node(
 async def gate_node(
     state: TicketState, config: RunnableConfig, *, dependencies: GraphDependencies
 ) -> dict[str, object]:
-    """Make the non-executing auto, approval, or escalation choice in code."""
+    """Choose the required approval or escalation path in deterministic code."""
 
     _require_thread_id(config)
     decision = _decision_for(state, dependencies.decision_gate_policy)
     if decision is None:
         return _human_review(state, TraceStage.DECISION)
     return _completed(state, TraceStage.DECISION, decision=decision)
-
-
-def auto_node(state: TicketState) -> dict[str, object]:
-    """Record the automatic branch; execution authority is added in a later step."""
-
-    return _completed(state, TraceStage.DECISION)
 
 
 def approval_node(state: TicketState) -> dict[str, object]:
@@ -271,12 +284,18 @@ def escalate_node(state: TicketState) -> dict[str, object]:
     return _human_review(state, TraceStage.DECISION)
 
 
-def route_after_safety(state: TicketState) -> Literal["p0", "context"]:
+def route_after_safety(state: TicketState) -> Literal["p0", "context", "escalate"]:
     """Choose the P0 branch before the first normalisation model call."""
 
     if state.safety is None:
         raise ValueError("safety routing requires a safety verdict")
-    return "p0" if state.safety.p0 else "context"
+    if state.safety.p0:
+        return "p0"
+    if any(
+        event.outcome is GuardrailOutcome.BLOCKED for event in state.guardrail_events
+    ):
+        return "escalate"
+    return "context"
 
 
 def route_after_intake(state: TicketState) -> Literal["context", "escalate"]:
@@ -301,13 +320,11 @@ def route_after_dispatch(state: TicketState) -> Literal["audit", "gate"]:
     return "audit" if state.plan.status is DispatchStatus.PROPOSED else "gate"
 
 
-def route_after_gate(state: TicketState) -> Literal["auto", "approve", "escalate"]:
-    """Expose the complete, deterministic terminal-route vocabulary."""
+def route_after_gate(state: TicketState) -> Literal["approve", "escalate"]:
+    """Route the current human-authorised decision policy."""
 
     if state.decision is None:
         return "escalate"
-    if state.decision.mode is DecisionMode.AUTO:
-        return "auto"
     if state.decision.mode is DecisionMode.APPROVAL_REQUIRED:
         return "approve"
     return "escalate"
@@ -357,6 +374,7 @@ def _auditor_request(state: TicketState, evidence: AuditEvidence) -> AuditorRequ
 def _decision_for(
     state: TicketState, policy: DecisionGatePolicy
 ) -> DecisionProposal | None:
+    del policy
     provenance_ids = _decision_provenance_ids(state)
     if not provenance_ids:
         return None
@@ -376,19 +394,6 @@ def _decision_for(
             rationale="The dispatch proposal did not receive a compliant policy audit.",
             provenance_ids=provenance_ids,
             unknowns=("A human must resolve the policy-audit outcome.",),
-        )
-    if (
-        policy.automatic_decisions_enabled
-        and state.confidence is not None
-        and state.confidence >= policy.automatic_confidence_threshold
-    ):
-        return DecisionProposal(
-            mode=DecisionMode.AUTO,
-            rationale=(
-                "The cited dispatch proposal passed policy audit and the configured "
-                "confidence gate."
-            ),
-            provenance_ids=provenance_ids,
         )
     return DecisionProposal(
         mode=DecisionMode.APPROVAL_REQUIRED,
@@ -447,6 +452,50 @@ def _intake_retry(
     return (
         *records,
         RetryRecord(stage=RetryStage.INTAKE, attempts=2, last_failure_code=code),
+    )
+
+
+async def _shield_intake_content(
+    intake: IntakeRequest, shield: Shield
+) -> tuple[GuardrailEvent, ...]:
+    """Screen each raw resident field before it can reach ordinary model work."""
+
+    events: list[GuardrailEvent] = []
+    for content in (intake.resident_report, *intake.photo_captions):
+        request = ShieldRequest(content=content, stage=ShieldStage.PRE_MODEL)
+        assessment = await shield.inspect(request)
+        events.append(_shield_event(request, assessment))
+        if assessment.outcome is ShieldOutcome.BLOCK:
+            break
+    return tuple(events)
+
+
+def _shield_event(
+    request: ShieldRequest, assessment: ShieldAssessment
+) -> GuardrailEvent:
+    """Project a shield result to the persistence-shaped, content-free receipt."""
+
+    if assessment.outcome is ShieldOutcome.BLOCK:
+        outcome = GuardrailOutcome.BLOCKED
+        reason_code = next(
+            reason_code
+            for finding in assessment.findings
+            if finding.outcome is ShieldOutcome.BLOCK
+            for reason_code in finding.reason_codes
+        )
+    elif assessment.degradations:
+        outcome = GuardrailOutcome.DEGRADED
+        reason_code = f"managed_provider_{assessment.degradations[0].kind.value}"
+    else:
+        outcome = GuardrailOutcome.PASSED
+        reason_code = "content_safety_passed"
+    return GuardrailEvent(
+        kind=GuardrailKind.CONTENT_SAFETY,
+        stage=GuardrailStage(request.stage.value),
+        outcome=outcome,
+        rule_version=LOCAL_SHIELD_VERSION,
+        content_digest=assessment.content_digest,
+        reason_code=reason_code,
     )
 
 

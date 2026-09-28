@@ -9,7 +9,9 @@ from typing import cast
 import pytest
 
 from brain.guardrails.shield import (
+    DEFAULT_FAIL_CLOSED_DEGRADATION_STAGES,
     DEFAULT_MANAGED_PROVIDER_TIMEOUT_SECONDS,
+    DEGRADATION_INTERLOCK_NAME,
     Shield,
     ShieldDegradationKind,
     ShieldDegradation,
@@ -105,6 +107,38 @@ async def test_timeout_is_logged_as_degradation_without_failing_the_request(
         in caplog.text
     )
     assert "The kitchen sink is leaking" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_degraded_pre_send_fails_closed_without_failing_the_request() -> None:
+    slow = _Provider("slow", _allow("slow"), delay=1.0)
+
+    assessment = await Shield((slow,)).inspect(
+        ShieldRequest(content="Safe resident-facing copy.", stage=ShieldStage.PRE_SEND)
+    )
+
+    assert ShieldStage.PRE_SEND in DEFAULT_FAIL_CLOSED_DEGRADATION_STAGES
+    assert assessment.outcome is ShieldOutcome.BLOCK
+    assert assessment.degradations[0].kind is ShieldDegradationKind.TIMEOUT
+    assert assessment.findings[-1] == ShieldFinding(
+        provider=DEGRADATION_INTERLOCK_NAME,
+        outcome=ShieldOutcome.BLOCK,
+        reason_codes=("managed_provider_degraded",),
+    )
+
+
+@pytest.mark.asyncio
+async def test_degradation_policy_can_be_explicitly_configured_per_stage() -> None:
+    slow = _Provider("slow", _allow("slow"), delay=1.0)
+
+    assessment = await Shield(
+        (slow,), fail_closed_on_degradation_stages=frozenset()
+    ).inspect(
+        ShieldRequest(content="Safe resident-facing copy.", stage=ShieldStage.PRE_SEND)
+    )
+
+    assert assessment.outcome is ShieldOutcome.ALLOW
+    assert assessment.degradations[0].kind is ShieldDegradationKind.TIMEOUT
 
 
 @pytest.mark.asyncio

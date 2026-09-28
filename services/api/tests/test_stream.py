@@ -19,7 +19,7 @@ from api.deps.tenancy import (
     get_request_tenant_scope,
 )
 from api.middleware.errors import install_problem_handlers
-from api.routers.stream import _GET_RUN, _GET_STEPS, router
+from api.routers.stream import _GET_GUARDRAILS, _GET_RUN, _GET_STEPS, router
 
 
 ORG_A_ID = UUID("00000000-0000-4000-8000-0000000000a1")
@@ -77,6 +77,14 @@ class _StreamSession:
                 "error_code": None,
             },
         ]
+        self._guardrails = [
+            {
+                "id": UUID("00000000-0000-4000-8000-0000000000a5"),
+                "kind": "content_safety",
+                "outcome": "degraded",
+                "occurred_at": now,
+            }
+        ]
 
     async def execute(
         self, statement: object, parameters: Mapping[str, object]
@@ -91,6 +99,8 @@ class _StreamSession:
             return _Result([self._run] if is_org_a_run else [])
         if "FROM public.agent_steps AS step" in query:
             return _Result(self._steps if is_org_a_run else [])
+        if "FROM public.guardrail_events AS event" in query:
+            return _Result(self._guardrails if is_org_a_run else [])
         raise AssertionError(f"Unexpected stream SQL: {query}")
 
 
@@ -144,6 +154,7 @@ async def test_stream_first_emits_the_complete_hollow_timeline(
     timeline = json.loads(events[0].split("data: ", 1)[1])
     assert [item["stage"] for item in timeline["steps"]] == [
         "safety",
+        "p0",
         "intake",
         "context",
         "diagnosis",
@@ -155,14 +166,25 @@ async def test_stream_first_emits_the_complete_hollow_timeline(
     assert "event: step.finished" in events[1]
     assert '"stage":"safety"' in events[1]
     assert "event: step.started" in events[2]
+    assert "event: guardrail.hit" in events[3]
+    guardrail = json.loads(events[3].split("data: ", 1)[1])
+    assert guardrail == {
+        "kind": "content_safety",
+        "occurred_at": "2026-09-26T14:00:00Z",
+        "outcome": "degraded",
+        "run_id": str(RUN_A_ID),
+    }
     assert "input_digest" not in response.text
     assert "output_digest" not in response.text
     assert str(ORG_A_ID) not in response.text
 
     assert [
-        str(_GET_RUN) in query or str(_GET_STEPS) in query
+        str(_GET_RUN) in query
+        or str(_GET_STEPS) in query
+        or str(_GET_GUARDRAILS) in query
         for query, _ in stream_session.executions
     ] == [
+        True,
         True,
         True,
     ]

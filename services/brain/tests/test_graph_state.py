@@ -38,6 +38,10 @@ from brain.graph import state
 from brain.graph.state import (
     DecisionMode,
     DecisionProposal,
+    GuardrailEvent,
+    GuardrailKind,
+    GuardrailOutcome,
+    GuardrailStage,
     RetryRecord,
     RetryStage,
     TicketState,
@@ -164,6 +168,16 @@ def test_ticket_state_carries_typed_handoffs_and_digest_only_trace() -> None:
                 last_failure_code="schema_validation",
             ),
         ),
+        guardrail_events=(
+            GuardrailEvent(
+                kind=GuardrailKind.CONTENT_SAFETY,
+                stage=GuardrailStage.PRE_MODEL,
+                outcome=GuardrailOutcome.PASSED,
+                rule_version="local-v1",
+                content_digest=_DIGEST,
+                reason_code="content_safety_passed",
+            ),
+        ),
         trace=(
             TraceEntry(
                 sequence=1,
@@ -187,6 +201,7 @@ def test_ticket_state_carries_typed_handoffs_and_digest_only_trace() -> None:
     assert state_value.plan == _plan()
     assert state_value.audit_result == _audit_result()
     assert state_value.decision is not None
+    assert state_value.guardrail_events[0].content_digest == _DIGEST
     assert state_value.trace[1].output_digest == _SECOND_DIGEST
     assert "import langgraph" not in inspect.getsource(state).casefold()
 
@@ -200,6 +215,15 @@ def test_state_rejects_untrusted_trace_data_duplicate_retries_and_unsafe_auto_mo
             stage=TraceStage.SAFETY,
             outcome=TraceOutcome.STARTED,
             input_digest=_DIGEST.upper(),
+        )
+    with pytest.raises(ValueError, match="safe snake_case"):
+        GuardrailEvent(
+            kind=GuardrailKind.CONTENT_SAFETY,
+            stage=GuardrailStage.PRE_MODEL,
+            outcome=GuardrailOutcome.BLOCKED,
+            rule_version="local-v1",
+            content_digest=_DIGEST,
+            reason_code="unsafe reason",
         )
     with pytest.raises(ValueError, match="must not repeat"):
         TicketState(

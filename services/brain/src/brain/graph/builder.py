@@ -21,7 +21,6 @@ from brain.graph.nodes import (
     GraphDependencies,
     approval_node,
     audit_node,
-    auto_node,
     context_node,
     diagnosis_node,
     dispatch_node,
@@ -121,7 +120,6 @@ def build_maintenance_graph(
     workflow.add_node("plan_dispatch", _bind(dispatch_node, dependencies))
     workflow.add_node("audit_policy", _bind(audit_node, dependencies))
     workflow.add_node("apply_gate", _bind(gate_node, dependencies))
-    workflow.add_node("route_auto", _bind_terminal(auto_node))
     workflow.add_node("approval", _bind_terminal(approval_node))
     workflow.add_node("route_escalation", _bind_terminal(escalate_node))
 
@@ -129,7 +127,11 @@ def build_maintenance_graph(
     workflow.add_conditional_edges(
         "screen_safety",
         _bind_route(route_after_safety),
-        {"p0": "page_p0", "context": "normalize_intake"},
+        {
+            "p0": "page_p0",
+            "context": "normalize_intake",
+            "escalate": "route_escalation",
+        },
     )
     workflow.add_conditional_edges(
         "normalize_intake",
@@ -152,13 +154,11 @@ def build_maintenance_graph(
         "apply_gate",
         _bind_route(route_after_gate),
         {
-            "auto": "route_auto",
             "approve": "approval",
             "escalate": "route_escalation",
         },
     )
     workflow.add_edge("page_p0", END)
-    workflow.add_edge("route_auto", END)
     workflow.add_edge("approval", END)
     workflow.add_edge("route_escalation", END)
 

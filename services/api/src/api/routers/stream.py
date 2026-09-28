@@ -25,6 +25,7 @@ router = APIRouter(prefix="/v1/runs", tags=["runs"])
 
 _TIMELINE_STAGES = (
     "safety",
+    "p0",
     "intake",
     "context",
     "diagnosis",
@@ -41,7 +42,6 @@ _COMPONENT_STAGE_NAMES = {
     "plan_dispatch": "dispatch",
     "audit_policy": "policy_audit",
     "apply_gate": "decision",
-    "route_auto": "decision",
     "approval": "decision",
     "route_escalation": "decision",
 }
@@ -68,6 +68,16 @@ _GET_STEPS = text(
     WHERE step.org_id = CAST(:org_id AS uuid)
       AND step.agent_run_id = CAST(:run_id AS uuid)
     ORDER BY step.sequence_number ASC
+    """
+)
+_GET_GUARDRAILS = text(
+    """
+    SELECT event.id, event.kind::text AS kind, event.outcome::text AS outcome,
+           event.occurred_at
+    FROM public.guardrail_events AS event
+    WHERE event.org_id = CAST(:org_id AS uuid)
+      AND event.agent_run_id = CAST(:run_id AS uuid)
+    ORDER BY event.occurred_at ASC, event.id ASC
     """
 )
 
@@ -98,15 +108,25 @@ async def stream_run(
     steps = [
         cast(Mapping[str, object], dict(row)) for row in step_result.mappings().all()
     ]
+    guardrail_result = await session.execute(
+        _GET_GUARDRAILS, {"org_id": str(scope.org_id), "run_id": str(run_id)}
+    )
+    guardrails = [
+        cast(Mapping[str, object], dict(row))
+        for row in guardrail_result.mappings().all()
+    ]
     return StreamingResponse(
-        _snapshot_events(run_id, dict(run), steps),
+        _snapshot_events(run_id, dict(run), steps, guardrails),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
 async def _snapshot_events(
-    run_id: UUID, run: Mapping[str, object], steps: list[Mapping[str, object]]
+    run_id: UUID,
+    run: Mapping[str, object],
+    steps: list[Mapping[str, object]],
+    guardrails: list[Mapping[str, object]],
 ) -> AsyncIterator[str]:
     """Yield the deterministic, replay-safe event sequence for one snapshot."""
 
@@ -155,6 +175,21 @@ async def _snapshot_events(
             },
         )
 
+    for guardrail in guardrails:
+        guardrail_id = guardrail["id"]
+        if not isinstance(guardrail_id, UUID):
+            raise TypeError("guardrail event identifiers must be UUIDs")
+        yield _sse_event(
+            event_id=f"guardrail:{run_id}:{guardrail_id}",
+            event_name="guardrail.hit",
+            payload={
+                "run_id": str(run_id),
+                "occurred_at": _timestamp(guardrail["occurred_at"]),
+                "kind": _guardrail_value(guardrail["kind"], field_name="kind"),
+                "outcome": _guardrail_value(guardrail["outcome"], field_name="outcome"),
+            },
+        )
+
     if run_status == "failed" and not emitted_failure:
         yield _sse_event(
             event_id=f"run:{run_id}:failed",
@@ -194,3 +229,33 @@ def _integer(value: object) -> int:
     if isinstance(value, int) and not isinstance(value, bool):
         return value
     raise TypeError("stream event sequence numbers must be integers")
+
+
+def _guardrail_value(value: object, *, field_name: str) -> str:
+    """Project database enums without ever exposing a free-form audit field."""
+
+    allowed = (
+        {
+            "tenant_authorisation",
+            "rate_limit",
+            "payload_size",
+            "pii_redaction",
+            "prompt_injection",
+            "content_safety",
+            "schema_validation",
+            "citation_verification",
+            "numeric_sanity",
+            "policy_compliance",
+            "fair_housing",
+            "output_pii",
+            "grant_scope",
+            "idempotency",
+            "cost_budget",
+            "latency_budget",
+        }
+        if field_name == "kind"
+        else {"passed", "blocked", "escalated", "degraded"}
+    )
+    if not isinstance(value, str) or value not in allowed:
+        raise ValueError(f"unknown guardrail {field_name}")
+    return value

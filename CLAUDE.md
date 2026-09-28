@@ -241,15 +241,28 @@ Update it when an accepted Phase-0 artifact changes.
   `DEMO_MODE=true`. The script deliberately does not deploy worker, MCP, or
   observability services; their later deployments must retain zero minimum instances.
 - `services/brain/src/brain/guardrails/shield.py` establishes the local-first
-  content-safety boundary. Its deterministic local check cannot be replaced or
-  bypassed by managed classifiers; managed results combine pessimistically and
-  failures degrade safely after 250ms with logs limited to safe operational metadata.
+  content-safety boundary. The graph runs it on each non-P0 resident submission
+  field before ordinary model work and routes a block to human review with a
+  digest-only guardrail receipt. Its deterministic local check cannot be replaced
+  or bypassed by managed classifiers; managed results combine pessimistically and
+  failures degrade safely after 250ms with logs limited to safe operational
+  metadata. At `pre_decision` and `pre_send`, a managed degradation fails closed
+  into a review block rather than allowing a consequential output.
 - `services/brain/src/brain/guardrails/pii.py` and `injection.py` protect every
   dynamic model-prompt value at the shared rendering boundary. Strings default to
   untrusted, receive deterministic PII redaction plus optional local Presidio
   augmentation, then are scanner-labelled and delimiter-isolated. A write-capable
   agent cannot render any untrusted context; `agent_steps` continues to persist
   only SHA-256 input digests, not raw input payloads.
+- `evals/datasets/injection_v1.jsonl` contains 40 synthetic injection attempts
+  spanning resident text, vendor SMS, PDF text, image captions, and marketplace
+  listings. The dataset test proves each is label-isolated and cannot render for
+  write tools, including low-signal attempts the scanner does not recognise.
+- `services/brain/src/brain/guardrails/fair_housing.py` is the deterministic
+  pre-send output boundary for a future communicator. It never silently rewrites
+  a draft; explicit discriminatory advertising, protected-class treatment,
+  steering, accommodation denial, and source-of-income exclusion produce only a
+  digest-only assessment and a human-review route.
 
 ### Required next work
 

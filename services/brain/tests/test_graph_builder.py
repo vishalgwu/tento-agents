@@ -46,7 +46,6 @@ from brain.graph.builder import (
 )
 from brain.graph.nodes import (
     AuditEvidence,
-    DecisionGatePolicy,
     DispatchSnapshot,
     GraphDependencies,
     WorkflowInputRepository,
@@ -192,11 +191,7 @@ class _Transport:
 
 
 def _dependencies(
-    inputs: _Inputs,
-    gateway: _Gateway,
-    transport: _Transport,
-    *,
-    gate_policy: DecisionGatePolicy = DecisionGatePolicy(),
+    inputs: _Inputs, gateway: _Gateway, transport: _Transport
 ) -> GraphDependencies:
     return GraphDependencies(
         inputs=cast(WorkflowInputRepository, inputs),
@@ -206,7 +201,6 @@ def _dependencies(
         auditor_gateway=cast(AuditorGateway, gateway),
         p0_transport=cast(P0PagingTransport, transport),
         demo_mode=True,
-        decision_gate_policy=gate_policy,
     )
 
 
@@ -280,25 +274,34 @@ async def test_approval_path_pauses_and_resumes_from_a_strict_checkpoint() -> No
 
 
 @pytest.mark.asyncio
-async def test_explicit_policy_can_select_the_non_executing_auto_route() -> None:
+async def test_confidence_cannot_bypass_required_human_approval() -> None:
     inputs = _Inputs("Kitchen sink backs up after dishwasher use.")
-    graph = _graph(
-        _dependencies(
-            inputs,
-            _Gateway(),
-            _Transport(),
-            gate_policy=DecisionGatePolicy(
-                automatic_confidence_threshold=Decimal("0.90"),
-                automatic_decisions_enabled=True,
-            ),
-        )
-    )
+    graph = _graph(_dependencies(inputs, _Gateway(), _Transport()))
 
     result = await graph.ainvoke(_state(confidence=Decimal("0.95")), _config("auto"))
 
     assert result.decision is not None
-    assert result.decision.mode is DecisionMode.AUTO
-    assert result.trace[-1].outcome is TraceOutcome.COMPLETED
+    assert result.decision.mode is DecisionMode.APPROVAL_REQUIRED
+
+
+@pytest.mark.asyncio
+async def test_shield_block_routes_to_human_without_ordinary_model_work() -> None:
+    inputs = _Inputs("I am going to bring a gun to the leasing office.")
+    gateway = _Gateway()
+
+    result = await _graph(_dependencies(inputs, gateway, _Transport())).ainvoke(
+        _state(), _config("shield-block")
+    )
+
+    assert result.safety is not None and not result.safety.p0
+    assert result.facts is None
+    assert result.guardrail_events[0].kind.value == "content_safety"
+    assert result.guardrail_events[0].outcome.value == "blocked"
+    assert gateway.calls == []
+    assert tuple(entry.stage for entry in result.trace) == (
+        TraceStage.SAFETY,
+        TraceStage.DECISION,
+    )
 
 
 @pytest.mark.asyncio

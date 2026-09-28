@@ -502,11 +502,19 @@ later, combine pessimistically (any block is a block), and time out at 250ms int
 logged degradation rather than a failed request. **A classifier is a filter; the
 architecture is the boundary.**
 
-**Implementation checkpoint — 2026-09-27.** Step 57 is implemented and covered by
-focused tests. `Shield` always evaluates the deterministic local boundary before
-concurrently querying optional managed classifiers. Any valid block wins; a managed
-timeout, failure, or malformed response becomes a safe 250ms-bounded degradation
-log containing only provider, stage, and content digest—never raw resident content.
+**Implementation checkpoint — 2026-09-28.** Step 57 is integrated at the graph
+boundary and covered by focused tests. After the raw P0 safety path has had first
+access to the submission, every non-P0 resident report and photo caption passes
+through `Shield` before ordinary model work. A content-safety block writes a
+digest-only `TicketState.guardrail_events` receipt and routes directly to human
+review; it cannot reach intake or later agents. The SSE run snapshot now projects
+persisted `guardrail_events` as `guardrail.hit` without exposing text or digests.
+`Shield` always evaluates the deterministic local boundary before concurrently
+querying optional managed classifiers. Any valid block wins; a managed timeout,
+failure, or malformed response becomes a safe 250ms-bounded degradation log
+containing only provider, stage, and content digest—never raw resident content.
+At `pre_decision` and `pre_send`, a managed degradation also fails closed into a
+human-review block rather than allowing an externally consequential result.
 
 **58. `services/brain/src/brain/guardrails/pii.py`** — Presidio plus regex for SSN,
 card, phone, email, DOB. Redact before any prompt is assembled. `agent_steps` stores
@@ -534,6 +542,30 @@ rest.
 **61. `services/brain/src/brain/guardrails/fair_housing.py`** — Term blocklist on
 output, intent classifier over the drafted message, and a block that routes to a
 human — **never a silent rewrite**.
+
+**Implementation checkpoint — 2026-09-28.** Steps 60 and 61 are implemented as
+human-authored, synthetic evaluation data and a deterministic pre-send boundary.
+`injection_v1.jsonl` has 40 attempts—eight each from resident text, vendor SMS,
+PDF text, image captions, and marketplace listings—and exercises both scanner
+signals and deliberately low-signal attempts. Every case is label-isolated and
+rejected for write-capable prompt recipients. `fair_housing.py` blocks explicit
+discriminatory advertising, protected-class treatment, steering, accommodation
+denial, and source-of-income exclusion to a human-review route. It retains only
+the draft digest and safe rule IDs; it never changes generated wording. The
+future communicator must invoke this boundary before any resident or vendor copy
+can be released.
+
+**Implementation checkpoint — 2026-09-28.** Steps 60 and 61 are implemented as
+human-authored, synthetic evaluation data and a deterministic pre-send boundary.
+`injection_v1.jsonl` has 40 attempts—eight each from resident text, vendor SMS,
+PDF text, image captions, and marketplace listings—and exercises both scanner
+signals and deliberately low-signal attempts. Every case is label-isolated and
+rejected for write-capable prompt recipients. `fair_housing.py` blocks explicit
+discriminatory advertising, protected-class treatment, steering, accommodation
+denial, and source-of-income exclusion to a human-review route. It retains only
+the draft digest and safe rule IDs; it never changes generated wording. The
+future communicator must invoke this boundary before any resident or vendor copy
+can be released.
 
 **62. `evals/datasets/redteam_fh.jsonl`** — Paired probes identical except for one
 protected-class signal (voucher holder, wheelchair access, service animal, family

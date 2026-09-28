@@ -14,15 +14,17 @@ line and `data` is compact JSON encoded as UTF-8. A blank line ends the event.
 The server sends `Cache-Control: no-cache` and `X-Accel-Buffering: no`.
 
 The first event is always `timeline.ready`. It contains every normal workflow
-stage as `pending`, so a client can render the full hollow timeline before any
-step result arrives. The server then replays the current persisted
-`agent_steps` in sequence order and closes the response. This is deliberately
-a snapshot stream, not a claim of a durable push broker: clients reconnect or
-poll while a run is non-terminal. A future durable outbox may add live delivery
-without changing these payloads.
+stage as `pending`, including the P0 path, so a client can render the full hollow
+timeline before any step result arrives. The server then replays the current
+persisted `agent_steps` in sequence order, followed by the run's persisted
+`guardrail_events`, and closes the response. This is deliberately a snapshot
+stream, not a claim of a durable push broker: clients reconnect or poll while a
+run is non-terminal. A future durable outbox may add live delivery without
+changing these payloads.
 
 The event identifier is stable for a single replay: `timeline:{run_id}` for
-the initial event and `step:{run_id}:{sequence_number}` for persisted steps.
+the initial event, `step:{run_id}:{sequence_number}` for persisted steps, and
+`guardrail:{run_id}:{guardrail_event_id}` for persisted guardrail receipts.
 Clients must treat a repeated identifier as an idempotent state replacement.
 
 ## Common fields
@@ -49,9 +51,9 @@ ignored.
 | `decision.ready` | `run_id`, `occurred_at`, `decision_id`, `mode`, `status` | A safe decision availability signal, not approval or execution authority. |
 | `run.failed` | `run_id`, `occurred_at`, `failure_code` | Terminal safe failure code only; no exception message or provider detail. |
 
-`timeline.ready`, `step.started`, `step.finished`, and `run.failed` are the
-events emitted by the initial API implementation. The remaining names are
-reserved, documented wire contract values for their audit-backed producers;
+`timeline.ready`, `step.started`, `step.finished`, `guardrail.hit`, and
+`run.failed` are emitted by the current API implementation. The remaining names
+are reserved, documented wire contract values for their audit-backed producers;
 they are not synthetic client events.
 
 ## Example
@@ -59,7 +61,7 @@ they are not synthetic client events.
 ```text
 id: timeline:2d1e1e1d-9999-4000-8000-000000000001
 event: timeline.ready
-data: {"run_id":"2d1e1e1d-9999-4000-8000-000000000001","occurred_at":"2026-09-26T14:00:00Z","run_status":"running","steps":[{"sequence":1,"stage":"safety","status":"pending"},{"sequence":2,"stage":"intake","status":"pending"},{"sequence":3,"stage":"context","status":"pending"},{"sequence":4,"stage":"diagnosis","status":"pending"},{"sequence":5,"stage":"dispatch","status":"pending"},{"sequence":6,"stage":"policy_audit","status":"pending"},{"sequence":7,"stage":"decision","status":"pending"}]}
+data: {"run_id":"2d1e1e1d-9999-4000-8000-000000000001","occurred_at":"2026-09-26T14:00:00Z","run_status":"running","steps":[{"sequence":1,"stage":"safety","status":"pending"},{"sequence":2,"stage":"p0","status":"pending"},{"sequence":3,"stage":"intake","status":"pending"},{"sequence":4,"stage":"context","status":"pending"},{"sequence":5,"stage":"diagnosis","status":"pending"},{"sequence":6,"stage":"dispatch","status":"pending"},{"sequence":7,"stage":"policy_audit","status":"pending"},{"sequence":8,"stage":"decision","status":"pending"}]}
 
 id: step:2d1e1e1d-9999-4000-8000-000000000001:1
 event: step.finished

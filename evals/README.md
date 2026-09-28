@@ -26,6 +26,20 @@ only after a reviewer verifies the expected source. The integrity test at
 `services/brain/tests/test_retrieval_dataset.py` prevents accidental schema,
 count, lifecycle, and identifier drift.
 
+## `datasets/injection_v1.jsonl`
+
+The prompt-injection corpus has exactly 40 synthetic attempts: eight each from
+resident text, vendor SMS replies, PDF text layers, image captions, and
+marketplace listings. Every row is a compact JSON object with a stable `id`,
+`entry_point`, source `content`, and the deterministic scanner patterns expected
+for that attempt. A small set intentionally has no pattern match: the scanner is
+advisory, while labelled delimiters and the prohibition on untrusted write-tool
+context are the actual control.
+
+`services/brain/tests/test_injection_dataset.py` validates the schema and count,
+then exercises every row through the shared prompt boundary. It must remain
+synthetic, human-authored, and independent of model output.
+
 ## Measuring retrieval
 
 `retrieval.py` scores document IDs, not arbitrary chunk text, so all strategies
