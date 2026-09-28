@@ -263,6 +263,15 @@ Update it when an accepted Phase-0 artifact changes.
   a draft; explicit discriminatory advertising, protected-class treatment,
   steering, accommodation denial, and source-of-income exclusion produce only a
   digest-only assessment and a human-review route.
+- `evals/datasets/redteam_fh.jsonl` contains 20 synthetic fair-housing
+  control/probe pairs covering voucher, wheelchair, assistance-animal, family,
+  and name-association signals. `evals/fair_housing.py` evaluates only typed
+  outcome, response-element, and latency observations for parity; it neither
+  stores generated text nor infers protected attributes. A future communicator
+  must run this corpus before its output contract changes.
+- `apps/web/src/components/GuardrailBlock.tsx` makes a block legible without
+  receiving raw inspected content: it shows safe rule metadata, an explicit
+  no-send/no-rewrite state, and the required human-review steps.
 
 ### Required next work
 

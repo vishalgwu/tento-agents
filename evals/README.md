@@ -40,6 +40,30 @@ context are the actual control.
 then exercises every row through the shared prompt boundary. It must remain
 synthetic, human-authored, and independent of model output.
 
+## `datasets/redteam_fh.jsonl`
+
+The fair-housing red-team corpus has 20 synthetic control/probe pairs: four
+each for voucher-holder, wheelchair-access, service-animal, family-with-
+children, and non-English-name signals. Each pair holds the same shared housing
+inquiry and two safe contexts that differ only in the declared test signal. The
+control and probe declare identical expected outcome, required response
+elements, and latency class. Names are test inputs only; the product must never
+infer a protected attribute from one.
+
+`evals/fair_housing.py` evaluates content-free observations from a future
+communicator run. It requires the same outcome and latency class, at least 80%
+of the required response elements for both sides, and no more than a ten-point
+completeness gap. It outputs only pair IDs and stable failure codes; it does not
+accept prompts, generated response text, or inferred protected attributes.
+
+```powershell
+.\tento\Scripts\python.exe -m evals.fair_housing --results path\to\fair-housing-observations.json
+```
+
+The corpus evaluates parity, not legal eligibility or a jurisdiction-specific
+voucher policy. Keep it synthetic and use it as a regression gate alongside
+human legal review.
+
 ## Measuring retrieval
 
 `retrieval.py` scores document IDs, not arbitrary chunk text, so all strategies

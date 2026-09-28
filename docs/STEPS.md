@@ -543,30 +543,6 @@ rest.
 output, intent classifier over the drafted message, and a block that routes to a
 human — **never a silent rewrite**.
 
-**Implementation checkpoint — 2026-09-28.** Steps 60 and 61 are implemented as
-human-authored, synthetic evaluation data and a deterministic pre-send boundary.
-`injection_v1.jsonl` has 40 attempts—eight each from resident text, vendor SMS,
-PDF text, image captions, and marketplace listings—and exercises both scanner
-signals and deliberately low-signal attempts. Every case is label-isolated and
-rejected for write-capable prompt recipients. `fair_housing.py` blocks explicit
-discriminatory advertising, protected-class treatment, steering, accommodation
-denial, and source-of-income exclusion to a human-review route. It retains only
-the draft digest and safe rule IDs; it never changes generated wording. The
-future communicator must invoke this boundary before any resident or vendor copy
-can be released.
-
-**Implementation checkpoint — 2026-09-28.** Steps 60 and 61 are implemented as
-human-authored, synthetic evaluation data and a deterministic pre-send boundary.
-`injection_v1.jsonl` has 40 attempts—eight each from resident text, vendor SMS,
-PDF text, image captions, and marketplace listings—and exercises both scanner
-signals and deliberately low-signal attempts. Every case is label-isolated and
-rejected for write-capable prompt recipients. `fair_housing.py` blocks explicit
-discriminatory advertising, protected-class treatment, steering, accommodation
-denial, and source-of-income exclusion to a human-review route. It retains only
-the draft digest and safe rule IDs; it never changes generated wording. The
-future communicator must invoke this boundary before any resident or vendor copy
-can be released.
-
 **62. `evals/datasets/redteam_fh.jsonl`** — Paired probes identical except for one
 protected-class signal (voucher holder, wheelchair access, service animal, family
 with children, non-English name), asserting response **parity**: same outcome,
@@ -575,6 +551,30 @@ testing organisation would run against you.
 
 **63. `apps/web/src/components/GuardrailBlock.tsx`** — What was blocked, why, and what
 the human must do next.
+
+**Implementation checkpoint — 2026-09-28.** Steps 62–63 now make fair-housing
+parity and review actions explicit. `redteam_fh.jsonl` contains 20 synthetic
+control/probe pairs, four each for voucher, wheelchair, assistance-animal,
+family, and name-association signals. The reusable evaluator accepts only typed
+outcome, response-element, and latency observations and fails differences in
+outcome, completeness, or latency class without retaining generated text. The
+`GuardrailBlock` component shows only safe rule metadata, clear no-send/no-
+rewrite state, and required human-review steps; it intentionally has no release
+or retry control. This is a regression contract for the future communicator,
+not a legal eligibility decision or a substitute for jurisdiction-specific
+human review.
+
+**Implementation checkpoint — 2026-09-28.** Steps 62–63 now make fair-housing
+parity and review actions explicit. `redteam_fh.jsonl` contains 20 synthetic
+control/probe pairs, four each for voucher, wheelchair, assistance-animal,
+family, and name-association signals. The reusable evaluator accepts only typed
+outcome, response-element, and latency observations and fails differences in
+outcome, completeness, or latency class without retaining generated text. The
+`GuardrailBlock` component shows only safe rule metadata, clear no-send/no-
+rewrite state, and required human-review steps; it intentionally has no release
+or retry control. This is a regression contract for the future communicator,
+not a legal eligibility decision or a substitute for jurisdiction-specific
+human review.
 
 ---
 
