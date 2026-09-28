@@ -19,6 +19,7 @@ from brain.gateway.client import (
     TaskClass,
     load_builtin_prompt,
 )
+from brain.guardrails.injection import AgentCapability, PromptContext
 
 
 class SafetyCategory(str, Enum):
@@ -324,10 +325,14 @@ async def assess_safety(
         return _rules_only_verdict(signals)
 
     prompt = load_builtin_prompt("safety-second-opinion").render(
-        {
-            "resident_report": resident_report,
-            "photo_captions": tuple(photo_captions),
-        },
+        PromptContext.from_untrusted(
+            {
+                "resident_report": resident_report,
+                "photo_captions": tuple(photo_captions),
+            },
+            source="resident_submission",
+            capability=AgentCapability.NO_WRITE_TOOLS,
+        ),
         schema=SafetySecondOpinion,
     )
     try:

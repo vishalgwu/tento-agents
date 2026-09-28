@@ -28,6 +28,7 @@ from brain.gateway.client import (
     TaskClass,
     load_builtin_prompt,
 )
+from brain.guardrails.injection import AgentCapability, PromptContext
 
 
 _PROVENANCE_ID_PATTERN: Final = re.compile(r"^\[(?:C|F)[1-9]\d*\]$")
@@ -599,23 +600,29 @@ def _cost_scores(candidates: Iterable[VendorCandidate]) -> dict[UUID, Decimal]:
 
 def _render_dispatch_prompt(request: DispatchRequest) -> RenderedPrompt:
     return load_builtin_prompt("dispatch-planning").render(
-        {
-            "ticket_facts_json": json.dumps(
-                request.ticket_facts.model_dump(mode="json"),
-                ensure_ascii=True,
-                separators=(",", ":"),
-                sort_keys=True,
-            ),
-            "diagnosis_json": json.dumps(
-                request.diagnosis.model_dump(mode="json"),
-                ensure_ascii=True,
-                separators=(",", ":"),
-                sort_keys=True,
-            ),
-            "grounded_context": request.grounded_context,
-            "provenance_ids": request.provenance_ids,
-            "in_house_trades": tuple(trade.value for trade in request.in_house_trades),
-        },
+        PromptContext.from_untrusted(
+            {
+                "ticket_facts_json": json.dumps(
+                    request.ticket_facts.model_dump(mode="json"),
+                    ensure_ascii=True,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                "diagnosis_json": json.dumps(
+                    request.diagnosis.model_dump(mode="json"),
+                    ensure_ascii=True,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                "grounded_context": request.grounded_context,
+                "provenance_ids": request.provenance_ids,
+                "in_house_trades": tuple(
+                    trade.value for trade in request.in_house_trades
+                ),
+            },
+            source="workflow_input",
+            capability=AgentCapability.NO_WRITE_TOOLS,
+        ),
         schema=DispatchProposal,
     )
 

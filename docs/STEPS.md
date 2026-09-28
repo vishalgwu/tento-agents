@@ -517,6 +517,15 @@ string entering context, untrusted content wrapped in labelled delimiters, and a
 pattern scanner as the second line. The real control is that untrusted content never
 reaches an agent holding write tools.
 
+**Implementation checkpoint — 2026-09-28.** Steps 58 and 59 are implemented at
+the shared `PromptTemplate.render` boundary. Every dynamic string defaults to
+untrusted, is redacted for SSN/card/phone/email/DOB by deterministic regex plus
+available local Presidio analysis, scanned, HTML-escaped, and enclosed in an
+untrusted-content label before Jinja assembly. Presidio's optional spaCy asset is
+never downloaded during a request; regex protection remains active if it is absent.
+Write-capable agents reject untrusted context outright. The existing
+`agent_steps.input_digest` SHA-256-only schema remains the persistence contract.
+
 **60. `evals/datasets/injection_v1.jsonl`** — 40 attempts across **every** entry
 point, not just chat: resident text, vendor SMS reply bodies, PDF text layers, image
 captions, marketplace listings. Almost everyone scans the chat box and forgets the

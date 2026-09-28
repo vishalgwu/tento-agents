@@ -34,6 +34,12 @@ from jinja2.exceptions import TemplateError
 from jinja2.sandbox import SandboxedEnvironment
 from pydantic import BaseModel, ValidationError
 
+from brain.guardrails.injection import (
+    PromptContext,
+    PromptContextError,
+    prepare_prompt_values,
+)
+
 
 _PROMPT_NAME_PATTERN: Final = re.compile(r"^[a-z][a-z0-9._-]*$")
 _PROMPT_VERSION_PATTERN: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
@@ -164,13 +170,32 @@ class PromptTemplate:
 
     def render(
         self,
-        values: Mapping[str, object] | None = None,
+        values: PromptContext | None = None,
         *,
         schema: type[BaseModel] | None = None,
     ) -> RenderedPrompt:
-        """Render a prompt, keeping its static prefix cacheable by the provider."""
+        """Render a prompt through the mandatory PII and injection boundary.
 
-        context = dict(values or {})
+        Dynamic values must arrive as a :class:`PromptContext`, which makes the
+        recipient's tool capability explicit at every model-input boundary.
+        """
+
+        if values is None:
+            context: dict[str, object] = {}
+        elif not isinstance(values, PromptContext):
+            raise PromptRenderError(
+                f"prompt {self.name!r} requires PromptContext for dynamic values"
+            )
+        else:
+            prompt_context = values
+            if "schema_json" in prompt_context.values:
+                raise PromptRenderError("schema_json is owned by PromptTemplate.render")
+            try:
+                context = prepare_prompt_values(prompt_context)
+            except PromptContextError as exc:
+                raise PromptRenderError(
+                    f"prompt {self.name!r} received unsafe dynamic context"
+                ) from exc
         if "schema_json" in context:
             raise PromptRenderError("schema_json is owned by PromptTemplate.render")
         schema_digest: str | None = None

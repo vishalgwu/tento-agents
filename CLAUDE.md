@@ -244,6 +244,12 @@ Update it when an accepted Phase-0 artifact changes.
   content-safety boundary. Its deterministic local check cannot be replaced or
   bypassed by managed classifiers; managed results combine pessimistically and
   failures degrade safely after 250ms with logs limited to safe operational metadata.
+- `services/brain/src/brain/guardrails/pii.py` and `injection.py` protect every
+  dynamic model-prompt value at the shared rendering boundary. Strings default to
+  untrusted, receive deterministic PII redaction plus optional local Presidio
+  augmentation, then are scanner-labelled and delimiter-isolated. A write-capable
+  agent cannot render any untrusted context; `agent_steps` continues to persist
+  only SHA-256 input digests, not raw input payloads.
 
 ### Required next work
 

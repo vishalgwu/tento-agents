@@ -24,6 +24,7 @@ from brain.gateway.client import (
     TaskClass,
     load_builtin_prompt,
 )
+from brain.guardrails.injection import AgentCapability, PromptContext
 from brain.policy.precedence import (
     PolicyClaim,
     PolicyResolution,
@@ -292,22 +293,26 @@ def _render_audit_prompt(
     resolutions: tuple[PolicyResolution, ...],
 ) -> RenderedPrompt:
     return load_builtin_prompt("policy-audit").render(
-        {
-            "dispatch_plan_json": json.dumps(
-                request.dispatch_plan.model_dump(mode="json"),
-                ensure_ascii=True,
-                separators=(",", ":"),
-                sort_keys=True,
-            ),
-            "policy_resolutions_json": json.dumps(
-                [resolution.model_dump(mode="json") for resolution in resolutions],
-                ensure_ascii=True,
-                separators=(",", ":"),
-                sort_keys=True,
-            ),
-            "policy_context": request.policy_context,
-            "provenance_ids": _policy_provenance_ids(request.policy_claims),
-        },
+        PromptContext.from_untrusted(
+            {
+                "dispatch_plan_json": json.dumps(
+                    request.dispatch_plan.model_dump(mode="json"),
+                    ensure_ascii=True,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                "policy_resolutions_json": json.dumps(
+                    [resolution.model_dump(mode="json") for resolution in resolutions],
+                    ensure_ascii=True,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                "policy_context": request.policy_context,
+                "provenance_ids": _policy_provenance_ids(request.policy_claims),
+            },
+            source="policy_evidence",
+            capability=AgentCapability.NO_WRITE_TOOLS,
+        ),
         schema=PolicyAuditAssessment,
     )
 

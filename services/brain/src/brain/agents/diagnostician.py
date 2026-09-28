@@ -22,6 +22,7 @@ from brain.gateway.client import (
     TaskClass,
     load_builtin_prompt,
 )
+from brain.guardrails.injection import AgentCapability, PromptContext
 
 
 _PROVENANCE_ID_PATTERN: Final = re.compile(r"^\[(?:C|F)[1-9]\d*\]$")
@@ -217,16 +218,20 @@ async def diagnose(
 
 def _render_diagnostician_prompt(request: DiagnosticianRequest) -> RenderedPrompt:
     return load_builtin_prompt("diagnostician").render(
-        {
-            "ticket_facts_json": json.dumps(
-                request.ticket_facts.model_dump(mode="json"),
-                ensure_ascii=True,
-                separators=(",", ":"),
-                sort_keys=True,
-            ),
-            "grounded_context": request.grounded_context,
-            "provenance_ids": request.provenance_ids,
-        },
+        PromptContext.from_untrusted(
+            {
+                "ticket_facts_json": json.dumps(
+                    request.ticket_facts.model_dump(mode="json"),
+                    ensure_ascii=True,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                "grounded_context": request.grounded_context,
+                "provenance_ids": request.provenance_ids,
+            },
+            source="workflow_input",
+            capability=AgentCapability.NO_WRITE_TOOLS,
+        ),
         schema=DiagnosticAssessment,
     )
 

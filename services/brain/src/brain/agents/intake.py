@@ -15,6 +15,7 @@ from brain.gateway.client import (
     TaskClass,
     load_builtin_prompt,
 )
+from brain.guardrails.injection import AgentCapability, PromptContext
 
 
 class TicketIntent(str, Enum):
@@ -235,7 +236,7 @@ def _apply_authoritative_input(
 
 def _render_intake_prompt(request: IntakeRequest) -> RenderedPrompt:
     return load_builtin_prompt("intake-normalize").render(
-        _prompt_values(request), schema=TicketFacts
+        _prompt_context(_prompt_values(request)), schema=TicketFacts
     )
 
 
@@ -254,7 +255,9 @@ def _render_repair_prompt(
             ),
         }
     )
-    return load_builtin_prompt("intake-repair").render(values, schema=TicketFacts)
+    return load_builtin_prompt("intake-repair").render(
+        _prompt_context(values), schema=TicketFacts
+    )
 
 
 def _prompt_values(request: IntakeRequest) -> dict[str, object]:
@@ -276,3 +279,11 @@ def _prompt_values(request: IntakeRequest) -> dict[str, object]:
             sort_keys=True,
         ),
     }
+
+
+def _prompt_context(values: dict[str, object]) -> PromptContext:
+    return PromptContext.from_untrusted(
+        values,
+        source="resident_submission",
+        capability=AgentCapability.NO_WRITE_TOOLS,
+    )

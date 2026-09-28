@@ -24,6 +24,7 @@ from brain.gateway.client import (
     TaskClass,
     load_builtin_prompt,
 )
+from brain.guardrails.injection import AgentCapability, PromptContext
 
 
 MAX_CANDIDATE_TEXT_LENGTH: Final = 50_000
@@ -320,19 +321,23 @@ def _render_repair_prompt(
     verification: CitationVerification,
 ) -> RenderedPrompt:
     return load_builtin_prompt("citation-repair").render(
-        {
-            "candidate_text": candidate_text,
-            "envelope": envelope.render(),
-            "violations_json": json.dumps(
-                [
-                    violation.model_dump(mode="json")
-                    for violation in verification.violations
-                ],
-                ensure_ascii=True,
-                separators=(",", ":"),
-                sort_keys=True,
-            ),
-        },
+        PromptContext.from_untrusted(
+            {
+                "candidate_text": candidate_text,
+                "envelope": envelope.render(),
+                "violations_json": json.dumps(
+                    [
+                        violation.model_dump(mode="json")
+                        for violation in verification.violations
+                    ],
+                    ensure_ascii=True,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+            },
+            source="model_output",
+            capability=AgentCapability.NO_WRITE_TOOLS,
+        ),
         schema=CitationRegeneration,
     )
 

@@ -30,6 +30,7 @@ from brain.gateway.client import (
     TaskClass,
     load_builtin_prompt,
 )
+from brain.guardrails.injection import AgentCapability, PromptContext
 
 
 class _Decision(BaseModel):
@@ -97,7 +98,12 @@ def _write_prompt(root: Path, *, body: str | None = None) -> PromptCatalog:
 def _rendered_prompt(tmp_path: Path) -> RenderedPrompt:
     catalog = _write_prompt(tmp_path / "prompts")
     return catalog.load("diagnosis").render(
-        {"request": "Water is leaking beneath the kitchen sink."}, schema=_Decision
+        PromptContext.from_untrusted(
+            {"request": "Water is leaking beneath the kitchen sink."},
+            source="test_input",
+            capability=AgentCapability.NO_WRITE_TOOLS,
+        ),
+        schema=_Decision,
     )
 
 
