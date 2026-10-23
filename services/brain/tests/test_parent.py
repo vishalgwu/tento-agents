@@ -83,7 +83,7 @@ async def test_parent_expansion_reconstructs_the_complete_heading_scope() -> Non
     section = (
         "## Repairs\n"
         "Only report issues that affect habitability.\n\n"
-        "Do not authorize repairs until written approval is recorded.\n"
+        "Do not authorize repairs until a valid policy basis is recorded.\n"
     )
     source_start = 120
     first_end = section.index("\n\n")

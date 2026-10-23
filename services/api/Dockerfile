@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-# The public API stays warm in Cloud Run so review requests do not pay a cold start.
+# API and background worker share this image on Railway.
 FROM python:3.12.10-slim-bookworm AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -14,11 +14,19 @@ WORKDIR /app
 RUN groupadd --system residentos \
     && useradd --system --gid residentos --home-dir /nonexistent --shell /usr/sbin/nologin residentos
 
-COPY requirements.txt ./requirements.txt
-RUN python -m pip install --no-cache-dir --requirement requirements.txt
+COPY requirements.runtime.txt requirements.runtime.lock.txt ./
+RUN python -m pip install --no-cache-dir --requirement requirements.runtime.txt --constraint requirements.runtime.lock.txt
+
+# Prewarm tokenizer data at image build time; graph execution needs no download.
+ENV TIKTOKEN_CACHE_DIR=/app/tokenizer-cache
+RUN mkdir -p /app/tokenizer-cache \
+    && python -c "import tiktoken; tiktoken.get_encoding('o200k_base')" \
+    && chmod -R a+rX /app/tokenizer-cache
 
 COPY --chown=residentos:residentos services/api/src ./services/api/src
 COPY --chown=residentos:residentos services/brain/src ./services/brain/src
+
+COPY --chown=residentos:residentos infra/migrations ./infra/migrations
 
 USER residentos
 

@@ -1,4 +1,4 @@
-"""Integrity checks for the human-authored retrieval benchmark."""
+"""Integrity checks for the source-controlled retrieval benchmark."""
 
 from __future__ import annotations
 

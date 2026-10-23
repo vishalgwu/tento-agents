@@ -25,7 +25,7 @@ reviewed_at: null
 The HVAC Program Owner must replace this document with approved equipment,
 jurisdiction, and vendor guidance before go-live. The system can summarize
 reported conditions and locate evidence, but it cannot diagnose equipment,
-schedule a technician, or decide a priority without authorized human review.
+schedule a technician, or decide a priority without validated evidence.
 
 ## Temporary intake signals
 
@@ -36,8 +36,8 @@ information.
 
 | Signal category | Temporary handling |
 | --- | --- |
-| Apparent fire, gas, electrical, or other immediate physical danger | Direct the workflow to the emergency procedure and urgent human review. |
-| Reported loss of essential heating/cooling without an immediate hazard | Produce a manager-review recommendation with the reported facts and source citations. |
+| Apparent fire, gas, electrical, or other immediate physical danger | Direct the workflow to the emergency procedure and a terminal safety result. |
+| Reported loss of essential heating/cooling without an immediate hazard | Produce a structured maintenance result with the reported facts and source citations. |
 | Intermittent performance, noise, or comfort complaint | Capture the report and abstain from a diagnosis when evidence is insufficient. |
 
 These categories are evaluation labels. They are not law, weather-triggered

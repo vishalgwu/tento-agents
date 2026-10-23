@@ -28,7 +28,7 @@ It must not ask them to investigate a hazard, wait for an app response, handle
 utilities, or follow generated physical instructions.
 
 P0 is a temporary classification label for a possible immediate life-safety or
-property-safety concern. It requires prompt human review; it is not an
+property-safety concern. It requires deterministic safety routing; it is not an
 automated emergency determination or a promised response time.
 
 ## Temporary escalation workflow
@@ -37,7 +37,7 @@ automated emergency determination or a promised response time.
    any existing approved contact context.
 2. Show the Safety and Incident Lead the cited evidence and identify that this
    source is a temporary fixture.
-3. An authorized human chooses whether an approved emergency process applies.
+3. The system returns a terminal safety result without waiting for another actor.
 4. Only the approved orchestrator may execute a separately authorized outbound
    action. In demo mode, all external transports remain blocked and simulated.
 5. Record the decision, evidence, authorization, and outcome for later review.
@@ -54,4 +54,4 @@ automated emergency determination or a promised response time.
 
 The Safety and Incident Lead must supply a reviewed, site/jurisdiction-scoped
 emergency plan, escalation roster, ownership model, revision date, and legal
-approval criteria before this category is made production eligible.
+source eligibility criteria before this category is made production eligible.

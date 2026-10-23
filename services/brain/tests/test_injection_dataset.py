@@ -1,4 +1,4 @@
-"""Integrity and boundary coverage for the human-authored injection corpus."""
+"""Integrity and boundary coverage for the source-controlled injection corpus."""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ def _load_cases() -> tuple[InjectionCase, ...]:
         content = decoded["content"]
         expected_patterns = decoded["expected_patterns"]
         assert isinstance(identifier, str) and identifier
-        assert entry_point in _ENTRY_POINTS
+        assert isinstance(entry_point, str) and entry_point in _ENTRY_POINTS
         assert isinstance(content, str) and content.strip()
         assert isinstance(expected_patterns, list) and all(
             isinstance(pattern, str)

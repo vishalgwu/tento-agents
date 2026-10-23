@@ -265,7 +265,7 @@ async def test_dispatch_withholds_proposal_for_missing_evidence_or_invalid_route
 
 
 @pytest.mark.asyncio
-async def test_dispatch_routes_provider_and_schema_failures_to_human_review() -> None:
+async def test_dispatch_routes_provider_and_schema_failures_to_abstained() -> None:
     schema_gateway = _DispatchGateway(
         SchemaValidationError(
             "schema invalid",
@@ -338,7 +338,7 @@ async def test_dispatch_uses_vendor_id_as_the_stable_tie_breaker_and_abstains_wh
 
     assert tie_result.plan is not None
     assert tie_result.plan.selected_vendor_id == first.vendor_id
-    assert no_vendor_result.status is DispatchStatus.HUMAN_REVIEW_REQUIRED
+    assert no_vendor_result.status is DispatchStatus.ABSTAINED
     assert no_vendor_result.failure_kind is DispatchFailureKind.NO_ELIGIBLE_VENDOR
 
 

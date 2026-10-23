@@ -23,7 +23,7 @@ reviewed_at: null
 ## Owner and operating boundary
 
 The Electrical Safety Owner is responsible for the approved replacement. The
-product may record a report and surface a human-review recommendation; it may
+product may record a report and surface a safety result; it may
 not provide electrical troubleshooting, authorize site access, or initiate a
 dispatch.
 
@@ -36,7 +36,7 @@ breaker, or perform any other physical action.
 
 | Reported condition | Temporary workflow treatment |
 | --- | --- |
-| Smoke, sparks, burning odor, abnormal heat, or a possible electrical fire | Route to the emergency procedure and urgent human review. |
+| Smoke, sparks, burning odor, abnormal heat, or a possible electrical fire | Route to the emergency procedure and a terminal safety result. |
 | Service loss with no reported immediate danger | Preserve the report and request a decision from the authorized maintenance owner. |
 | Any other or unclear symptom | Abstain from diagnosis and request approved evidence or a qualified assessment. |
 

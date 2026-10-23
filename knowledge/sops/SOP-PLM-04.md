@@ -36,7 +36,7 @@ priority candidate; a human remains responsible for confirming it.
 
 | Candidate | Example evidence to record | Required system behavior |
 | --- | --- | --- |
-| P0 | An apparent immediate safety risk, major uncontrolled water release, or sewage affecting occupied space. | Surface the emergency procedure and request urgent human review; do not direct physical action. |
+| P0 | An apparent immediate safety risk, major uncontrolled water release, or sewage affecting occupied space. | Surface the emergency procedure and request a terminal safety result; do not direct physical action. |
 | P1 | A loss of a necessary fixture or a continuing leak with property-impact risk. | Create an evidence-backed recommendation for an authorized human. |
 | P2/P3 | Localized, non-immediate symptoms with no observed safety signal. | Capture facts and offer the approved reporting path when one exists. |
 
@@ -62,7 +62,7 @@ or approved.
 
 - Do not expose step-by-step drain-clearing, chemical, pressure, or powered
   tool instructions through the product.
-- Do not treat a citation to this fixture as approval to spend money, dispatch
+- Do not treat a citation to this fixture as authorization to spend money, dispatch
   a vendor, enter a home, or carry out work.
 - If evidence is incomplete or conflicts with a verified source, state the
   uncertainty and escalate to the Maintenance Operations Lead.

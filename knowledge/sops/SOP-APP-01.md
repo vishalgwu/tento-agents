@@ -17,7 +17,7 @@ reviewed_at: null
 # Temporary appliance-service fixture
 
 > This is evaluation content. It is not a service SLA, warranty statement,
-> procurement rule, or approval to repair, replace, reimburse, or dispatch.
+> procurement rule, or authorization to repair, replace, reimburse, or dispatch.
 
 ## Accountable role
 

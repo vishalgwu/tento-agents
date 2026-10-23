@@ -7,10 +7,15 @@
     "build:web": "pnpm --filter @resident-os/web build",
     "dev:web": "pnpm --filter @resident-os/web dev",
     "generate:api": "pnpm --filter @resident-os/shared-types generate",
-    "typecheck:web": "pnpm --filter @resident-os/web typecheck"
+    "typecheck:web": "pnpm --filter @resident-os/web typecheck",
+    "build": "pnpm build:web",
+    "typecheck": "pnpm typecheck:web"
   },
   "devDependencies": {
     "openapi-typescript": "^7.10.1",
     "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

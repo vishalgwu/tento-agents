@@ -29,9 +29,10 @@ from api.middleware.rate_limit import (
     RedisFixedWindowRateLimiter,
 )
 from api.middleware.tenancy import TenantRlsContextMiddleware
-from api.routers.approvals import router as approvals_router
+from api.routers.agent import router as agent_router
 from api.routers.stream import router as stream_router
 from api.routers.tickets import router as tickets_router
+from api.routers.tenancies import router as tenancies_router
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,8 +103,9 @@ def create_app() -> FastAPI:
 
     app.add_api_route("/healthz", health, methods=["GET"], include_in_schema=False)
     app.include_router(tickets_router)
+    app.include_router(tenancies_router)
     app.include_router(stream_router)
-    app.include_router(approvals_router)
+    app.include_router(agent_router)
     return app
 
 

@@ -116,16 +116,6 @@ class WorkflowInputRepository(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
-class DecisionGatePolicy:
-    """Current deployment policy: every proposal requires human approval.
-
-    ``TicketState.confidence`` is retained as an auditable observation for the
-    future calibration component. It is deliberately not an authority signal
-    until that component and its acceptance evidence exist.
-    """
-
-
-@dataclass(frozen=True, slots=True)
 class GraphDependencies:
     """Capabilities injected by the orchestration composition root only."""
 
@@ -137,7 +127,6 @@ class GraphDependencies:
     p0_transport: P0PagingTransport
     demo_mode: bool
     safety_second_opinion_gateway: SafetySecondOpinionGateway | None = None
-    decision_gate_policy: DecisionGatePolicy = DecisionGatePolicy()
     shield: Shield = field(default_factory=Shield)
 
 
@@ -162,7 +151,7 @@ async def safety_node(
         "guardrail_events": (*state.guardrail_events, *guardrail_events),
     }
     if any(event.outcome is GuardrailOutcome.BLOCKED for event in guardrail_events):
-        return _human_review(state, TraceStage.SAFETY, **changes)
+        return _abstained(state, TraceStage.SAFETY, **changes)
     return _completed(state, TraceStage.SAFETY, **changes)
 
 
@@ -193,7 +182,7 @@ async def intake_node(
     retry = _intake_retry(state, result.repair_attempted, result.failure_kind)
     if result.status is IntakeStatus.COMPLETED:
         return _completed(state, TraceStage.INTAKE, facts=result.facts, retries=retry)
-    return _human_review(state, TraceStage.INTAKE, retries=retry)
+    return _abstained(state, TraceStage.INTAKE, retries=retry)
 
 
 async def context_node(
@@ -237,7 +226,7 @@ async def dispatch_node(
     outcome = (
         TraceOutcome.COMPLETED
         if result.status is DispatchStatus.PROPOSED
-        else TraceOutcome.HUMAN_REVIEW_REQUIRED
+        else TraceOutcome.ABSTAINED
     )
     return _transition(state, TraceStage.DISPATCH, outcome, plan=result)
 
@@ -255,7 +244,7 @@ async def audit_node(
     outcome = (
         TraceOutcome.COMPLETED
         if result.status is PolicyAuditStatus.COMPLIANT
-        else TraceOutcome.HUMAN_REVIEW_REQUIRED
+        else TraceOutcome.ABSTAINED
     )
     return _transition(state, TraceStage.POLICY_AUDIT, outcome, audit_result=result)
 
@@ -263,25 +252,21 @@ async def audit_node(
 async def gate_node(
     state: TicketState, config: RunnableConfig, *, dependencies: GraphDependencies
 ) -> dict[str, object]:
-    """Choose the required approval or escalation path in deterministic code."""
+    """Choose the terminal validated decision or abstention in deterministic code."""
 
     _require_thread_id(config)
-    decision = _decision_for(state, dependencies.decision_gate_policy)
+    decision = _decision_for(state)
     if decision is None:
-        return _human_review(state, TraceStage.DECISION)
+        return _abstained(state, TraceStage.DECISION)
+    if decision.mode is not DecisionMode.AUTO:
+        return _abstained(state, TraceStage.DECISION, decision=decision)
     return _completed(state, TraceStage.DECISION, decision=decision)
 
 
-def approval_node(state: TicketState) -> dict[str, object]:
-    """Resume target for an authorised human-approval workflow."""
-
-    return _human_review(state, TraceStage.DECISION)
-
-
 def escalate_node(state: TicketState) -> dict[str, object]:
-    """Record a safe handoff when no autonomous proposal can proceed."""
+    """Record a terminal abstention when no autonomous proposal can proceed."""
 
-    return _human_review(state, TraceStage.DECISION)
+    return _abstained(state, TraceStage.DECISION)
 
 
 def route_after_safety(state: TicketState) -> Literal["p0", "context", "escalate"]:
@@ -318,16 +303,6 @@ def route_after_dispatch(state: TicketState) -> Literal["audit", "gate"]:
     if state.plan is None:
         raise ValueError("dispatch routing requires a dispatch result")
     return "audit" if state.plan.status is DispatchStatus.PROPOSED else "gate"
-
-
-def route_after_gate(state: TicketState) -> Literal["approve", "escalate"]:
-    """Route the current human-authorised decision policy."""
-
-    if state.decision is None:
-        return "escalate"
-    if state.decision.mode is DecisionMode.APPROVAL_REQUIRED:
-        return "approve"
-    return "escalate"
 
 
 def _diagnostician_request(state: TicketState) -> DiagnosticianRequest:
@@ -371,10 +346,7 @@ def _auditor_request(state: TicketState, evidence: AuditEvidence) -> AuditorRequ
     )
 
 
-def _decision_for(
-    state: TicketState, policy: DecisionGatePolicy
-) -> DecisionProposal | None:
-    del policy
+def _decision_for(state: TicketState) -> DecisionProposal | None:
     provenance_ids = _decision_provenance_ids(state)
     if not provenance_ids:
         return None
@@ -383,7 +355,7 @@ def _decision_for(
             mode=DecisionMode.ESCALATE,
             rationale="No dispatch proposal is available for an autonomous decision.",
             provenance_ids=provenance_ids,
-            unknowns=("A human must resolve the unavailable dispatch proposal.",),
+            unknowns=("The dispatch proposal is unavailable.",),
         )
     if (
         state.audit_result is None
@@ -393,13 +365,12 @@ def _decision_for(
             mode=DecisionMode.ESCALATE,
             rationale="The dispatch proposal did not receive a compliant policy audit.",
             provenance_ids=provenance_ids,
-            unknowns=("A human must resolve the policy-audit outcome.",),
+            unknowns=("The policy audit could not validate this proposal.",),
         )
     return DecisionProposal(
-        mode=DecisionMode.APPROVAL_REQUIRED,
+        mode=DecisionMode.AUTO,
         rationale=(
-            "The cited dispatch proposal passed policy audit and requires human "
-            "approval before execution."
+            "The cited dispatch proposal passed deterministic validation and policy audit."
         ),
         provenance_ids=provenance_ids,
     )
@@ -515,10 +486,10 @@ def _completed(
     )
 
 
-def _human_review(
+def _abstained(
     state: TicketState, stage: TraceStage, **changes: object
 ) -> dict[str, object]:
-    return _transition(state, stage, TraceOutcome.HUMAN_REVIEW_REQUIRED, **changes)
+    return _transition(state, stage, TraceOutcome.ABSTAINED, **changes)
 
 
 def _transition(

@@ -2,7 +2,7 @@
 
 The caller persists the ticket and obtains its number before entering this
 mode.  This module then uses only deterministic safety rules, creates no work
-order, and marks every result for human escalation.
+order, and marks every result for terminal abstention.
 """
 
 from __future__ import annotations
@@ -37,14 +37,14 @@ class TicketPriority(str, Enum):
 
 
 class DegradedTicketStatus(str, Enum):
-    """Rules-only tickets always require an authorised human follow-up."""
+    """Rules-only tickets always require an explicit terminal abstention."""
 
     ESCALATED = "escalated"
 
 
 _ACKNOWLEDGEMENT_TEMPLATE = (
     "Your maintenance request has been recorded as ticket {ticket_number}. "
-    "It has been escalated for human review. If there is immediate danger, call "
+    "Automatic analysis is unavailable. If there is immediate danger, call "
     "emergency services."
 )
 _CATEGORY_DEFAULTS: dict[str, tuple[TicketPriority, int]] = {

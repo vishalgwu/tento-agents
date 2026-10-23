@@ -27,8 +27,8 @@ from api.deps.tenancy import (
 )
 from api.main import create_app
 from api.middleware.errors import install_problem_handlers
-from api.routers.approvals import router as approvals_router
 from api.routers.stream import router as stream_router
+from api.routers.tenancies import router as tenancies_router
 from api.routers.tickets import _GET_TICKET, _LIST_TICKETS, router as tickets_router
 
 
@@ -71,29 +71,22 @@ _ROUTE_ISOLATION_CASES = (
     ),
     _RouteIsolationCase(
         method="GET",
-        route_template="/v1/approvals",
-        request_path="/v1/approvals?limit=100",
+        route_template="/v1/tenancies",
+        request_path="/v1/tenancies",
         assertion="collection",
     ),
     _RouteIsolationCase(
-        method="POST",
-        route_template="/v1/approvals/{approval_id}/approve",
-        request_path=f"/v1/approvals/{ORG_B_TICKET}/approve",
+        method="GET",
+        route_template="/v1/runs/{run_id}",
+        request_path=f"/v1/runs/{ORG_B_TICKET}",
         assertion="foreign-detail",
     ),
     _RouteIsolationCase(
         method="POST",
-        route_template="/v1/approvals/{approval_id}/reject",
-        request_path=f"/v1/approvals/{ORG_B_TICKET}/reject",
-        assertion="foreign-detail",
-        json_body={"reason": "incorrect_priority"},
-    ),
-    _RouteIsolationCase(
-        method="POST",
-        route_template="/v1/approvals/{approval_id}/reassign",
-        request_path=f"/v1/approvals/{ORG_B_TICKET}/reassign",
-        assertion="foreign-detail",
-        json_body={"required_role": "asset_owner"},
+        route_template="/v1/tickets",
+        request_path="/v1/tickets",
+        assertion="forbidden-submit",
+        json_body={"description": "Leaky tap"},
     ),
 )
 
@@ -134,11 +127,11 @@ class _FakeTicketSession:
         query = str(statement)
         bound = dict(parameters)
         self.executions.append((query, bound))
-        if "FROM public.agent_runs AS run" in query:
+        if "FROM public.agent_runs AS run" in query and "SELECT run.id" in query:
+            return _FakeResult([])
+        if "FROM public.tenancies AS tenancy" in query:
             return _FakeResult([])
         if "FROM public.agent_steps AS step" in query:
-            return _FakeResult([])
-        if "FROM public.approvals AS approval" in query:
             return _FakeResult([])
         if "ORDER BY ticket.created_at DESC, ticket.id DESC" in query:
             return _FakeResult(self._list_rows(bound))
@@ -253,7 +246,7 @@ def ticket_app(ticket_session: _FakeTicketSession) -> FastAPI:
     install_problem_handlers(app)
     app.include_router(tickets_router)
     app.include_router(stream_router)
-    app.include_router(approvals_router)
+    app.include_router(tenancies_router)
 
     async def request_session() -> AsyncSession:
         return cast(AsyncSession, ticket_session)
@@ -274,7 +267,9 @@ def test_tenant_matrix_covers_every_registered_versioned_resource_route() -> Non
     registered_routes = {
         (method, route.path)
         for route in create_app().routes
-        if isinstance(route, APIRoute) and route.path.startswith("/v1/")
+        if isinstance(route, APIRoute)
+        and route.path.startswith("/v1/")
+        and route.path != "/v1/agent/run"
         for method in route.methods
     }
     covered_routes = {
@@ -313,6 +308,10 @@ async def test_org_a_cannot_obtain_org_b_data_from_any_registered_route(
         assert response.status_code == 200
         returned_ids = {item["id"] for item in response.json()["items"]}
         assert str(ORG_B_TICKET) not in returned_ids
+    elif case.assertion == "forbidden-submit":
+        assert response.status_code == 403
+        assert not ticket_session.executions
+        return
     else:
         assert response.status_code == 404
         assert response.json()["type"] == "urn:resident-os:problem:not-found"

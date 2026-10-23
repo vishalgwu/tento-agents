@@ -34,13 +34,12 @@ class DecisionMode(str, Enum):
     """Frozen decision-mode vocabulary; a mode never grants write authority."""
 
     AUTO = "auto"
-    APPROVAL_REQUIRED = "approval_required"
     ABSTAIN = "abstain"
     ESCALATE = "escalate"
 
 
 class DecisionProposal(BaseModel):
-    """A cited later-stage decision proposal, not an approval or execution command."""
+    """A cited later-stage decision proposal, not an execution command."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
@@ -121,7 +120,6 @@ class TraceOutcome(str, Enum):
     STARTED = "started"
     COMPLETED = "completed"
     ABSTAINED = "abstained"
-    HUMAN_REVIEW_REQUIRED = "human_review_required"
     FAILED = "failed"
     SKIPPED = "skipped"
 

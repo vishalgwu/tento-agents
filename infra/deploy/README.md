@@ -1,28 +1,8 @@
-# Deployment baseline
+# Container deployment
 
-The public API is deployed to Cloud Run. The Next.js application is deployed
-separately from `apps/web` to Vercel. This is intentionally not a complete
-production release procedure: browser authentication, secret ownership,
-database migration rollout, and outbound-transport verification still require
-their own reviewed release steps.
+The FastAPI API runs on a persistent container host. The Next.js application runs on Vercel. Follow [the complete local and deployment guide](../../docs/DEPLOYMENT.md) for authentication, database roles, migrations, environment variables, Vercel configuration, and smoke tests.
 
-## API deployment
-
-The deployment script builds a Git-revision-tagged image through Cloud Build,
-then deploys only `resident-os-api`. It sets one minimum API instance and leaves
-CPU allocated between requests, avoiding a cold start for the review path. It
-does not deploy workers, MCP adapters, or observability services. Any later
-service for those roles must use its own reviewed deployment with zero minimum
-instances.
-
-Create an Artifact Registry Docker repository in the target region, create a
-runtime service account with only the runtime permissions it needs, and add two
-Secret Manager secrets containing the full connection values:
-
-- `DATABASE_URL`
-- `REDIS_URL`
-
-From the repository root, run the following with real project and secret names:
+The optional Cloud Run script builds from the repository root and deploys only the public API. Create an Artifact Registry repository, a runtime service account, and Secret Manager secrets for DATABASE_URL, REDIS_URL, and ANTHROPIC_API_KEY. Grant the runtime account access to those named secrets. Set SupabaseUrl to the authentication project and AnthropicModel to the model available to your provider account.
 
 ```powershell
 .\infra\deploy\deploy-api.ps1 `
@@ -31,20 +11,14 @@ From the repository root, run the following with real project and secret names:
   -ArtifactRepository "resident-os" `
   -RuntimeServiceAccount "resident-os-api@YOUR_PROJECT.iam.gserviceaccount.com" `
   -DatabaseUrlSecret "resident-os-database-url" `
-  -RedisUrlSecret "resident-os-redis-url"
+  -RedisUrlSecret "resident-os-redis-url" `
+  -AnthropicApiKeySecret "resident-os-anthropic-api-key" `
+  -SupabaseUrl "https://YOUR_PROJECT.supabase.co" `
+  -AnthropicModel "YOUR_MODEL_ID"
 ```
 
-The script never passes connection values as command-line flags: it binds the
-named secrets to `DATABASE_URL` and `REDIS_URL` at the service level. It uses
-`--update-env-vars` and `--update-secrets` so unrelated service configuration
-is retained.
+Secret values remain in Secret Manager; command arguments contain only secret resource names. The script preserves unrelated service settings, sets a 60-second request timeout, and maintains one warm API instance. Set any additional backend settings listed in .env.example through your hosting environment. DEMO_MODE stays enabled because the public MVP produces intake results and emergency guidance without external operational effects.
 
-`DEMO_MODE=true` is set both in the image and in every deployment. Do not change
-the script to disable demo mode until a documented verification has shown every
-outbound notification, vendor, and property-management transport is blocked.
+Before applying migrations to an existing database, take a backup and test migration 0004 on a disposable copy. It permanently removes obsolete workflow tables and rewrites historical operational states. A fresh database uses all migrations in filename order. Do not rerun the initial schema against a populated database.
 
-## Rollback
-
-After identifying a previously healthy Cloud Run revision, shift traffic back to
-it with `gcloud run services update-traffic`. Keep demo mode enabled during a
-rollback as well.
+For application rollback, shift Cloud Run traffic to the previous healthy revision. Database deletion requires restoring the backup; application rollback does not recover removed rows.

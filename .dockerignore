@@ -17,3 +17,10 @@ docs
 evals
 knowledge
 packages
+
+.env.*
+output
+tmp
+.venv
+.pytest-tmp*
+.mypy-*

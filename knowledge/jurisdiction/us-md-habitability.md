@@ -47,4 +47,4 @@ SLA.
 
 Maryland Legal Counsel must provide an approved, current source record with
 applicability and effective-date notes. The Knowledge Steward then creates a
-new immutable production candidate only after the documented approval.
+new immutable production candidate only after the documented source validation.

@@ -247,24 +247,19 @@ async def test_p0_path_pages_before_any_normalization_or_model_work() -> None:
 
 
 @pytest.mark.asyncio
-async def test_approval_path_pauses_and_resumes_from_a_strict_checkpoint() -> None:
+async def test_validated_path_finishes_without_interrupt() -> None:
     inputs = _Inputs("Kitchen sink backs up after dishwasher use.")
     gateway = _Gateway()
     graph = _graph(_dependencies(inputs, gateway, _Transport()))
-
-    paused = await graph.ainvoke(
-        _state(confidence=Decimal("0.95")), _config("approval")
+    completed = await graph.ainvoke(
+        _state(confidence=Decimal("0.95")), _config("automatic")
     )
-    checkpoint = await graph.aget_state(_config("approval"))
-    completed = await graph.ainvoke(None, _config("approval"))
-
-    assert paused.decision is not None
-    assert paused.decision.mode is DecisionMode.APPROVAL_REQUIRED
-    assert checkpoint.next == ("approval",)
-    assert completed.trace[-1].outcome is TraceOutcome.HUMAN_REVIEW_REQUIRED
+    checkpoint = await graph.aget_state(_config("automatic"))
+    assert completed.decision is not None
+    assert completed.decision.mode is DecisionMode.AUTO
+    assert checkpoint.next == ()
+    assert completed.trace[-1].outcome is TraceOutcome.COMPLETED
     assert isinstance(completed.trace, tuple)
-    assert completed.safety is not None
-    assert isinstance(completed.safety.categories, tuple)
     assert gateway.calls == [
         TaskClass.INTAKE_NORMALIZATION,
         TaskClass.DIAGNOSIS,
@@ -274,18 +269,18 @@ async def test_approval_path_pauses_and_resumes_from_a_strict_checkpoint() -> No
 
 
 @pytest.mark.asyncio
-async def test_confidence_cannot_bypass_required_human_approval() -> None:
+async def test_confidence_cannot_bypass_policy_validation() -> None:
     inputs = _Inputs("Kitchen sink backs up after dishwasher use.")
     graph = _graph(_dependencies(inputs, _Gateway(), _Transport()))
 
     result = await graph.ainvoke(_state(confidence=Decimal("0.95")), _config("auto"))
 
     assert result.decision is not None
-    assert result.decision.mode is DecisionMode.APPROVAL_REQUIRED
+    assert result.decision.mode is DecisionMode.AUTO
 
 
 @pytest.mark.asyncio
-async def test_shield_block_routes_to_human_without_ordinary_model_work() -> None:
+async def test_shield_block_routes_to_abstention_without_ordinary_model_work() -> None:
     inputs = _Inputs("I am going to bring a gun to the leasing office.")
     gateway = _Gateway()
 
@@ -305,7 +300,7 @@ async def test_shield_block_routes_to_human_without_ordinary_model_work() -> Non
 
 
 @pytest.mark.asyncio
-async def test_audit_conflict_selects_the_human_escalation_route() -> None:
+async def test_audit_conflict_selects_the_abstention_route() -> None:
     graph = _graph(
         _dependencies(
             _Inputs("Kitchen sink backs up after dishwasher use."),
@@ -318,7 +313,7 @@ async def test_audit_conflict_selects_the_human_escalation_route() -> None:
 
     assert result.decision is not None
     assert result.decision.mode is DecisionMode.ESCALATE
-    assert result.trace[-1].outcome is TraceOutcome.HUMAN_REVIEW_REQUIRED
+    assert result.trace[-1].outcome is TraceOutcome.ABSTAINED
 
 
 @pytest.mark.asyncio

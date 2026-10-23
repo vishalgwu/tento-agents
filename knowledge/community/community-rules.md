@@ -29,7 +29,7 @@ source material.
 
 ## Temporary topic taxonomy
 
-Use these labels only to classify a report for human review:
+Use these labels only to classify a report for automated routing:
 
 - quiet enjoyment and noise reports;
 - common-area cleanliness and safety concerns;
@@ -45,5 +45,5 @@ decide the next step.
 
 Before production use, the Community Operations Owner must supply the current
 property-specific policy, effective window, enforcement process, resident
-notice version, and required review/approval record. A temporary fixture may
+notice version, and source provenance record. A temporary fixture may
 never be promoted merely because it resembles common community rules.

@@ -328,10 +328,10 @@ class DispatchPlan(BaseModel):
 
 
 class DispatchStatus(str, Enum):
-    """Terminal states that may be consumed by the later approval gate."""
+    """Terminal states that may be consumed by the final deterministic validation."""
 
     PROPOSED = "proposed"
-    HUMAN_REVIEW_REQUIRED = "human_review_required"
+    ABSTAINED = "abstained"
 
 
 class DispatchFailureKind(str, Enum):
@@ -346,7 +346,7 @@ class DispatchFailureKind(str, Enum):
 
 
 class DispatchResult(BaseModel):
-    """Safe dispatch result with a plan or a typed human-review state."""
+    """Safe dispatch result with a plan or a typed withheld state."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
@@ -360,7 +360,7 @@ class DispatchResult(BaseModel):
             if self.plan is None or self.failure_kind is not None:
                 raise ValueError("a proposed dispatch result requires a plan only")
         elif self.plan is not None or self.failure_kind is None:
-            raise ValueError("human review requires a failure kind and no plan")
+            raise ValueError("abstention requires a failure kind and no plan")
         return self
 
 
@@ -391,7 +391,7 @@ async def plan_dispatch(
     """
 
     if not request.provenance_ids:
-        return _human_review(DispatchFailureKind.INSUFFICIENT_EVIDENCE)
+        return _abstained(DispatchFailureKind.INSUFFICIENT_EVIDENCE)
 
     prompt = _render_dispatch_prompt(request)
     try:
@@ -401,16 +401,16 @@ async def plan_dispatch(
             DispatchProposal,
         )
     except SchemaValidationError:
-        return _human_review(DispatchFailureKind.SCHEMA_VALIDATION)
+        return _abstained(DispatchFailureKind.SCHEMA_VALIDATION)
     except Exception:
-        return _human_review(DispatchFailureKind.PROVIDER_UNAVAILABLE)
+        return _abstained(DispatchFailureKind.PROVIDER_UNAVAILABLE)
 
     if not set(proposal.provenance_ids).issubset(set(request.provenance_ids)):
-        return _human_review(DispatchFailureKind.UNSUPPORTED_CITATION)
+        return _abstained(DispatchFailureKind.UNSUPPORTED_CITATION)
 
     if proposal.fulfillment is DispatchFulfillment.IN_HOUSE:
         if proposal.trade not in request.in_house_trades:
-            return _human_review(DispatchFailureKind.IN_HOUSE_TRADE_UNAVAILABLE)
+            return _abstained(DispatchFailureKind.IN_HOUSE_TRADE_UNAVAILABLE)
         return DispatchResult(
             status=DispatchStatus.PROPOSED,
             plan=DispatchPlan(proposal=proposal),
@@ -423,7 +423,7 @@ async def plan_dispatch(
         if evaluation.eligibility is VendorEligibility.ELIGIBLE
     )
     if not eligible:
-        return _human_review(DispatchFailureKind.NO_ELIGIBLE_VENDOR)
+        return _abstained(DispatchFailureKind.NO_ELIGIBLE_VENDOR)
 
     winner = min(
         eligible,
@@ -662,9 +662,9 @@ def _require_score(evaluation: VendorEvaluation) -> VendorScore:
     return evaluation.score
 
 
-def _human_review(failure_kind: DispatchFailureKind) -> DispatchResult:
+def _abstained(failure_kind: DispatchFailureKind) -> DispatchResult:
     return DispatchResult(
-        status=DispatchStatus.HUMAN_REVIEW_REQUIRED,
+        status=DispatchStatus.ABSTAINED,
         plan=None,
         failure_kind=failure_kind,
     )

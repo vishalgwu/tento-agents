@@ -1,85 +1,47 @@
-# Resident OS web foundation
+# Resident OS web
 
-This is the Next.js 15 App Router foundation for the five public role surfaces:
+The Next.js application provides resident maintenance submission at `/app/report`, request history at `/app/tickets`, and current request status at `/app/tickets/[id]`. Account access is at `/resident/sign-in`. Owner and technician URLs redirect to the resident workspace.
 
-| Route | Audience | Current boundary |
-| --- | --- | --- |
-| `/app` | Resident | Maintenance workspace and an accessible three-step report draft at `/app/report`; ticket creation still waits for a documented mutation contract. |
-| `/manage` | Property manager | Keyboard-first, SLA-ordered approval preview; actions are intentionally local-only until browser identity and idempotency-key issuance are wired. |
-| `/owner` | Asset owner | No metrics until a reproducible evaluation defines them. |
-| `/tech` | Maintenance technician | No active-job reads or work-status mutation. |
-| `/v/[token]` | External vendor | Server-verified, expiring, no-account HMAC link. |
+## Local development
 
-`/resident/sign-in` models resident magic-link access; `/staff/sign-in` models
-password plus TOTP staff access. Both forms are deliberately disabled until the
-identity-provider and API contracts include tenant membership validation, rate
-limits, session handling, auditing, and recovery behaviour. They do not submit
-credentials, send email, or create a session.
-
-## Commands
-
-Run these from the repository root:
+From the repository root:
 
 ```powershell
-pnpm install
-pnpm generate:api
+pnpm install --frozen-lockfile
 pnpm typecheck:web
 pnpm build:web
 pnpm dev:web
 ```
 
-The `web-quality.yml` workflow installs from `pnpm-lock.yaml`, audits production
-dependencies at the high-severity threshold, verifies that OpenAPI generation is
-current, type-checks, and builds the production bundle on every relevant pull
-request and change to `main`.
+Create `apps/web/.env.local` with `API_BASE_URL=http://localhost:8000`, `SUPABASE_URL`, and `SUPABASE_ANON_KEY`. Use the public Supabase anonymous key, never the service-role key. Accounts must exist, carry the organization/person/role claims expected by the backend, and have an active tenancy. See the root deployment guide for API, database migration, and worker setup.
 
-## Vendor link contract
+## Resident workflow
 
-`lib/vendor-link.ts` accepts only the server-side format
-`base64url(payload).base64url(HMAC-SHA-256(payload))`. Payload JSON must include
-non-empty `workOrderId` and `vendorId` strings plus a future integer `expiresAt`
-(Unix seconds). The verifier checks canonical base64url encodings, compares the
-32-byte HMAC in timing-safe fashion, and fails closed if
-`VENDOR_LINK_SIGNING_SECRET` is absent, invalid, tampered, or expired.
+1. The sign-in form exchanges credentials with Supabase Auth through `/api/session`. The server stores a short-lived access token in an HttpOnly, SameSite Strict cookie. Cookies are Secure in production. Sessions expire after at most one hour; sign in again when needed.
+2. The report form loads authorized residences from `/api/tenancies`. A resident chooses a residence, describes the issue, and optionally specifies access permission and pets.
+3. `/api/tickets` forwards the report to `POST /v1/tickets` with the user's bearer token and an idempotency key. Retrying the same unchanged submission retains its key, preventing duplicate tickets after a network interruption.
+4. The backend persists the ticket and queued run before responding. The browser opens the saved request detail. If the submission detects an emergency, urgent guidance is shown immediately with a link to the saved request.
+5. The detail polls every three seconds while the durable run is queued or running, then displays the actual assessment, known facts, rationale, and ticket status. A failed assessment leaves the saved report visible and gives clear next steps.
+6. History shows the resident's existing requests, supports cursor pagination, and can be refreshed explicitly.
 
-Only a future authorised dispatch service may create links. The vendor route never
-creates a session and currently renders only the signed claim references. Do not
-place the signing secret in `NEXT_PUBLIC_*`, browser code, logs, or a link.
+Mutation routes require a matching Origin header. Upstream requests disable redirects and caching. Raw backend exceptions and credentials are never returned to the browser. `DELETE /api/session` clears the local session cookie. Read proxies forward the same user identity; the backend enforces organization and resident ownership boundaries.
 
-## UI and data rules
+`/api/agent` remains a bounded direct-assessment endpoint for API clients; the resident interface uses the persisted ticket workflow.
 
-- Use `@resident-os/shared-types` for all API-shaped types. Regenerate it from
-  `docs/openapi.yaml`; never edit `api.generated.ts` by hand.
-- Use `@resident-os/ui` for the status lamp, evidence rail, and decision marker.
-  The status lamp and decision marker supply text as well as colour, and the
-  evidence rail supports pointer and keyboard interaction in both directions.
-- Use the existing shadcn primitives in `components/ui` for ordinary controls.
-- Keep server-only code such as HMAC verification out of Client Components.
+## Vercel
 
-## Resident report boundary
+Set the project Root Directory to `apps/web`, enable access to workspace files outside that directory, and use the included `vercel.json`. Set `API_BASE_URL` to the HTTPS origin of the separately hosted Python API, plus `SUPABASE_URL` and `SUPABASE_ANON_KEY`. No backend secrets belong in `NEXT_PUBLIC_*` variables.
 
-`/app/report` is a mobile-first three-step form: six category tiles, a
-camera-first optional photo sheet, then access permission and preferred-window
-choices. It is intentionally a browser-only draft until the API accepts a
-tenant-safe `POST /v1/tickets` contract and media upload contract. The form does
-not upload media, claim a ticket number, enqueue a model request, or fabricate
-an acknowledgement.
+Ticket submission only persists and enqueues work, with a 15-second upstream deadline and 30-second function duration. Assessment runs in the separate durable Python worker. Polling is authenticated, uncached, and stops after a terminal run state or a request failure. Run the worker alongside the API host; a Vercel function does not execute the background workflow.
 
-That API contract must persist and enqueue the report before it returns an
-acknowledgement, with model work strictly off the acknowledgement path and a
-measured response under one second. Do not replace this boundary with an
-in-memory queue or a browser-generated ticket number; either would misrepresent
-resident state after a refresh or server restart.
+## Verification
 
-## Manager approval boundary
+Typecheck and production build validate all routes. To check the web HTTP boundary against an explicitly isolated authentication/API fixture:
 
-`/manage` renders one synthetic, generated-contract-shaped approval card at a
-time. `j` and `k` move through the SLA-ordered preview; `a`, `e`, `r` then
-`1`–`5`, and `t` exercise approve, evidence, reject-reason, and reassignment
-flows. The decision marker becomes human-authorised immediately on interaction.
-The page labels every uncited claim as **Unsupported** rather than implying it
-has supporting evidence.
+```powershell
+python apps/web/scripts/check-proxies.py
+```
 
-This is intentionally a local interaction preview. It sends no browser request
-and does not claim an approval was recorded. Wiring it to the approval API
-requires verified browser identity and server-generated idempotency keys.
+This starts and stops a temporary Next.js dev server and verifies cookies, authorized residence and ticket contracts, unchanged retry keys, validation, and cross-origin denial. It does not connect to live Supabase or Postgres.
+
+ Verify the resident workflow with a provisioned account and active tenancy: sign in, submit a report, confirm it appears in history, observe queued/running transition, and refresh the detail after completion. A second resident must not be able to read the first resident's request ID. Provider and database integrations require configured deployment credentials; a local UI build alone does not verify those external services.

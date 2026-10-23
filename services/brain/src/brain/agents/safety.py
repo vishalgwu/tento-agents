@@ -302,7 +302,7 @@ async def assess_safety(
     """Combine deterministic and optional model signals using fail-safe OR logic.
 
     If the deterministic screen finds a P0 signal this returns before model work,
-    leaving the orchestrator free to page the approved human path immediately.
+    leaving the orchestrator free to page the configured emergency notification path immediately.
     Gateway failures leave a rules-only verdict; they can never erase a matching
     deterministic signal.
     """

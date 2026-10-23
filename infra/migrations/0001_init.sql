@@ -22,9 +22,9 @@ CREATE TYPE ticket_status AS ENUM (
     'submitted',
     'acknowledged',
     'triaging',
-    'awaiting_approval',
-    'approved',
-    'rejected',
+    'superseded',
+    'ready',
+    'blocked',
     'dispatched',
     'in_progress',
     'resolved',
@@ -69,31 +69,17 @@ CREATE TYPE trade AS ENUM (
 );
 CREATE TYPE responsible_party AS ENUM ('owner', 'resident', 'vendor', 'undetermined');
 CREATE TYPE authority AS ENUM ('statute', 'lease', 'internal_sop', 'vendor_contract');
-CREATE TYPE decision_mode AS ENUM ('auto', 'approval_required', 'abstain', 'escalate');
+CREATE TYPE decision_mode AS ENUM ('auto', 'abstain', 'escalate');
 CREATE TYPE decision_status AS ENUM (
     'proposed',
-    'awaiting_approval',
-    'approved',
-    'rejected',
     'superseded',
     'executed',
     'abstained',
     'escalated'
 );
-CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected', 'expired', 'cancelled');
-CREATE TYPE approval_action AS ENUM ('approve', 'edit', 'reassign', 'reject');
-CREATE TYPE reject_reason AS ENUM (
-    'insufficient_evidence',
-    'incorrect_priority',
-    'incorrect_routing',
-    'cost_or_scope',
-    'policy_conflict',
-    'other'
-);
 CREATE TYPE agent_run_status AS ENUM (
     'queued',
     'running',
-    'awaiting_approval',
     'completed',
     'failed',
     'cancelled',
@@ -130,7 +116,6 @@ CREATE TYPE guardrail_stage AS ENUM (
 CREATE TYPE guardrail_outcome AS ENUM ('passed', 'blocked', 'escalated', 'degraded');
 CREATE TYPE kb_document_status AS ENUM ('draft', 'active', 'superseded', 'retired');
 CREATE TYPE memory_status AS ENUM ('active', 'expired', 'superseded', 'rejected');
-CREATE TYPE reflection_status AS ENUM ('proposed', 'approved', 'rejected', 'superseded');
 CREATE TYPE eval_dataset_status AS ENUM ('draft', 'active', 'retired');
 CREATE TYPE eval_run_status AS ENUM ('queued', 'running', 'completed', 'failed', 'cancelled');
 CREATE TYPE failure_kind AS ENUM (
@@ -147,7 +132,6 @@ CREATE TYPE failure_kind AS ENUM (
     'unexpected_error'
 );
 CREATE TYPE failure_severity AS ENUM ('info', 'warning', 'error', 'critical');
-CREATE TYPE label_queue_status AS ENUM ('pending', 'in_review', 'labelled', 'dismissed');
 CREATE TYPE notification_tier AS ENUM ('u0', 'u1', 'u2', 'u3');
 
 -- Tenant root. Other tables carry org_id and use composite foreign keys so a
@@ -768,31 +752,6 @@ CREATE INDEX episodic_memory_embedding_hnsw_idx
     ON episodic_memory USING hnsw (embedding halfvec_cosine_ops)
     WITH (m = 16, ef_construction = 64);
 
-CREATE TABLE reflections (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id uuid NOT NULL,
-    episodic_memory_id uuid NOT NULL,
-    proposed_by_run_id uuid,
-    reviewed_by_person_id uuid,
-    status reflection_status NOT NULL DEFAULT 'proposed',
-    proposal text NOT NULL,
-    evidence_digest char(64) NOT NULL,
-    reviewed_at timestamptz,
-    valid_to timestamptz,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT reflections_org_id_id_unique UNIQUE (org_id, id),
-    CONSTRAINT reflections_evidence_digest_format CHECK (evidence_digest ~ '^[0-9a-f]{64}$'),
-    CONSTRAINT reflections_review_state_check CHECK (
-        (status = 'proposed' AND reviewed_by_person_id IS NULL AND reviewed_at IS NULL)
-        OR (status <> 'proposed' AND reviewed_by_person_id IS NOT NULL AND reviewed_at IS NOT NULL)
-    ),
-    CONSTRAINT reflections_memory_fk
-        FOREIGN KEY (org_id, episodic_memory_id) REFERENCES episodic_memory (org_id, id) ON DELETE RESTRICT,
-    CONSTRAINT reflections_proposer_fk
-        FOREIGN KEY (org_id, proposed_by_run_id) REFERENCES agent_runs (org_id, id) ON DELETE RESTRICT,
-    CONSTRAINT reflections_reviewer_fk
-        FOREIGN KEY (org_id, reviewed_by_person_id) REFERENCES people (org_id, id) ON DELETE RESTRICT
-);
 
 CREATE TABLE guardrail_events (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -900,68 +859,18 @@ CREATE TABLE decision_evidence (
         FOREIGN KEY (org_id, kb_chunk_id) REFERENCES kb_chunks (org_id, id) ON DELETE RESTRICT
 );
 
-CREATE TABLE approvals (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id uuid NOT NULL,
-    decision_id uuid NOT NULL,
-    requested_by_run_id uuid NOT NULL,
-    approval_chain_id uuid NOT NULL DEFAULT gen_random_uuid(),
-    supersedes_approval_id uuid,
-    required_role app_role NOT NULL,
-    status approval_status NOT NULL DEFAULT 'pending',
-    action approval_action,
-    rejection_reason reject_reason,
-    acted_by_person_id uuid,
-    approval_token_hash char(64),
-    action_scope text NOT NULL,
-    requested_at timestamptz NOT NULL DEFAULT now(),
-    acted_at timestamptz,
-    expires_at timestamptz NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT approvals_org_id_id_unique UNIQUE (org_id, id),
-    CONSTRAINT approvals_org_id_id_chain_unique UNIQUE (org_id, id, approval_chain_id),
-    CONSTRAINT approvals_token_hash_format CHECK (
-        approval_token_hash IS NULL OR approval_token_hash ~ '^[0-9a-f]{64}$'
-    ),
-    CONSTRAINT approvals_expiry_check CHECK (expires_at > requested_at),
-    CONSTRAINT approvals_action_state_check CHECK (
-        (status = 'pending' AND supersedes_approval_id IS NULL AND approval_token_hash IS NOT NULL AND action IS NULL AND rejection_reason IS NULL AND acted_by_person_id IS NULL AND acted_at IS NULL)
-        OR (status = 'approved' AND supersedes_approval_id IS NOT NULL AND approval_token_hash IS NULL AND action IN ('approve', 'edit', 'reassign') AND rejection_reason IS NULL AND acted_by_person_id IS NOT NULL AND acted_at IS NOT NULL)
-        OR (status = 'rejected' AND supersedes_approval_id IS NOT NULL AND approval_token_hash IS NULL AND action = 'reject' AND rejection_reason IS NOT NULL AND acted_by_person_id IS NOT NULL AND acted_at IS NOT NULL)
-        OR (status IN ('expired', 'cancelled') AND supersedes_approval_id IS NOT NULL AND approval_token_hash IS NULL AND action IS NULL AND rejection_reason IS NULL AND acted_by_person_id IS NULL AND acted_at IS NULL)
-    ),
-    CONSTRAINT approvals_decision_fk
-        FOREIGN KEY (org_id, decision_id) REFERENCES decisions (org_id, id) ON DELETE RESTRICT,
-    CONSTRAINT approvals_run_fk
-        FOREIGN KEY (org_id, requested_by_run_id) REFERENCES agent_runs (org_id, id) ON DELETE RESTRICT,
-    CONSTRAINT approvals_supersedes_fk
-        FOREIGN KEY (org_id, supersedes_approval_id, approval_chain_id)
-        REFERENCES approvals (org_id, id, approval_chain_id) ON DELETE RESTRICT,
-    CONSTRAINT approvals_actor_fk
-        FOREIGN KEY (org_id, acted_by_person_id) REFERENCES people (org_id, id) ON DELETE RESTRICT
-);
 
-CREATE UNIQUE INDEX approvals_pending_token_unique
-    ON approvals (approval_token_hash)
-    WHERE approval_token_hash IS NOT NULL;
-CREATE UNIQUE INDEX approvals_single_successor_unique
-    ON approvals (org_id, supersedes_approval_id)
-    WHERE supersedes_approval_id IS NOT NULL;
 
 ALTER TABLE work_orders
     ADD COLUMN decision_id uuid,
-    ADD COLUMN approval_id uuid,
     ADD CONSTRAINT work_orders_decision_fk
-        FOREIGN KEY (org_id, decision_id) REFERENCES decisions (org_id, id) ON DELETE RESTRICT,
-    ADD CONSTRAINT work_orders_approval_fk
-        FOREIGN KEY (org_id, approval_id) REFERENCES approvals (org_id, id) ON DELETE RESTRICT;
+        FOREIGN KEY (org_id, decision_id) REFERENCES decisions (org_id, id) ON DELETE RESTRICT;
 
 CREATE TABLE execution_receipts (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id uuid NOT NULL,
     agent_run_id uuid NOT NULL,
     decision_id uuid NOT NULL,
-    approval_id uuid,
     work_order_id uuid,
     receipt_kind text NOT NULL,
     external_ref text,
@@ -975,8 +884,6 @@ CREATE TABLE execution_receipts (
         FOREIGN KEY (org_id, agent_run_id) REFERENCES agent_runs (org_id, id) ON DELETE RESTRICT,
     CONSTRAINT execution_receipts_decision_fk
         FOREIGN KEY (org_id, decision_id) REFERENCES decisions (org_id, id) ON DELETE RESTRICT,
-    CONSTRAINT execution_receipts_approval_fk
-        FOREIGN KEY (org_id, approval_id) REFERENCES approvals (org_id, id) ON DELETE RESTRICT,
     CONSTRAINT execution_receipts_work_order_fk
         FOREIGN KEY (org_id, work_order_id) REFERENCES work_orders (org_id, id) ON DELETE RESTRICT
 );
@@ -1136,33 +1043,8 @@ CREATE TABLE metric_rollups (
         FOREIGN KEY (org_id, eval_run_id) REFERENCES eval_runs (org_id, id) ON DELETE RESTRICT
 );
 
-CREATE TABLE label_queue (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id uuid NOT NULL,
-    failure_event_id uuid,
-    ticket_id uuid,
-    status label_queue_status NOT NULL DEFAULT 'pending',
-    prompt text NOT NULL,
-    expected text,
-    labelled_by_person_id uuid,
-    labelled_at timestamptz,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT label_queue_org_id_id_unique UNIQUE (org_id, id),
-    CONSTRAINT label_queue_source_check CHECK (failure_event_id IS NOT NULL OR ticket_id IS NOT NULL),
-    CONSTRAINT label_queue_label_state_check CHECK (
-        (status = 'labelled' AND expected IS NOT NULL AND labelled_by_person_id IS NOT NULL AND labelled_at IS NOT NULL)
-        OR (status <> 'labelled' AND labelled_at IS NULL)
-    ),
-    CONSTRAINT label_queue_failure_fk
-        FOREIGN KEY (org_id, failure_event_id) REFERENCES failure_events (org_id, id) ON DELETE RESTRICT,
-    CONSTRAINT label_queue_ticket_fk
-        FOREIGN KEY (org_id, ticket_id) REFERENCES tickets (org_id, id) ON DELETE RESTRICT,
-    CONSTRAINT label_queue_labeller_fk
-        FOREIGN KEY (org_id, labelled_by_person_id) REFERENCES people (org_id, id) ON DELETE RESTRICT
-);
 
--- Query paths used by the Phase 1 API, run trace, approval queue, and
+-- Query paths used by the Phase 1 API, run trace and
 -- operations rollups. RLS in 0002 remains the final tenant boundary.
 CREATE INDEX properties_org_idx ON properties (org_id, id);
 CREATE INDEX buildings_property_idx ON buildings (org_id, property_id, id);
@@ -1188,30 +1070,23 @@ CREATE INDEX retrieval_results_context_idx ON retrieval_results (org_id, retriev
 CREATE INDEX guardrail_events_run_idx ON guardrail_events (org_id, agent_run_id, occurred_at);
 CREATE INDEX guardrail_events_ticket_idx ON guardrail_events (org_id, ticket_id, occurred_at);
 CREATE INDEX decisions_ticket_idx ON decisions (org_id, ticket_id, sequence_number DESC);
-CREATE INDEX decisions_approval_queue_idx ON decisions (org_id, status, priority, created_at);
-CREATE INDEX approvals_pending_idx ON approvals (org_id, status, expires_at) WHERE status = 'pending';
+CREATE INDEX decisions_status_idx ON decisions (org_id, status, priority, created_at);
 CREATE INDEX execution_receipts_run_idx ON execution_receipts (org_id, agent_run_id, occurred_at);
 CREATE INDEX idempotency_records_expiry_idx ON idempotency_records (org_id, expires_at);
 CREATE INDEX kb_documents_lookup_idx ON kb_documents (org_id, document_key, status, effective_from DESC);
 CREATE INDEX episodic_memory_ticket_idx ON episodic_memory (org_id, ticket_id, occurred_at DESC);
-CREATE INDEX reflections_memory_idx ON reflections (org_id, episodic_memory_id, status);
 CREATE INDEX eval_runs_dataset_idx ON eval_runs (org_id, eval_dataset_id, created_at DESC);
 CREATE INDEX failure_events_ops_idx ON failure_events (org_id, occurred_at DESC, severity, kind);
 CREATE INDEX metric_rollups_ops_idx ON metric_rollups (org_id, metric_name, bucket_start DESC);
-CREATE INDEX label_queue_pending_idx ON label_queue (org_id, status, created_at) WHERE status IN ('pending', 'in_review');
 
 COMMENT ON TABLE agent_steps IS
     'Agent-step payloads are represented only by digests; raw inputs and outputs are not logged here.';
 COMMENT ON TABLE llm_calls IS
     'Append-only model-call receipt containing hashes, versions, tokens, cost, and latency but no prompt or response body.';
 COMMENT ON TABLE decisions IS
-    'Append-only decision record. Corrections use a successor linked by supersedes_decision_id.';
-COMMENT ON TABLE approvals IS
-    'Append-only approval receipt. approval_token_hash stores only a single-use token hash.';
+    'Append-only decision record. Successors are linked by supersedes_decision_id.';
 COMMENT ON TABLE guardrail_events IS
     'Append-only guardrail receipt. Content is represented by a digest, never raw ingress material.';
-COMMENT ON TABLE label_queue IS
-    'expected is intentionally nullable until a human labels the queued item.';
 COMMENT ON COLUMN kb_chunks.embedding IS
     '1536-dimension half-precision embedding for pgvector similarity search.';
 

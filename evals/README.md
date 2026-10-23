@@ -22,7 +22,7 @@ temporary fixture suitable for a live answer or action.
 
 Keep this file human-authored and edit it without running a retriever first.
 When a knowledge document is revised, update the source ID or time metadata
-only after a reviewer verifies the expected source. The integrity test at
+only after verifying the expected source. The integrity test at
 `services/brain/tests/test_retrieval_dataset.py` prevents accidental schema,
 count, lifecycle, and identifier drift.
 
@@ -62,7 +62,7 @@ accept prompts, generated response text, or inferred protected attributes.
 
 The corpus evaluates parity, not legal eligibility or a jurisdiction-specific
 voucher policy. Keep it synthetic and use it as a regression gate alongside
-human legal review.
+qualified legal assessment.
 
 ## Measuring retrieval
 

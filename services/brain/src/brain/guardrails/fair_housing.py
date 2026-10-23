@@ -1,7 +1,7 @@
 """Deterministic fair-housing screening for resident-facing draft output.
 
 This is a pre-send filter, not a writing assistant: it returns a digest-only
-assessment and a human-review route, but never mutates or rewrites the draft.
+assessment and a withheld route, but never mutates or rewrites the draft.
 The patterns intentionally catch only explicit discriminatory advertising,
 steering, protected-class treatment, and accommodation denial. They are a
 safety net for generated communications, not a legal determination.
@@ -62,7 +62,7 @@ class FairHousingRoute(str, Enum):
     """The only safe next step after the output screen."""
 
     CONTINUE = "continue"
-    HUMAN_REVIEW = "human_review"
+    WITHHOLD = "abstained"
 
 
 class FairHousingFindingSource(str, Enum):
@@ -137,8 +137,8 @@ class FairHousingAssessment(BaseModel):
         if len(rule_ids) != len(set(rule_ids)):
             raise ValueError("fair-housing findings must not repeat a rule")
         if self.outcome is FairHousingOutcome.BLOCKED:
-            if not self.findings or self.route is not FairHousingRoute.HUMAN_REVIEW:
-                raise ValueError("blocked output requires findings and human review")
+            if not self.findings or self.route is not FairHousingRoute.WITHHOLD:
+                raise ValueError("blocked output requires findings and abstention")
         elif self.findings or self.route is not FairHousingRoute.CONTINUE:
             raise ValueError("passed output cannot contain findings or require review")
         return self
@@ -219,7 +219,7 @@ _PROTECTED_CLASS_SIGNALS: Final[tuple[re.Pattern[str], ...]] = (
 
 
 def screen_fair_housing_draft(draft: FairHousingDraft) -> FairHousingAssessment:
-    """Block unsafe output and route it to a human without changing the draft."""
+    """Block unsafe output and withhold it without changing the draft."""
 
     findings = (*_blocklist_findings(draft.content), *_intent_findings(draft.content))
     if findings:
@@ -227,7 +227,7 @@ def screen_fair_housing_draft(draft: FairHousingDraft) -> FairHousingAssessment:
             content_digest=draft.content_digest,
             rule_version=FAIR_HOUSING_RULE_VERSION,
             outcome=FairHousingOutcome.BLOCKED,
-            route=FairHousingRoute.HUMAN_REVIEW,
+            route=FairHousingRoute.WITHHOLD,
             findings=findings,
         )
     return FairHousingAssessment(

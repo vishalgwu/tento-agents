@@ -118,7 +118,7 @@ async def test_intake_repairs_one_schema_failure_with_specific_safe_errors() -> 
 
 
 @pytest.mark.asyncio
-async def test_second_schema_failure_routes_to_human_instead_of_third_model_call() -> (
+async def test_second_schema_failure_routes_to_abstention_instead_of_third_model_call() -> (
     None
 ):
     schema_error = SchemaValidationError(
@@ -130,7 +130,7 @@ async def test_second_schema_failure_routes_to_human_instead_of_third_model_call
 
     result = await normalize_intake(_request(), gateway=gateway)
 
-    assert result.status is IntakeStatus.HUMAN_REVIEW_REQUIRED
+    assert result.status is IntakeStatus.ABSTAINED
     assert result.facts is None
     assert result.repair_attempted is True
     assert result.failure_kind is IntakeFailureKind.SCHEMA_VALIDATION
@@ -138,23 +138,23 @@ async def test_second_schema_failure_routes_to_human_instead_of_third_model_call
 
 
 @pytest.mark.asyncio
-async def test_provider_failure_routes_directly_to_human_review() -> None:
+async def test_provider_failure_routes_directly_to_abstained() -> None:
     gateway = _IntakeGateway([GatewayError("gateway unavailable")])
 
     result = await normalize_intake(_request(), gateway=gateway)
 
-    assert result.status is IntakeStatus.HUMAN_REVIEW_REQUIRED
+    assert result.status is IntakeStatus.ABSTAINED
     assert result.repair_attempted is False
     assert result.failure_kind is IntakeFailureKind.PROVIDER_UNAVAILABLE
 
 
 @pytest.mark.asyncio
-async def test_unexpected_gateway_failure_routes_to_human_review() -> None:
+async def test_unexpected_gateway_failure_routes_to_abstained() -> None:
     gateway = _IntakeGateway([RuntimeError("unexpected transport failure")])
 
     result = await normalize_intake(_request(), gateway=gateway)
 
-    assert result.status is IntakeStatus.HUMAN_REVIEW_REQUIRED
+    assert result.status is IntakeStatus.ABSTAINED
     assert result.repair_attempted is False
     assert result.failure_kind is IntakeFailureKind.PROVIDER_UNAVAILABLE
 

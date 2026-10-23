@@ -8,7 +8,6 @@ const markerVariants = cva(
     variants: {
       authority: {
         machine: "border-sky-700/25 bg-sky-50 text-sky-950",
-        human: "border-amber-700/30 bg-amber-50 text-amber-950",
       },
     },
     defaultVariants: {
@@ -18,8 +17,7 @@ const markerVariants = cva(
 );
 
 const markerCopy = {
-  machine: "Machine proposal",
-  human: "Human authorised",
+  machine: "Agent assessment",
 } as const;
 
 export type DecisionMarkerProps = VariantProps<typeof markerVariants> & {
@@ -27,7 +25,7 @@ export type DecisionMarkerProps = VariantProps<typeof markerVariants> & {
   label?: string;
 };
 
-/** Makes the distinction between a system proposal and human authority explicit. */
+/** Identifies an automated system result. */
 export function DecisionMarker({
   authority = "machine",
   className,
@@ -41,7 +39,7 @@ export function DecisionMarker({
         aria-hidden="true"
         className={cn(
           "size-2 rotate-45 rounded-[1px]",
-          safeAuthority === "machine" ? "bg-sky-700" : "bg-amber-700",
+          "bg-sky-700",
         )}
       />
       <span>{label ?? markerCopy[safeAuthority]}</span>

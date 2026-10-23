@@ -102,7 +102,7 @@ class PolicyAuditStatus(str, Enum):
 
     COMPLIANT = "compliant"
     CONFLICT = "conflict"
-    HUMAN_REVIEW_REQUIRED = "human_review_required"
+    ABSTAINED = "abstained"
 
 
 class PolicyAuditFailureKind(str, Enum):
@@ -128,9 +128,9 @@ class AuditResult(BaseModel):
 
     @model_validator(mode="after")
     def _enforce_terminal_shape(self) -> AuditResult:
-        if self.status is PolicyAuditStatus.HUMAN_REVIEW_REQUIRED:
+        if self.status is PolicyAuditStatus.ABSTAINED:
             if self.failure_kind is None:
-                raise ValueError("human review requires a failure kind")
+                raise ValueError("abstention requires a failure kind")
         elif self.assessment is None or self.failure_kind is not None:
             raise ValueError("completed audit states require an assessment only")
         return self
@@ -215,10 +215,10 @@ async def audit_dispatch(
 
     resolutions = resolve_policy_conflicts(request.policy_claims)
     if any(
-        resolution.status is PolicyResolutionStatus.HUMAN_REVIEW_REQUIRED
+        resolution.status is PolicyResolutionStatus.ABSTAINED
         for resolution in resolutions
     ):
-        return _human_review(
+        return _abstained(
             resolutions=resolutions,
             failure_kind=PolicyAuditFailureKind.UNRESOLVED_PRECEDENCE,
         )
@@ -231,12 +231,12 @@ async def audit_dispatch(
             PolicyAuditAssessment,
         )
     except SchemaValidationError:
-        return _human_review(
+        return _abstained(
             resolutions=resolutions,
             failure_kind=PolicyAuditFailureKind.SCHEMA_VALIDATION,
         )
     except Exception:
-        return _human_review(
+        return _abstained(
             resolutions=resolutions,
             failure_kind=PolicyAuditFailureKind.PROVIDER_UNAVAILABLE,
         )
@@ -244,7 +244,7 @@ async def audit_dispatch(
     expected_policy_keys = {resolution.policy_key for resolution in resolutions}
     actual_policy_keys = {finding.policy_key for finding in assessment.findings}
     if actual_policy_keys != expected_policy_keys:
-        return _human_review(
+        return _abstained(
             resolutions=resolutions,
             failure_kind=PolicyAuditFailureKind.POLICY_KEY_MISMATCH,
         )
@@ -256,7 +256,7 @@ async def audit_dispatch(
         for provenance_id in finding.provenance_ids
     }
     if not used_provenance_ids.issubset(allowed_provenance_ids):
-        return _human_review(
+        return _abstained(
             resolutions=resolutions,
             failure_kind=PolicyAuditFailureKind.UNSUPPORTED_CITATION,
         )
@@ -266,7 +266,7 @@ async def audit_dispatch(
         for finding in assessment.findings
     ):
         return AuditResult(
-            status=PolicyAuditStatus.HUMAN_REVIEW_REQUIRED,
+            status=PolicyAuditStatus.ABSTAINED,
             assessment=assessment,
             policy_resolutions=resolutions,
             failure_kind=PolicyAuditFailureKind.INSUFFICIENT_POLICY,
@@ -317,13 +317,13 @@ def _render_audit_prompt(
     )
 
 
-def _human_review(
+def _abstained(
     *,
     resolutions: tuple[PolicyResolution, ...],
     failure_kind: PolicyAuditFailureKind,
 ) -> AuditResult:
     return AuditResult(
-        status=PolicyAuditStatus.HUMAN_REVIEW_REQUIRED,
+        status=PolicyAuditStatus.ABSTAINED,
         assessment=None,
         policy_resolutions=resolutions,
         failure_kind=failure_kind,

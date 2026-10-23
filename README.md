@@ -1,125 +1,53 @@
 # Resident OS
 
-Resident OS is an AI operations layer for apartment communities. It begins with one measurable workflow: maintenance. A resident report becomes a safe, cited, policy-checked, human-reviewable dispatch decision with an immutable audit trail.
-
-The repository is intentionally documentation-first while the production system is rebuilt from scratch. The implemented foundation stays tightly scoped to accepted contracts; it does not include stale plans or a pretend end-to-end demo.
+The maintenance MVP in tento-agents lets a resident sign in, select an authorised residence, save a report, and follow its actual status. A separate durable Python worker runs safety, intake, source retrieval, diagnosis, dispatch planning and policy validation. A validated in-house plan creates a real internal work order. No vendor is contacted and no visit is claimed to be scheduled.
 
 ## Start here
 
-Read the three canonical documents in order:
+- [Keys and account setup](docs/KEYS-AND-SETUP.md): add credentials at the end; automated tests need no paid model keys.
+- [Local startup and Railway/Vercel deployment](docs/DEPLOYMENT.md).
+- [Product scope](docs/PRODUCT.md) and [architecture](docs/TECHNICAL-ARCHITECTURE.md).
 
-1. [Product requirements](docs/PRODUCT.md) - scope, users, requirements, experience, success targets, and release gate.
-2. [Technical architecture](docs/TECHNICAL-ARCHITECTURE.md) - invariants, agents, data, security, evaluation, operations, and production topology.
-3. [Delivery plan](docs/DELIVERY-PLAN.md) - the phased build sequence from contracts to production launch.
+## Local workflow
 
-The three PDFs and architecture posters in `docs/` are archived planning
-snapshots, retained for visual context only. They are not implementation
-authority and are not kept in lockstep with the canonical Markdown documents;
-in particular, use the current Markdown rather than their older fixture counts
-or phase checkpoints.
+Use Python 3.12, Node.js 22 and pnpm 11.19.0. Install requirements.txt and run pnpm install --frozen-lockfile. Configure ignored API environment values and apps/web/.env.local using .env.example. Explicitly load the API environment into your shell; Uvicorn does not load the root file automatically.
 
-## The product in one paragraph
-
-Property-management systems record work but rarely decide what should happen next. Resident OS sits alongside them and runs the Maintenance Loop: it acknowledges a report immediately, detects life-safety risk deterministically, assembles versioned evidence, proposes a decision, checks the decision against policy, obtains the required human approval, and records the complete receipt. The goal is not a more talkative bot. It is safer, explainable apartment operations.
-
-## Core principles
-
-- The model proposes; deterministic code validates and authorises.
-- Every consequential decision is grounded in versioned evidence.
-- Only the orchestrator holds side-effecting tool authority.
-- A model never decides whether or when to notify a person.
-- Tenant isolation, append-only audit records, and calibrated abstention are product features.
-- Measured evaluation results matter more than unverified claims.
-
-## Canonical scope
-
-The measured MVP is maintenance only: intake, life-safety screening, retrieval, decision proposal, policy audit, approval, dispatch proposal, trace, and evaluation. Community features, wellness, autonomous action, and payments are explicitly deferred until the maintenance loop is safe and measured.
-
-## Planned production topology
-
-Next.js on Vercel serves the resident, manager, owner, technician, vendor, and operations surfaces. A FastAPI API, orchestration, and workers run on Cloud Run. Supabase Postgres with pgvector provides tenant-isolated data and retrieval; Redis and object storage support queues, caching, and media. Narrow internal tools connect approved actions to property-management, vendor, and notification systems.
-
-## Project status
-
-The repository currently contains a local, non-production foundation: the
-tenant-scoped schema and RLS migrations, deterministic synthetic seed, and a
-FastAPI reliability boundary (request correlation, JWT verification, RLS context,
-rate limiting, idempotency, safe errors, readiness), and the initial
-tenant-scoped ticket, run-snapshot, and approval-review contracts.
-[`docs/openapi.yaml`](docs/openapi.yaml) defines ticket reads, the documented SSE
-run projection, and role-protected approval list/action routes; their database
-queries use keyset pagination and an explicit organisation predicate in addition
-to RLS. The repository also includes the Next.js 15 role-surface foundation (`/app`,
-`/manage`, `/owner`, `/tech`, and `/v/[token]`), generated TypeScript OpenAPI
-types, and the shared evidence/decision visual primitives. It intentionally has
-no connected browser authentication provider, live ticket data, or outbound
-email/notification transport. The manager review surface is a local-only preview,
-not a browser approval mutation. Vendor links fail closed unless their server-side
-HMAC secret is configured. Further public mutations and the end-to-end agent
-workflow remain deliberately pending; do not treat the foundation as an MVP
-release. All metrics in the documentation are targets until an evaluation run
-publishes reproducible results with a commit SHA.
-
-The eleven files under [`knowledge/`](knowledge/README.md) are temporary,
-evaluation-only fixtures. They exercise metadata, source precedence, citations,
-and safe abstention; they are neither approved operating policy nor eligible for
-a production retrieval index. Their named replacement owners and promotion
-checklist are maintained in the knowledge register.
-
-The Phase-2 retrieval foundation validates and versions those sources, chunks and
-embeds them, and supplies a read-only hybrid BM25/pgvector candidate layer. It
-fuses 30 lexical and 30 dense candidates before applying lifecycle, jurisdiction,
-authority, model, and ticket-time effective-date checks. It is not connected to a
-production index, API route, model workflow, or operational action.
-
-Its optional cross-encoder stage uses a process-wide `BAAI/bge-reranker-v2-m3`
-model to score the top 30 hybrid candidates, records every score in the
-tenant-scoped retrieval trace, and returns at most six results for later context
-assembly. The model is lazy-loaded once per worker and inference runs outside the
-event loop; it remains a retrieval component, not a decision maker.
-
-Before a source reaches a model context, the extractive compression boundary
-selects only query-supported, verbatim source sentences and preserves their
-source offsets. It never summarizes lease, safety, or policy language; unsupported
-queries contribute no policy text and must remain explicit unknowns downstream.
-
-Context assembly assigns deterministic `[C#]` citations and `[F#]` facts, retaining
-each source's version, effective date range, and section. The model's static
-grounding instruction requires every factual statement to cite that evidence or
-remain an explicit unknown. A `tiktoken`-enforced 8,000-token budget then admits
-whole, pre-ranked blocks into fixed system, policy, fact, history, summary, ticket,
-and output-reserve slots; it never truncates the current ticket or turns facts into
-an opaque JSON dump.
-
-The retrieval evaluation runner compares dense, lexical, hybrid RRF, and hybrid
-plus rerank results against the human-authored 50-query corpus. It writes its
-recall@5/10, MRR, nDCG@10, no-match, and reranker-retention table only from real
-rankings and stamps it with the current Git SHA; no benchmark values are claimed
-until that run is published. The resident `/app/report` surface is an accessible
-three-step browser draft, not a hidden write API: it never fabricates a ticket
-number, media upload, queue, or acknowledgement while the documented mutation
-contract remains pending.
-
-## Web workspace
-
-The web foundation is a pnpm workspace. It is designed to make the intended
-access boundaries clear without simulating an integration that does not exist.
+Start Postgres with pgvector and Redis, apply migrations with an administrator connection, and configure restricted runtime roles. Then run:
 
 ```powershell
-pnpm install
+$env:PYTHONPATH="services/api/src;services/brain/src"
+python -m uvicorn api.main:app --reload --port 8000
+```
+
+In a second shell with DATABASE_URL for the worker role and WORKER_ORG_ID set:
+
+```powershell
+$env:PYTHONPATH="services/api/src;services/brain/src"
+python -m api.worker
+```
+
+In a third shell, run pnpm dev:web. Open /resident/sign-in, then /app/report and /app/tickets. Real membership and current tenancy records are required. Without a model key or live policy sources, reports remain saved and the worker returns explicit abstention.
+
+## Verify
+
+```powershell
+python -m ruff check services/api services/brain infra/seed scripts/export_openapi.py
+python -m ruff format --check services/api services/brain infra/seed
+python -m mypy
+python -m pytest -q
+python scripts/export_openapi.py
 pnpm generate:api
 pnpm typecheck:web
 pnpm build:web
-pnpm dev:web
+python apps/web/scripts/check-proxies.py
 ```
 
-`packages/shared-types/src/api.generated.ts` is generated from
-[`docs/openapi.yaml`](docs/openapi.yaml); regenerate it instead of editing it.
-See [the web README](apps/web/README.md),
-[the shared-types README](packages/shared-types/README.md), and
-[the UI README](packages/ui/README.md) for the route, security, and component
-contracts.
+Set TEST_DATABASE_URL to a migrated disposable *_test database to include the real PostgreSQL integration tests; otherwise those tests skip. CI includes a pgvector integration job. Proxy tests use explicit upstream fixtures. Scripted model tests do not claim live provider success.
 
-## License
+## Hosting
+
+Vercel hosts apps/web. Railway hosts two services from the repository root: API and worker. Both share services/api/Dockerfile; use infra/railway/api.json and infra/railway/worker.json respectively as their config paths. Apply migrations as an explicit administrator job, not at API startup. Railway hosts Postgres/Redis or connects equivalent managed services.
+
+The runtime image omits optional cross-encoder/NLP model packages; deterministic PII regex protection remains enabled. Source fixtures stay outside production indexes. Media uploads, vendor scheduling, external notifications, payments and extra dashboards are outside this internal-work-order MVP.
 
 See [LICENSE](LICENSE).

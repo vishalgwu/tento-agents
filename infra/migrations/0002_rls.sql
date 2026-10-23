@@ -117,12 +117,10 @@ BEGIN
         'retrievals',
         'retrieval_results',
         'episodic_memory',
-        'reflections',
         'guardrail_events',
         'decisions',
         'decision_claims',
         'decision_evidence',
-        'approvals',
         'execution_receipts',
         'idempotency_records',
         'eval_datasets',
@@ -130,8 +128,7 @@ BEGIN
         'eval_runs',
         'eval_results',
         'failure_events',
-        'metric_rollups',
-        'label_queue'
+        'metric_rollups'
     ]
     LOOP
         EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', table_name);
@@ -427,7 +424,7 @@ CREATE POLICY work_orders_resident_current_unit_select
     );
 
 -- Audit receipts are insert-only. The first three triggers are required by the
--- Phase 0 contract; approvals, claims, evidence, and receipts are protected as
+-- Phase 0 contract; claims, evidence, and receipts are protected as
 -- part of the same immutable audit trail.
 CREATE FUNCTION public.prevent_audit_mutation()
 RETURNS trigger
@@ -454,9 +451,6 @@ CREATE TRIGGER guardrail_events_append_only
     BEFORE UPDATE OR DELETE ON public.guardrail_events
     FOR EACH ROW EXECUTE FUNCTION public.prevent_audit_mutation();
 
-CREATE TRIGGER approvals_append_only
-    BEFORE UPDATE OR DELETE ON public.approvals
-    FOR EACH ROW EXECUTE FUNCTION public.prevent_audit_mutation();
 
 CREATE TRIGGER decision_claims_append_only
     BEFORE UPDATE OR DELETE ON public.decision_claims

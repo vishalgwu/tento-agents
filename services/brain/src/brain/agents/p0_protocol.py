@@ -1,4 +1,4 @@
-"""Deterministic P0 human paging with no model dependency.
+"""Deterministic P0 emergency paging with no model dependency.
 
 Only the orchestrator may call :func:`dispatch_p0_from_orchestrator`, after a
 ``SafetyVerdict`` has selected the P0 path.  The protocol sends push, SMS, and
@@ -52,7 +52,7 @@ _CATEGORY_ORDER: Final = {
 
 @dataclass(frozen=True, slots=True)
 class P0PageRequest:
-    """Minimum safe data needed to route a P0 page to the approved human path."""
+    """Minimum safe data needed to route a P0 page to the configured emergency notification path."""
 
     org_id: UUID
     ticket_id: UUID
@@ -156,7 +156,7 @@ def build_p0_page_plan(request: P0PageRequest, verdict: SafetyVerdict) -> P0Page
     """Create the fixed all-channel page for a positive safety verdict.
 
     No source report text, resident identity, or model explanation enters the
-    message.  The on-call human opens the authorised operations view using the
+    message.  The on-call responder opens the authorised operations view using the
     ticket reference, where tenant-scoped information can be accessed safely.
     """
 

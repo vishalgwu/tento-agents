@@ -102,7 +102,7 @@ class IntakeStatus(str, Enum):
     """The explicit next action after normalisation succeeds or exhausts repair."""
 
     COMPLETED = "completed"
-    HUMAN_REVIEW_REQUIRED = "human_review_required"
+    ABSTAINED = "abstained"
 
 
 class IntakeFailureKind(str, Enum):
@@ -128,7 +128,7 @@ class IntakeNormalizationResult(BaseModel):
             if self.facts is None or self.failure_kind is not None:
                 raise ValueError("completed intake requires facts and no failure kind")
         elif self.facts is not None or self.failure_kind is None:
-            raise ValueError("human review requires a failure kind and no facts")
+            raise ValueError("abstention requires a failure kind and no facts")
         return self
 
 
@@ -167,7 +167,7 @@ async def normalize_intake(
     except SchemaValidationError as first_error:
         return await _repair_once(request, gateway, first_error)
     except Exception:
-        return _human_review(
+        return _abstained(
             repair_attempted=False,
             failure_kind=IntakeFailureKind.PROVIDER_UNAVAILABLE,
         )
@@ -187,12 +187,12 @@ async def _repair_once(
             TicketFacts,
         )
     except SchemaValidationError:
-        return _human_review(
+        return _abstained(
             repair_attempted=True,
             failure_kind=IntakeFailureKind.SCHEMA_VALIDATION,
         )
     except Exception:
-        return _human_review(
+        return _abstained(
             repair_attempted=True,
             failure_kind=IntakeFailureKind.PROVIDER_UNAVAILABLE,
         )
@@ -209,11 +209,11 @@ def _completed(
     )
 
 
-def _human_review(
+def _abstained(
     *, repair_attempted: bool, failure_kind: IntakeFailureKind
 ) -> IntakeNormalizationResult:
     return IntakeNormalizationResult(
-        status=IntakeStatus.HUMAN_REVIEW_REQUIRED,
+        status=IntakeStatus.ABSTAINED,
         facts=None,
         repair_attempted=repair_attempted,
         failure_kind=failure_kind,

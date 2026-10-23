@@ -31,7 +31,7 @@ class PolicyResolutionStatus(str, Enum):
     """Whether one outcome controls a policy question."""
 
     RESOLVED = "resolved"
-    HUMAN_REVIEW_REQUIRED = "human_review_required"
+    ABSTAINED = "abstained"
 
 
 class PolicyClaim(BaseModel):
@@ -106,7 +106,7 @@ class PolicyResolution(BaseModel):
             or len(self.conflicting_claim_ids) < 2
         ):
             raise ValueError(
-                "a human-review policy key requires two or more same-rank conflicts"
+                "a withheld policy key requires two or more same-rank conflicts"
             )
         return self
 
@@ -130,7 +130,7 @@ def resolve_policy_conflicts(
     Claims at a lower authority are retained as superseded for the audit trail.
     Claims at the controlling authority must agree exactly on their canonical
     outcome.  When they do not, selecting either outcome would be arbitrary, so
-    the function returns a typed human-review requirement instead.
+    the function returns a typed withheld requirement instead.
     """
 
     if isinstance(claims, (str, bytes)):
@@ -174,7 +174,7 @@ def _resolve_one_policy_key(
     if len(outcomes) != 1:
         return PolicyResolution(
             policy_key=policy_key,
-            status=PolicyResolutionStatus.HUMAN_REVIEW_REQUIRED,
+            status=PolicyResolutionStatus.ABSTAINED,
             controlling_authority=controlling_authority,
             superseded_claim_ids=superseded_claim_ids,
             conflicting_claim_ids=tuple(claim.claim_id for claim in controlling_claims),

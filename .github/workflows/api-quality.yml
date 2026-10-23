@@ -9,6 +9,9 @@ on:
       - 'infra/seed/**'
       - 'pyproject.toml'
       - 'requirements.txt'
+      - 'requirements.runtime*'
+      - 'infra/auth/**'
+      - 'scripts/export_openapi.py'
       - 'requirements.lock.txt'
       - 'services/api/**'
       - 'services/brain/**'
@@ -21,6 +24,9 @@ on:
       - 'infra/seed/**'
       - 'pyproject.toml'
       - 'requirements.txt'
+      - 'requirements.runtime*'
+      - 'infra/auth/**'
+      - 'scripts/export_openapi.py'
       - 'requirements.lock.txt'
       - 'services/api/**'
       - 'services/brain/**'
@@ -50,5 +56,36 @@ jobs:
         run: python -m ruff check services/api services/brain infra/seed
       - name: Type check
         run: python -m mypy
+      - name: Verify exported API schema
+        run: python scripts/export_openapi.py && git diff --exit-code -- docs/openapi.yaml
       - name: Test API, retrieval, and seed invariants
         run: python -m pytest -q
+
+  database:
+    name: PostgreSQL workflow integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.6-pg16
+        env:
+          POSTGRES_DB: resident_os_test
+          POSTGRES_PASSWORD: local-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d resident_os_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PYTHONPATH: services/api/src:services/brain/src
+      MIGRATION_DATABASE_URL: postgresql://postgres:local-test-only@localhost:5432/resident_os_test
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres:local-test-only@localhost:5432/resident_os_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: python -m api.migrate
+      - run: python -m api.migrate
+      - run: python -m pytest services/api/tests/test_persistence_postgres.py -q

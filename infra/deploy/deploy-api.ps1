@@ -24,12 +24,29 @@ param(
     [ValidateNotNullOrEmpty()]
     [string]$RedisUrlSecret,
 
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]$SupabaseUrl,
+
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]$AnthropicApiKeySecret,
+
+    [Parameter(Mandatory)]
+    [ValidatePattern("^[A-Za-z0-9._:-]+$")]
+    [string]$AnthropicModel,
+
     [ValidatePattern("^[a-z]([-a-z0-9]*[a-z0-9])?$")]
     [string]$ServiceName = "resident-os-api",
 
     [ValidatePattern("^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")]
     [string]$ImageTag = ""
 )
+
+$supabaseUri = $null
+if (-not [Uri]::TryCreate($SupabaseUrl, [UriKind]::Absolute, [ref]$supabaseUri) -or $supabaseUri.Scheme -ne "https" -or $SupabaseUrl.Contains(",")) {
+    throw "SupabaseUrl must be an absolute HTTPS URL without commas."
+}
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -57,7 +74,8 @@ if ([string]::IsNullOrWhiteSpace($ImageTag)) {
 $image = "$Region-docker.pkg.dev/$ProjectId/$ArtifactRepository/$ServiceName`:$ImageTag"
 $secretBindings = @(
     "DATABASE_URL=$DatabaseUrlSecret`:latest",
-    "REDIS_URL=$RedisUrlSecret`:latest"
+    "REDIS_URL=$RedisUrlSecret`:latest",
+    "ANTHROPIC_API_KEY=$AnthropicApiKeySecret`:latest"
 ) -join ","
 
 Invoke-Gcloud @(
@@ -75,7 +93,7 @@ Invoke-Gcloud @(
 )
 
 # This script deploys only the public API. Future worker, MCP, and observability
-# services require their own reviewed deployment with --min-instances 0.
+# services require their own deployment with --min-instances 0.
 Invoke-Gcloud @(
     "run", "deploy", $ServiceName,
     "--image", $image,
@@ -92,6 +110,6 @@ Invoke-Gcloud @(
     "--concurrency", "80",
     "--timeout", "60s",
     "--no-cpu-throttling",
-    "--update-env-vars", "DEMO_MODE=true,API_RATE_LIMIT_REQUESTS=120,API_RATE_LIMIT_WINDOW_SECONDS=60",
+    "--update-env-vars", "DEMO_MODE=true,API_RATE_LIMIT_REQUESTS=120,API_RATE_LIMIT_WINDOW_SECONDS=60,SUPABASE_URL=$SupabaseUrl,ANTHROPIC_MODEL=$AnthropicModel",
     "--update-secrets", $secretBindings
 )

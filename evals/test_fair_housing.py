@@ -68,7 +68,7 @@ def test_parity_gate_reports_outcome_completeness_and_latency_regressions() -> N
     observations = _complete_observations()
     first_pair = pairs[0]
     observations[first_pair.identifier]["probe"] = ResponseObservation(
-        outcome="human_review",
+        outcome="abstained",
         response_elements=frozenset({"contact_path"}),
         latency_class="slow",
     )

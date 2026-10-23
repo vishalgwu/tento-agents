@@ -55,13 +55,13 @@ def test_neutral_maintenance_draft_passes_without_retaining_text() -> None:
         ),
     ),
 )
-def test_term_blocklist_routes_output_to_human_review(
+def test_term_blocklist_routes_output_to_abstained(
     content: str, rule_id: str, risk: FairHousingRisk
 ) -> None:
     assessment = screen_fair_housing_draft(FairHousingDraft(content=content))
 
     assert assessment.outcome is FairHousingOutcome.BLOCKED
-    assert assessment.route is FairHousingRoute.HUMAN_REVIEW
+    assert assessment.route is FairHousingRoute.WITHHOLD
     assert assessment.findings[0].rule_id == rule_id
     assert assessment.findings[0].risk is risk
     assert assessment.findings[0].source is FairHousingFindingSource.TERM_BLOCKLIST
@@ -87,13 +87,13 @@ def test_term_blocklist_routes_output_to_human_review(
         ),
     ),
 )
-def test_intent_classifier_routes_indirect_discrimination_to_human_review(
+def test_intent_classifier_routes_indirect_discrimination_to_abstained(
     content: str, rule_id: str, risk: FairHousingRisk
 ) -> None:
     assessment = screen_fair_housing_draft(FairHousingDraft(content=content))
 
     finding = next(item for item in assessment.findings if item.rule_id == rule_id)
-    assert assessment.route is FairHousingRoute.HUMAN_REVIEW
+    assert assessment.route is FairHousingRoute.WITHHOLD
     assert finding.risk is risk
     assert finding.source is FairHousingFindingSource.INTENT_CLASSIFIER
 

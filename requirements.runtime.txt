@@ -1,0 +1,23 @@
+# Minimal pinned runtime for the lexical-retrieval MVP.
+# Optional cross-encoder/NLP models and developer tools remain in requirements.txt.
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+pydantic==2.11.7
+SQLAlchemy==2.0.41
+asyncpg==0.30.0
+alembic==1.16.2
+httpx==0.28.1
+redis==6.2.0
+PyJWT[crypto]==2.13.0
+anthropic==0.52.2
+Jinja2==3.1.6
+openai==1.86.0
+langgraph==0.4.9
+langchain-core==0.3.65
+langgraph-checkpoint==2.1.2
+langgraph-checkpoint-postgres==2.0.21
+langgraph-prebuilt==0.2.3
+langgraph-sdk==0.1.74
+langsmith==0.3.45
+psycopg[binary]==3.3.6
+tiktoken==0.12.0

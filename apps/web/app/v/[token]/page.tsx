@@ -35,7 +35,7 @@ export default async function VendorLinkPage({ params }: VendorLinkPageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <DecisionMarker authority="human" label="Authorised dispatch context" />
+          <DecisionMarker authority="machine" label="Authorised dispatch context" />
           <dl className="grid gap-3 rounded-lg border bg-secondary/50 p-4 text-sm">
             <div className="grid gap-1 sm:grid-cols-[9rem_1fr] sm:gap-4">
               <dt className="text-muted-foreground">Work order</dt>

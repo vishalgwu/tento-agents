@@ -208,4 +208,7 @@ async def test_stream_hides_a_foreign_run_as_not_found(
     assert len(stream_session.executions) == 1
     query, parameters = stream_session.executions[0]
     assert "run.org_id = CAST(:org_id AS uuid)" in query
-    assert parameters == {"org_id": str(ORG_A_ID), "run_id": str(RUN_B_ID)}
+    assert parameters["org_id"] == str(ORG_A_ID)
+    assert parameters["run_id"] == str(RUN_B_ID)
+    assert parameters["is_staff"] is True
+    assert "ticket.reporter_person_id = CAST(:person_id AS uuid)" in query

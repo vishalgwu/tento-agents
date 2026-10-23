@@ -147,3 +147,24 @@ def test_jwks_rejects_symmetric_or_duplicate_key_material(
     }
     with pytest.raises(JwtKeySetUnavailable):
         _parse_jwks({"keys": [malformed_key]})
+
+
+def test_application_role_is_separate_from_supabase_database_role() -> None:
+    from api.deps.auth import _principal_from_claims
+    from uuid import uuid4
+
+    claims: dict[str, object] = {
+        "sub": str(uuid4()),
+        "org_id": str(uuid4()),
+        "person_id": str(uuid4()),
+        "role": "authenticated",
+        "app_role": "resident",
+    }
+    assert _principal_from_claims(claims).role == "resident"
+    claims["app_role"] = "service_role"
+    with pytest.raises(InvalidAccessToken):
+        _principal_from_claims(claims)
+    claims.pop("app_role")
+    claims["user_metadata"] = {"app_role": "operations_admin"}
+    with pytest.raises(InvalidAccessToken):
+        _principal_from_claims(claims)

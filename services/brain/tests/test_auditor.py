@@ -93,14 +93,14 @@ def _request(*, claims: tuple[PolicyClaim, ...] | None = None) -> AuditorRequest
             _claim(
                 "statute-charge",
                 Authority.STATUTE,
-                "legal_review_required",
+                "statutory_constraint",
                 "[C1]",
             ),
             _claim("lease-charge", Authority.LEASE, "owner_pays", "[C2]"),
             _claim(
                 "sop-responsibility",
                 Authority.INTERNAL_SOP,
-                "manager_review_required",
+                "operations_constraint",
                 "[C3]",
                 policy_key="responsibility",
             ),
@@ -143,7 +143,7 @@ async def test_auditor_receives_only_the_dispatch_plan_and_resolved_policy() -> 
     assert gateway.calls[0][2] is PolicyAuditAssessment
     dynamic_prompt = gateway.calls[0][1].dynamic_suffix
     assert "Assess the reported kitchen drain backup" in dynamic_prompt
-    assert "legal_review_required" in dynamic_prompt
+    assert "statutory_constraint" in dynamic_prompt
     assert "likely_cause" not in dynamic_prompt
     assert "cannot create a work order" in gateway.calls[0][1].static_prefix
 
@@ -169,7 +169,7 @@ async def test_unresolved_same_rank_precedence_stops_before_the_model() -> None:
 
     result = await audit_dispatch(_request(claims=conflicting_claims), gateway=gateway)
 
-    assert result.status is PolicyAuditStatus.HUMAN_REVIEW_REQUIRED
+    assert result.status is PolicyAuditStatus.ABSTAINED
     assert result.failure_kind is PolicyAuditFailureKind.UNRESOLVED_PRECEDENCE
     assert result.assessment is None
     assert gateway.calls == []
@@ -224,13 +224,13 @@ async def test_auditor_withholds_unsupported_citations_or_incomplete_policy_find
     assert (
         bad_citation_result.failure_kind is PolicyAuditFailureKind.UNSUPPORTED_CITATION
     )
-    assert unknown_result.status is PolicyAuditStatus.HUMAN_REVIEW_REQUIRED
+    assert unknown_result.status is PolicyAuditStatus.ABSTAINED
     assert unknown_result.failure_kind is PolicyAuditFailureKind.INSUFFICIENT_POLICY
     assert unknown_result.assessment == unknown
 
 
 @pytest.mark.asyncio
-async def test_auditor_routes_schema_provider_and_policy_key_failures_to_human_review() -> (
+async def test_auditor_routes_schema_provider_and_policy_key_failures_to_abstained() -> (
     None
 ):
     schema_gateway = _AuditorGateway(

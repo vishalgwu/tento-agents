@@ -11,10 +11,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List tickets visible to the caller's organisation */
-        get: operations["listTickets"];
+        /**
+         * List Tickets
+         * @description List only tickets visible to the verified organisation, newest first.
+         */
+        get: operations["list_tickets_v1_tickets_get"];
         put?: never;
-        post?: never;
+        /**
+         * Submit Ticket
+         * @description Atomically save one resident ticket and a durable worker job.
+         */
+        post: operations["submit_ticket_v1_tickets_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -28,8 +35,45 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get one ticket visible to the caller's organisation */
-        get: operations["getTicket"];
+        /**
+         * Get Ticket
+         * @description Return a ticket only when it belongs to the caller's organisation.
+         */
+        get: operations["get_ticket_v1_tickets__ticket_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenancies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tenancies */
+        get: operations["list_tenancies_v1_tenancies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run */
+        get: operations["get_run_v1_runs__run_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -45,30 +89,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Replay the current safe workflow timeline for one run */
-        get: operations["streamRun"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/approvals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
         /**
-         * List the caller's pending approvals by SLA risk
-         * @description The sort is approval SLA expiry, then operational priority, then stable
-         *     request fields. It is never arrival-time order. An approval SLA is the
-         *     decision's action deadline, not a promised resident repair time.
+         * Stream Run
+         * @description Return the current safe trace snapshot for a single visible run.
+         *
+         *     See ``docs/events.md`` for the wire contract.  This intentionally does not
+         *     hold a database transaction open while waiting for future worker changes.
          */
-        get: operations["listApprovals"];
+        get: operations["stream_run_v1_runs__run_id__stream_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -77,7 +105,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/approvals/{approval_id}/approve": {
+    "/agent/run": {
         parameters: {
             query?: never;
             header?: never;
@@ -86,42 +114,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Append an immutable approval receipt */
-        post: operations["approveApproval"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/approvals/{approval_id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Append an immutable rejection receipt with a structured label */
-        post: operations["rejectApproval"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/approvals/{approval_id}/reassign": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Append a reassignment receipt and create a new pending request */
-        post: operations["reassignApproval"];
+        /** Run Agent */
+        post: operations["run_agent_v1_agent_run_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -132,211 +126,305 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        TicketSummary: {
-            /** Format: uuid */
-            id: string;
-            /** Format: int64 */
-            ticket_number: number;
-            /** Format: uuid */
-            property_id: string;
-            /** Format: uuid */
-            building_id: string;
-            /** Format: uuid */
-            unit_id: string;
-            status: string;
-            priority: string | null;
-            category: string | null;
-            symptom_summary: string | null;
-            /** Format: date-time */
-            submitted_at: string;
-            /** Format: date-time */
-            closed_at: string | null;
-            /** Format: date-time */
-            created_at: string;
+        /**
+         * AccessWindow
+         * @description The resident-supplied preferred access window, if one was provided.
+         */
+        AccessWindow: {
+            /** Start */
+            start?: string | null;
+            /** End */
+            end?: string | null;
         };
-        TicketDetail: components["schemas"]["TicketSummary"];
-        TicketListResponse: {
-            items: components["schemas"]["TicketSummary"][];
-            next_cursor: string | null;
+        /** AgentRunRequest */
+        AgentRunRequest: {
+            /** Description */
+            description: string;
         };
-        ApprovalQueueItem: {
-            /** Format: uuid */
-            approval_id: string;
-            /** Format: uuid */
-            decision_id: string;
-            /** @enum {string} */
-            required_role: "property_manager" | "asset_owner" | "operations_admin";
-            /** Format: date-time */
-            requested_at: string;
+        /** AgentRunResponse */
+        AgentRunResponse: {
             /**
-             * Format: date-time
-             * @description Approval action deadline used for SLA-risk ordering.
+             * Run Id
+             * Format: uuid
              */
-            sla_expires_at: string;
-            /** @enum {string|null} */
-            priority: "p0" | "p1" | "p2" | "p3" | null;
-            proposed_trade: string | null;
-            proposed_responsible_party: string;
-            /** Format: int64 */
-            estimated_cost_cents: number | null;
-            citation_verified: boolean;
-            /** Format: uuid */
-            ticket_id: string;
-            /** Format: int64 */
-            ticket_number: number;
-            symptom_summary: string | null;
-        };
-        ApprovalQueueResponse: {
-            items: components["schemas"]["ApprovalQueueItem"][];
-            next_cursor: string | null;
-        };
-        RejectApprovalRequest: {
+            run_id: string;
             /**
-             * @description One of the five evaluation-ready human rejection labels.
+             * Status
              * @enum {string}
              */
-            reason: "insufficient_evidence" | "incorrect_priority" | "incorrect_routing" | "cost_or_scope" | "policy_conflict";
+            status: "completed" | "abstained" | "emergency";
+            /** Summary */
+            summary: string;
+            facts?: components["schemas"]["TicketFacts"] | null;
         };
-        ReassignApprovalRequest: {
-            /** @enum {string} */
-            required_role: "property_manager" | "asset_owner";
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
         };
-        ApprovalActionReceipt: {
-            /** Format: uuid */
+        /** RunResult */
+        RunResult: {
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Ticket Id
+             * Format: uuid
+             */
+            ticket_id: string;
+            /** Status */
+            status: string;
+            /** Result */
+            result?: {
+                [key: string]: unknown;
+            } | null;
+            /** Error Code */
+            error_code?: string | null;
+        };
+        /** RunSnapshot */
+        RunSnapshot: {
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Status */
+            status: string;
+            /** Result */
+            result?: {
+                [key: string]: unknown;
+            } | null;
+            /** Error Code */
+            error_code?: string | null;
+        };
+        /** SubmitTicketRequest */
+        SubmitTicketRequest: {
+            /** Description */
+            description: string;
+            /** Tenancy Id */
+            tenancy_id?: string | null;
+            /** Access Permission */
+            access_permission?: boolean | null;
+            /** Pets Present */
+            pets_present?: boolean | null;
+        };
+        /** TenancyList */
+        TenancyList: {
+            /** Items */
+            items: components["schemas"]["TenancyLocation"][];
+        };
+        /** TenancyLocation */
+        TenancyLocation: {
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
-            /** Format: uuid */
-            approval_chain_id: string;
-            /** @enum {string} */
-            status: "approved" | "rejected";
-            /** @enum {string} */
-            action: "approve" | "reassign" | "reject";
-            /** @enum {string|null} */
-            rejection_reason: "insufficient_evidence" | "incorrect_priority" | "incorrect_routing" | "cost_or_scope" | "policy_conflict" | null;
-            /** Format: date-time */
-            acted_at: string;
-            /** Format: uuid */
-            replacement_approval_id: string | null;
+            /** Property Name */
+            property_name: string;
+            /** Unit Name */
+            unit_name: string;
+        };
+        /**
+         * TicketDetail
+         * @description Current detail shape; deliberately no more sensitive than a summary.
+         */
+        TicketDetail: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ticket Number */
+            ticket_number: number;
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+            /**
+             * Building Id
+             * Format: uuid
+             */
+            building_id: string;
+            /**
+             * Unit Id
+             * Format: uuid
+             */
+            unit_id: string;
+            /** Status */
+            status: string;
+            /** Priority */
+            priority: string | null;
+            /** Category */
+            category: string | null;
+            /** Symptom Summary */
+            symptom_summary: string | null;
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            latest_run?: components["schemas"]["RunSnapshot"] | null;
+        };
+        /**
+         * TicketFacts
+         * @description Strict, structured handoff from the intake agent to the maintenance loop.
+         */
+        TicketFacts: {
+            intent: components["schemas"]["TicketIntent"];
+            /** Category */
+            category?: string | null;
+            /** Symptom Summary */
+            symptom_summary?: string | null;
+            /** Affected Asset */
+            affected_asset?: string | null;
+            /** Access Permission */
+            access_permission?: boolean | null;
+            /** Pets Present */
+            pets_present?: boolean | null;
+            preferred_access_window?: components["schemas"]["AccessWindow"] | null;
+            /**
+             * Media Facts
+             * @default []
+             */
+            media_facts: string[];
+        };
+        /**
+         * TicketIntent
+         * @description Resident intent distinguishes maintenance from later non-work-order paths.
+         * @enum {string}
+         */
+        TicketIntent: "maintenance" | "question" | "other";
+        /**
+         * TicketListResponse
+         * @description A stable page of tickets ordered by the opaque continuation cursor.
+         */
+        TicketListResponse: {
+            /** Items */
+            items: components["schemas"]["TicketSummary"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** TicketSubmission */
+        TicketSubmission: {
+            /**
+             * Ticket Id
+             * Format: uuid
+             */
+            ticket_id: string;
+            /** Ticket Number */
+            ticket_number: number;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Status
+             * @default queued
+             */
+            status: string;
+            /**
+             * Emergency
+             * @default false
+             */
+            emergency: boolean;
+            /** Message */
+            message?: string | null;
+        };
+        /**
+         * TicketSummary
+         * @description Safe ticket fields for a collection response.
+         *
+         *     Reporter text and access instructions are intentionally absent.  They are
+         *     PII-bearing intake data and will only be exposed through a specifically
+         *     authorised workflow when that contract exists.
+         */
+        TicketSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ticket Number */
+            ticket_number: number;
+            /**
+             * Property Id
+             * Format: uuid
+             */
+            property_id: string;
+            /**
+             * Building Id
+             * Format: uuid
+             */
+            building_id: string;
+            /**
+             * Unit Id
+             * Format: uuid
+             */
+            unit_id: string;
+            /** Status */
+            status: string;
+            /** Priority */
+            priority: string | null;
+            /** Category */
+            category: string | null;
+            /** Symptom Summary */
+            symptom_summary: string | null;
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            latest_run?: components["schemas"]["RunSnapshot"] | null;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
         };
         Problem: {
-            /**
-             * Format: uri
-             * @example urn:resident-os:problem:not-found
-             */
             type: string;
             title: string;
             status: number;
             detail: string;
-            instance: string;
+            instance?: string;
         };
     };
-    responses: {
-        /** @description No valid bearer token was provided. */
-        AuthenticationRequired: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
-        };
-        /** @description A required dependency or the tenant context is unavailable. */
-        DependencyUnavailable: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
-        };
-        /** @description The caller cannot act on this approval role or resource. */
-        Forbidden: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
-        };
-        /** @description The key is in progress or was used for a different request. */
-        IdempotencyConflict: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
-        };
-        /** @description The mutation did not include exactly one Idempotency-Key. */
-        IdempotencyKeyRequired: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
-        };
-        /** @description The request or cursor could not be validated. */
-        InvalidRequest: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
-        };
-        /** @description The requested ticket does not exist or is not visible. */
-        NotFound: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
-        };
-        /** @description The caller exceeded the request limit. */
-        RateLimited: {
-            headers: {
-                "Retry-After"?: number;
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
-        };
-        /** @description A new immutable human-action receipt was persisted. */
-        ApprovalActionCreated: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ApprovalActionReceipt"];
-            };
-        };
-    };
-    parameters: {
-        /** @description Opaque keyset continuation token. Do not construct it. */
-        TicketCursor: string;
-        /** @description Number of tickets to return; the default is 50. */
-        PageLimit: number;
-        /** @description Opaque continuation token for the deadline-ordered approval queue. */
-        ApprovalCursor: string;
-        ApprovalId: string;
-        /** @description Unique replay-protection key for this mutation. */
-        IdempotencyKey: string;
-    };
+    responses: never;
+    parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    listTickets: {
+    list_tickets_v1_tickets_get: {
         parameters: {
             query?: {
-                /** @description Opaque keyset continuation token. Do not construct it. */
-                cursor?: components["parameters"]["TicketCursor"];
-                /** @description Number of tickets to return; the default is 50. */
-                limit?: components["parameters"]["PageLimit"];
+                cursor?: string | null;
+                limit?: number;
             };
             header?: never;
             path?: never;
@@ -344,7 +432,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description A page ordered by descending created_at and id. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -353,13 +441,215 @@ export interface operations {
                     "application/json": components["schemas"]["TicketListResponse"];
                 };
             };
-            401: components["responses"]["AuthenticationRequired"];
-            422: components["responses"]["InvalidRequest"];
-            429: components["responses"]["RateLimited"];
-            503: components["responses"]["DependencyUnavailable"];
+            /** @description Safe problem response; see RFC 9457. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
-    getTicket: {
+    submit_ticket_v1_tickets_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketSubmission"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    get_ticket_v1_tickets__ticket_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -370,7 +660,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The ticket. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -379,13 +669,209 @@ export interface operations {
                     "application/json": components["schemas"]["TicketDetail"];
                 };
             };
-            401: components["responses"]["AuthenticationRequired"];
-            404: components["responses"]["NotFound"];
-            429: components["responses"]["RateLimited"];
-            503: components["responses"]["DependencyUnavailable"];
+            /** @description Safe problem response; see RFC 9457. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
-    streamRun: {
+    list_tenancies_v1_tenancies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenancyList"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    get_run_v1_runs__run_id__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -396,135 +882,331 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /**
-             * @description A finite SSE snapshot. timeline.ready is the first event; the exact
-             *     event framing and payloads are defined in docs/events.md.
-             */
+            /** @description Successful Response */
             200: {
                 headers: {
-                    "Cache-Control"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/event-stream": string;
+                    "application/json": components["schemas"]["RunResult"];
                 };
             };
-            401: components["responses"]["AuthenticationRequired"];
-            404: components["responses"]["NotFound"];
-            429: components["responses"]["RateLimited"];
-            503: components["responses"]["DependencyUnavailable"];
+            /** @description Safe problem response; see RFC 9457. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
-    listApprovals: {
+    stream_run_v1_runs__run_id__stream_get: {
         parameters: {
-            query?: {
-                /** @description Opaque continuation token for the deadline-ordered approval queue. */
-                cursor?: components["parameters"]["ApprovalCursor"];
-                /** @description Number of tickets to return; the default is 50. */
-                limit?: components["parameters"]["PageLimit"];
-            };
+            query?: never;
             header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    run_agent_v1_agent_run_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentRunRequest"];
+            };
+        };
         responses: {
-            /** @description A deadline-ordered page of actionable approvals. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApprovalQueueResponse"];
+                    "application/json": components["schemas"]["AgentRunResponse"];
                 };
             };
-            401: components["responses"]["AuthenticationRequired"];
-            403: components["responses"]["Forbidden"];
-            422: components["responses"]["InvalidRequest"];
-            429: components["responses"]["RateLimited"];
-            503: components["responses"]["DependencyUnavailable"];
-        };
-    };
-    approveApproval: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Unique replay-protection key for this mutation. */
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            /** @description Safe problem response; see RFC 9457. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
-            path: {
-                approval_id: components["parameters"]["ApprovalId"];
+            /** @description Safe problem response; see RFC 9457. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: components["responses"]["ApprovalActionCreated"];
-            400: components["responses"]["IdempotencyKeyRequired"];
-            401: components["responses"]["AuthenticationRequired"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["IdempotencyConflict"];
-            429: components["responses"]["RateLimited"];
-            503: components["responses"]["DependencyUnavailable"];
-        };
-    };
-    rejectApproval: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Unique replay-protection key for this mutation. */
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            /** @description Safe problem response; see RFC 9457. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
-            path: {
-                approval_id: components["parameters"]["ApprovalId"];
+            /** @description Safe problem response; see RFC 9457. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RejectApprovalRequest"];
+            /** @description Safe problem response; see RFC 9457. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
-        };
-        responses: {
-            201: components["responses"]["ApprovalActionCreated"];
-            400: components["responses"]["IdempotencyKeyRequired"];
-            401: components["responses"]["AuthenticationRequired"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["IdempotencyConflict"];
-            422: components["responses"]["InvalidRequest"];
-            429: components["responses"]["RateLimited"];
-            503: components["responses"]["DependencyUnavailable"];
-        };
-    };
-    reassignApproval: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Unique replay-protection key for this mutation. */
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            /** @description Safe problem response; see RFC 9457. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
-            path: {
-                approval_id: components["parameters"]["ApprovalId"];
+            /** @description Safe problem response; see RFC 9457. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReassignApprovalRequest"];
+            /** @description Safe problem response; see RFC 9457. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
-        };
-        responses: {
-            201: components["responses"]["ApprovalActionCreated"];
-            400: components["responses"]["IdempotencyKeyRequired"];
-            401: components["responses"]["AuthenticationRequired"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["IdempotencyConflict"];
-            422: components["responses"]["InvalidRequest"];
-            429: components["responses"]["RateLimited"];
-            503: components["responses"]["DependencyUnavailable"];
+            /** @description Safe problem response; see RFC 9457. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Safe problem response; see RFC 9457. */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
 }

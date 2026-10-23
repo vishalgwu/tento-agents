@@ -11,6 +11,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,6 +35,7 @@ _TIMELINE_STAGES = (
     "decision",
 )
 _COMPONENT_STAGE_NAMES = {
+    **{stage: stage for stage in _TIMELINE_STAGES},
     "screen_safety": "safety",
     "page_p0": "p0",
     "normalize_intake": "intake",
@@ -42,7 +44,6 @@ _COMPONENT_STAGE_NAMES = {
     "plan_dispatch": "dispatch",
     "audit_policy": "policy_audit",
     "apply_gate": "decision",
-    "approval": "decision",
     "route_escalation": "decision",
 }
 _SAFE_FAILURE_CODE = re.compile(r"^[a-z][a-z0-9_]{0,79}$")
@@ -52,11 +53,13 @@ _SAFE_FAILURE_CODE = re.compile(r"^[a-z][a-z0-9_]{0,79}$")
 # transaction or a connection-pool tenant context.
 _GET_RUN = text(
     """
-    SELECT run.id, run.status::text AS status,
+    SELECT run.id, run.ticket_id, run.result_json, run.last_error_code, run.status::text AS status,
            COALESCE(run.started_at, run.created_at) AS occurred_at
     FROM public.agent_runs AS run
+    JOIN public.tickets AS ticket ON ticket.org_id = run.org_id AND ticket.id = run.ticket_id
     WHERE run.org_id = CAST(:org_id AS uuid)
       AND run.id = CAST(:run_id AS uuid)
+      AND (:is_staff OR ticket.reporter_person_id = CAST(:person_id AS uuid))
     """
 )
 _GET_STEPS = text(
@@ -82,6 +85,41 @@ _GET_GUARDRAILS = text(
 )
 
 
+class RunResult(BaseModel):
+    run_id: UUID
+    ticket_id: UUID
+    status: str
+    result: dict[str, object] | None = None
+    error_code: str | None = None
+
+
+@router.get("/{run_id}", response_model=RunResult)
+async def get_run(
+    run_id: UUID,
+    scope: Annotated[TenantScope, Depends(get_request_tenant_scope)],
+    session: Annotated[AsyncSession, Depends(get_request_session)],
+) -> RunResult:
+    found = await session.execute(
+        _GET_RUN,
+        {
+            "org_id": str(scope.org_id),
+            "run_id": str(run_id),
+            "person_id": str(scope.person_id),
+            "is_staff": scope.role != "resident",
+        },
+    )
+    row = found.mappings().one_or_none()
+    if row is None:
+        raise HTTPException(404)
+    return RunResult(
+        run_id=row["id"],
+        ticket_id=row["ticket_id"],
+        status=row["status"],
+        result=row["result_json"],
+        error_code=row["last_error_code"],
+    )
+
+
 @router.get("/{run_id}/stream", response_class=StreamingResponse)
 async def stream_run(
     run_id: UUID,
@@ -95,7 +133,13 @@ async def stream_run(
     """
 
     run_result = await session.execute(
-        _GET_RUN, {"org_id": str(scope.org_id), "run_id": str(run_id)}
+        _GET_RUN,
+        {
+            "org_id": str(scope.org_id),
+            "run_id": str(run_id),
+            "person_id": str(scope.person_id),
+            "is_staff": scope.role != "resident",
+        },
     )
     run = run_result.mappings().one_or_none()
     if run is None:
@@ -103,13 +147,25 @@ async def stream_run(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     step_result = await session.execute(
-        _GET_STEPS, {"org_id": str(scope.org_id), "run_id": str(run_id)}
+        _GET_STEPS,
+        {
+            "org_id": str(scope.org_id),
+            "run_id": str(run_id),
+            "person_id": str(scope.person_id),
+            "is_staff": scope.role != "resident",
+        },
     )
     steps = [
         cast(Mapping[str, object], dict(row)) for row in step_result.mappings().all()
     ]
     guardrail_result = await session.execute(
-        _GET_GUARDRAILS, {"org_id": str(scope.org_id), "run_id": str(run_id)}
+        _GET_GUARDRAILS,
+        {
+            "org_id": str(scope.org_id),
+            "run_id": str(run_id),
+            "person_id": str(scope.person_id),
+            "is_staff": scope.role != "resident",
+        },
     )
     guardrails = [
         cast(Mapping[str, object], dict(row))

@@ -153,7 +153,7 @@ async def test_guard_performs_one_targeted_repair_then_releases_only_valid_text(
 
 
 @pytest.mark.asyncio
-async def test_guard_sends_second_invalid_repair_or_repair_failure_to_human_review() -> (
+async def test_guard_sends_second_invalid_repair_or_repair_failure_to_abstained() -> (
     None
 ):
     invalid_gateway = _CitationRepairGateway(
@@ -172,7 +172,7 @@ async def test_guard_sends_second_invalid_repair_or_repair_failure_to_human_revi
         gateway=failed_gateway,
     )
 
-    assert invalid_result.status is CitationGuardStatus.HUMAN_REVIEW_REQUIRED
+    assert invalid_result.status is CitationGuardStatus.ABSTAINED
     assert invalid_result.safe_text is None
     assert invalid_result.failure_kind is CitationGuardFailureKind.REPAIR_STILL_INVALID
     assert len(invalid_gateway.calls) == 1
@@ -184,7 +184,7 @@ async def test_guard_sends_second_invalid_repair_or_repair_failure_to_human_revi
 
 
 @pytest.mark.asyncio
-async def test_guard_routes_a_schema_failure_to_human_review_without_a_second_repair() -> (
+async def test_guard_routes_a_schema_failure_to_abstained_without_a_second_repair() -> (
     None
 ):
     gateway = _CitationRepairGateway(
@@ -201,6 +201,6 @@ async def test_guard_routes_a_schema_failure_to_human_review_without_a_second_re
         gateway=gateway,
     )
 
-    assert result.status is CitationGuardStatus.HUMAN_REVIEW_REQUIRED
+    assert result.status is CitationGuardStatus.ABSTAINED
     assert result.failure_kind is CitationGuardFailureKind.REPAIR_SCHEMA_VALIDATION
     assert len(gateway.calls) == 1

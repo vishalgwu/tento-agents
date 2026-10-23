@@ -19,7 +19,6 @@ from pydantic import BaseModel
 
 from brain.graph.nodes import (
     GraphDependencies,
-    approval_node,
     audit_node,
     context_node,
     diagnosis_node,
@@ -30,7 +29,6 @@ from brain.graph.nodes import (
     p0_node,
     route_after_diagnosis,
     route_after_dispatch,
-    route_after_gate,
     route_after_intake,
     route_after_safety,
     safety_node,
@@ -105,7 +103,7 @@ class MaintenanceGraph:
 def build_maintenance_graph(
     dependencies: GraphDependencies, *, checkpointer: BaseCheckpointSaver
 ) -> MaintenanceGraph:
-    """Compile the P0-first workflow with durable checkpoints and approval pause."""
+    """Compile the P0-first workflow with durable checkpoints and terminal outcomes."""
 
     # LangGraph owns a structural mapping only. Each bound node immediately
     # restores the strict, frozen TicketState contract before doing any work.
@@ -120,7 +118,6 @@ def build_maintenance_graph(
     workflow.add_node("plan_dispatch", _bind(dispatch_node, dependencies))
     workflow.add_node("audit_policy", _bind(audit_node, dependencies))
     workflow.add_node("apply_gate", _bind(gate_node, dependencies))
-    workflow.add_node("approval", _bind_terminal(approval_node))
     workflow.add_node("route_escalation", _bind_terminal(escalate_node))
 
     workflow.add_edge(START, "screen_safety")
@@ -150,21 +147,12 @@ def build_maintenance_graph(
         {"audit": "audit_policy", "gate": "apply_gate"},
     )
     workflow.add_edge("audit_policy", "apply_gate")
-    workflow.add_conditional_edges(
-        "apply_gate",
-        _bind_route(route_after_gate),
-        {
-            "approve": "approval",
-            "escalate": "route_escalation",
-        },
-    )
+    workflow.add_edge("apply_gate", END)
     workflow.add_edge("page_p0", END)
-    workflow.add_edge("approval", END)
     workflow.add_edge("route_escalation", END)
 
     compiled = workflow.compile(
         checkpointer=checkpointer,
-        interrupt_before=["approval"],
     )
     return MaintenanceGraph(compiled)
 

@@ -104,7 +104,7 @@ def _audit_result() -> AuditResult:
             PolicyClaim(
                 claim_id="statute",
                 policy_key="charge",
-                outcome="legal_review_required",
+                outcome="statutory_constraint",
                 authority=Authority.STATUTE,
                 provenance_ids=("[C1]",),
             ),

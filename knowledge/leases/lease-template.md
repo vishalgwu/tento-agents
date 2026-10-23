@@ -44,4 +44,4 @@ production indexing.
 - Do not infer financial responsibility, authorize a charge, or create a work
   order from this excerpt.
 - When a request depends on lease language, retrieve the verified executed
-  source and show the exact cited span to the authorized reviewer.
+  source and show the exact cited span to the execution trace.

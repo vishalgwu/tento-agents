@@ -4,7 +4,7 @@ The verifier checks only literal, auditable properties: citation IDs must come
 from the supplied envelope, and every numeric, date, currency, or section claim
 must carry a known citation whose source text contains that exact figure.  It
 does not judge whether a diagnosis is generally sensible.  A failed candidate
-gets one targeted repair request; a second failure is withheld for human review.
+gets one targeted repair request; a second failure is withheld for abstention.
 """
 
 from __future__ import annotations
@@ -70,10 +70,10 @@ class CitationViolationKind(str, Enum):
 
 
 class CitationGuardStatus(str, Enum):
-    """Whether the text passed verification or requires human review."""
+    """Whether the text passed verification or requires abstention."""
 
     VERIFIED = "verified"
-    HUMAN_REVIEW_REQUIRED = "human_review_required"
+    ABSTAINED = "abstained"
 
 
 class CitationGuardFailureKind(str, Enum):
@@ -263,7 +263,7 @@ async def verify_and_repair_citations(
     The candidate is released without a model call when it passes deterministic
     verification.  Otherwise this calls the gateway once with the precise claim
     failures.  A failed repair is intentionally not retried or silently
-    corrected; a human must decide how to proceed.
+    corrected; the response is withheld.
     """
 
     initial_verification = verify_citations(candidate_text, envelope=envelope)
@@ -287,12 +287,12 @@ async def verify_and_repair_citations(
             CitationRegeneration,
         )
     except SchemaValidationError:
-        return _human_review(
+        return _abstained(
             verification=initial_verification,
             failure_kind=CitationGuardFailureKind.REPAIR_SCHEMA_VALIDATION,
         )
     except Exception:
-        return _human_review(
+        return _abstained(
             verification=initial_verification,
             failure_kind=CitationGuardFailureKind.REPAIR_PROVIDER_UNAVAILABLE,
         )
@@ -302,7 +302,7 @@ async def verify_and_repair_citations(
         envelope=envelope,
     )
     if not repaired_verification.valid:
-        return _human_review(
+        return _abstained(
             verification=repaired_verification,
             failure_kind=CitationGuardFailureKind.REPAIR_STILL_INVALID,
         )
@@ -342,13 +342,13 @@ def _render_repair_prompt(
     )
 
 
-def _human_review(
+def _abstained(
     *,
     verification: CitationVerification,
     failure_kind: CitationGuardFailureKind,
 ) -> CitationGuardResult:
     return CitationGuardResult(
-        status=CitationGuardStatus.HUMAN_REVIEW_REQUIRED,
+        status=CitationGuardStatus.ABSTAINED,
         safe_text=None,
         verification=verification,
         regeneration_attempted=True,

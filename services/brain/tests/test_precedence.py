@@ -35,14 +35,14 @@ def test_statute_controls_all_lower_authorities_and_preserves_them_for_audit() -
             _claim("vendor", Authority.VENDOR_CONTRACT, "vendor_pays"),
             _claim("sop", Authority.INTERNAL_SOP, "owner_pays"),
             _claim("lease", Authority.LEASE, "resident_pays"),
-            _claim("statute", Authority.STATUTE, "legal_review_required"),
+            _claim("statute", Authority.STATUTE, "statutory_constraint"),
         )
     )
 
     assert len(resolution) == 1
     assert resolution[0].status is PolicyResolutionStatus.RESOLVED
     assert resolution[0].controlling_authority is Authority.STATUTE
-    assert resolution[0].controlling_outcome == "legal_review_required"
+    assert resolution[0].controlling_outcome == "statutory_constraint"
     assert resolution[0].controlling_claim_ids == ("statute",)
     assert resolution[0].superseded_claim_ids == ("lease", "sop", "vendor")
 
@@ -62,9 +62,7 @@ def test_lease_controls_when_no_statute_exists() -> None:
     assert resolution.superseded_claim_ids == ("sop", "vendor")
 
 
-def test_same_rank_conflict_requires_human_review_instead_of_arbitrary_selection() -> (
-    None
-):
+def test_same_rank_conflict_requires_abstained_instead_of_arbitrary_selection() -> None:
     resolution = resolve_policy_conflicts(
         (
             _claim("lease-a", Authority.LEASE, "owner_pays"),
@@ -73,7 +71,7 @@ def test_same_rank_conflict_requires_human_review_instead_of_arbitrary_selection
         )
     )[0]
 
-    assert resolution.status is PolicyResolutionStatus.HUMAN_REVIEW_REQUIRED
+    assert resolution.status is PolicyResolutionStatus.ABSTAINED
     assert resolution.controlling_authority is Authority.LEASE
     assert resolution.controlling_outcome is None
     assert resolution.conflicting_claim_ids == ("lease-a", "lease-b")

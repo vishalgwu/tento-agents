@@ -277,7 +277,10 @@ def _parse_jwks(payload: object) -> Mapping[str, jwt.PyJWK]:
 
 
 def _principal_from_claims(claims: Mapping[str, Any]) -> AuthenticatedPrincipal:
-    role = claims.get("role")
+    # Supabase's standard role remains "authenticated" for its own Data API.
+    # Application authorization comes from a separately signed custom claim.
+    # Existing installations with a top-level application role remain compatible.
+    role = claims.get("app_role", claims.get("role"))
     if not isinstance(role, str) or role not in VALID_APP_ROLES:
         raise InvalidAccessToken
 
