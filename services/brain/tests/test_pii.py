@@ -96,3 +96,14 @@ def test_redaction_rejects_empty_or_excessive_input() -> None:
         redact_pii(" ", analyzer=_Analyzer())
     with pytest.raises(ValueError, match="must not exceed"):
         redact_pii("x" * (MAX_REDACTION_INPUT_LENGTH + 1), analyzer=_Analyzer())
+
+
+@pytest.mark.parametrize("suffix", [".", ",", "!", "?", ";"])
+def test_regex_redacts_email_before_sentence_punctuation_without_optional_nlp(
+    suffix: str,
+) -> None:
+    result = redact_pii(
+        f"Contact person@example.com{suffix}", analyzer=_UnavailableAnalyzer()
+    )
+    assert result.redacted_text == f"Contact [REDACTED:EMAIL]{suffix}"
+    assert [finding.kind for finding in result.findings] == [PiiKind.EMAIL]

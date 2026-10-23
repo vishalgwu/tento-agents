@@ -4,3 +4,4 @@ packages:
 
 overrides:
   postcss: 8.5.28
+  source-map-js: 1.2.2

@@ -30,7 +30,7 @@ _PHONE_PATTERN: Final = re.compile(
     r"(?<![\w+])(?:\+?1[-.\s]?)?(?:\(?[2-9]\d{2}\)?[-.\s]?)\d{3}[-.\s]\d{4}(?!\w)"
 )
 _EMAIL_PATTERN: Final = re.compile(
-    r"(?<![\w.+-])[A-Z0-9][A-Z0-9._%+-]{0,63}@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+(?![\w.-])",
+    r"(?<![\w.+-])[A-Z0-9][A-Z0-9._%+-]{0,63}@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+(?![\w-])",
     re.IGNORECASE,
 )
 _DOB_PATTERN: Final = re.compile(
