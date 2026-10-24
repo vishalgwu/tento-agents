@@ -1,4 +1,17 @@
-# Resident OS
+# Tento Resident OS
+
+**[Open the live application on Vercel](https://tento-resident-os.vercel.app/)**
+
+One application for residents, maintenance teams, property owners and technical administrators, powered by an evidence-backed GenAI maintenance workflow.
+
+| Workspace | Live entry |
+| --- | --- |
+| Resident | [Resident sign in](https://tento-resident-os.vercel.app/sign-in?workspace=resident) |
+| Maintenance | [Maintenance sign in](https://tento-resident-os.vercel.app/sign-in?workspace=maintenance) |
+| Owner | [Owner sign in](https://tento-resident-os.vercel.app/sign-in?workspace=owner) |
+| Technical administrator | [Administrator sign in](https://tento-resident-os.vercel.app/sign-in?workspace=admin) |
+
+Use an existing organization account with the appropriate role. Maintenance, owner and administrator views are currently read-only. Approved property policies are required for policy-backed work orders; missing evidence produces a safe abstention.
 
 Tento Resident OS has one main page with Resident, Maintenance, Owner and Technical administrator workspaces. Maintenance/owner/admin provide verified, read-only operational views; role selection never grants access. The connected maintenance flow lets a resident sign in, select an authorised residence, save a report, and follow its actual status. A separate durable Python worker runs safety, intake, source retrieval, diagnosis, dispatch planning and policy validation. A validated in-house plan creates a real internal work order. No vendor is contacted and no visit is claimed to be scheduled.
 
