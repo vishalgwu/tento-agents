@@ -16,3 +16,12 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO resident_api, resident_
 GRANT INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO resident_worker;
 -- RLS still requires transaction-local org/person/application-role context.
 -- Do not give either role superuser, BYPASSRLS, or database-owner privileges.
+
+
+
+-- Protect the migration ledger from runtime accounts.
+-- Must remain after the broad worker GRANT statement.
+REVOKE INSERT, UPDATE, DELETE
+ON TABLE public.schema_migrations
+FROM resident_api, resident_worker;
+
