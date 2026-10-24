@@ -34,6 +34,7 @@ def free_port() -> int:
 
 
 class Upstream(BaseHTTPRequestHandler):
+    role = "resident"
     keys: list[str] = []
     dispatch_keys: list[str] = []
     run_status = "completed"
@@ -70,7 +71,11 @@ class Upstream(BaseHTTPRequestHandler):
         return self.send_json({"ticket_id": TICKET, "ticket_number": 42, "run_id": RUN, "status": "queued", "emergency": False, "message": None}, 201)
 
     def do_GET(self) -> None:
+        if self.path == "/healthz":
+            return self.send_json({"status": "ok", "components": {"database": "ok", "redis": "ok"}})
         assert self.headers.get("Authorization") == f"Bearer {TOKEN}"
+        if self.path == "/v1/me":
+            return self.send_json({"org_id": TENANCY, "person_id": TICKET, "role": self.role})
         if self.path == "/v1/tenancies":
             return self.send_json({"items": [{"id": TENANCY, "property_name": "Test property", "unit_name": "101"}]})
         ticket = {"id": TICKET, "ticket_number": 42, "status": "diagnosed", "priority": "p2", "category": "plumbing", "symptom_summary": "Dripping tap", "submitted_at": "2026-10-23T00:00:00Z", "latest_run": {"run_id": RUN, "status": self.run_status, "result": {"summary": "Plumbing assessment complete", "facts": {"category": "plumbing"}}, "error_code": None}}
@@ -123,7 +128,14 @@ def main() -> None:
                     raise RuntimeError("Next.js test server did not start") from None
                 time.sleep(0.2)
         call("/api/tickets", 403, {}, "POST", origin="https://foreign.example", key=KEY)
-        call("/api/session", 200, {"email": "resident@example.test", "password": "test-password"}, "POST")
+        login = call("/api/session", 200, {"email": "resident@example.test", "password": "test-password", "workspace": "resident"}, "POST")
+        assert isinstance(login, dict) and login["destination"] == "/app/report"
+        call("/api/session", 403, {"email": "resident@example.test", "password": "test-password", "workspace": "admin"}, "POST")
+        call("/api/session", 403, {"email": "resident@example.test", "password": "test-password", "workspace": "owner"}, "POST")
+        forged = call("/api/session", 200, {"email": "resident@example.test", "password": "test-password", "role": "operations_admin"}, "POST")
+        assert isinstance(forged, dict) and forged["destination"] == "/app/report", "Client role fields must not grant access"
+        with client.open(base + "/admin", timeout=60) as denied:
+            assert "/sign-in?workspace=admin" in denied.geturl(), "A resident must not obtain the admin workspace"
         tenancies = call("/api/tenancies", 200)
         assert isinstance(tenancies, dict) and tenancies["items"][0]["id"] == TENANCY
         payload = {"description": "Kitchen tap is dripping", "tenancy_id": TENANCY, "access_permission": False, "pets_present": True}
@@ -149,6 +161,16 @@ def main() -> None:
         assert isinstance(detail, dict) and detail["latest_run"]["result"]["summary"] == "Plumbing assessment complete"
         assert len(Upstream.dispatch_keys) == 3, "Terminal detail must not dispatch work"
         call("/api/tickets", 400, {**payload, "access_permission": "yes"}, "POST", key=KEY)
+        for role, workspace, destination, heading in (
+            ("maintenance_technician", "maintenance", "/maintenance", "Maintenance operations"),
+            ("asset_owner", "owner", "/owner", "Property maintenance overview"),
+            ("operations_admin", "admin", "/admin", "Application operations"),
+        ):
+            Upstream.role = role
+            login = call("/api/session", 200, {"email": "resident@example.test", "password": "test-password", "workspace": workspace}, "POST")
+            assert isinstance(login, dict) and login["destination"] == destination
+            with client.open(base + destination, timeout=60) as view:
+                assert heading in view.read().decode(), f"Missing verified {workspace} workspace"
         call("/api/session", 200, method="DELETE")
         call("/api/tickets", 401)
         print("PASS: sign-in cookie, permitted residences, persistent submission proxy, stable retry key, history/detail result, validation, cross-origin denial, worker dispatch/recovery/failure isolation, sign-out")

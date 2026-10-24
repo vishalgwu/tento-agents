@@ -1,4 +1,17 @@
-# Resident OS MVP
+# Tento Resident OS
+
+## One application, four workspaces
+
+The public home page explains the GenAI maintenance project and offers Resident, Maintenance, Owner and Technical administrator sign-in. The last workspace is for software operations administrators, not property developers.
+
+| Workspace | Verified roles | Available capability |
+| --- | --- | --- |
+| Resident | resident | Residence selection, saved maintenance reports, history and results |
+| Maintenance | maintenance_technician, property_manager, operations_admin | Read-only organization queue and assessments |
+| Owner | asset_owner, property_manager, operations_admin | Read-only organization maintenance overview |
+| Technical administrator | operations_admin | Organization-scoped run outcomes and service readiness |
+
+Roles come from API-verified Supabase claims. Selecting a login card cannot elevate access. New staff/owner/admin accounts require trusted provisioning; the app does not fabricate those accounts or expose keys.
 
 ## Connected user journey
 

@@ -30,6 +30,7 @@ from api.middleware.rate_limit import (
 )
 from api.middleware.tenancy import TenantRlsContextMiddleware
 from api.routers.agent import router as agent_router
+from api.routers.identity import router as identity_router
 from api.routers.processing import router as processing_router, recovery_router
 from api.routers.stream import router as stream_router
 from api.routers.tickets import router as tickets_router
@@ -107,6 +108,7 @@ def create_app() -> FastAPI:
     app.include_router(tenancies_router)
     app.include_router(stream_router)
     app.include_router(agent_router)
+    app.include_router(identity_router)
     app.include_router(processing_router)
     app.include_router(recovery_router)
     return app

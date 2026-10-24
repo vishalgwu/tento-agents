@@ -1,3 +1,9 @@
+# Tento main application
+
+The root route explains the product and provides four workspace entries. /sign-in?workspace=resident|maintenance|owner|admin uses one form and checks the account role through the JWT-authenticated /v1/me API before storing a session. All role workspace pages verify identity again on the server.
+
+Maintenance (/maintenance), owner (/owner) and technical administrator (/admin) display actual authorized organization tickets. They are read-only. Admin additionally checks database/cache readiness; no credentials are rendered. The old /tech and /staff/sign-in paths lead to maintenance, never silently to the resident application. The unused vendor route and shared UI package were removed.
+
 # Resident OS web
 
 The Next.js application provides resident maintenance submission at `/app/report`, request history at `/app/tickets`, and current request status at `/app/tickets/[id]`. Account access is at `/resident/sign-in`. Owner and technician URLs redirect to the resident workspace.

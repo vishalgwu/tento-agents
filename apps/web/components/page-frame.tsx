@@ -9,9 +9,10 @@ type PageFrameProps = {
 };
 
 const destinations = [
+  { href: "/#workspaces", label: "Workspaces" },
   { href: "/app/report", label: "New request" },
-  { href: "/app/tickets", label: "Your requests" },
-  { href: "/resident/sign-in", label: "Sign in" },
+  { href: "/app/tickets", label: "Request history" },
+  { href: "/sign-in", label: "Sign in" },
 ] as const;
 
 /** A small, role-neutral frame so each workspace has the same route boundary. */
@@ -24,7 +25,7 @@ export function PageFrame({ children, description, eyebrow, title }: PageFramePr
             className="font-mono text-xs font-medium tracking-[0.16em] text-primary uppercase outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
             href="/"
           >
-            Resident OS
+            Tento / Resident OS
           </Link>
           <p className="mt-3 font-mono text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
             {eyebrow}

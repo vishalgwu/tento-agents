@@ -25,9 +25,6 @@ The API can save reports without a model key. The worker needs the model key and
 
 - OPENAI_API_KEY and OPENAI_MODEL: the primary model provider, also used by verified-source importing for embeddings. The production query path uses PostgreSQL lexical retrieval.
 - TEST_DATABASE_URL: only for integration tests; must point at a disposable database whose name ends _test.
-- VENDOR_LINK_SIGNING_SECRET: only if you enable existing signed vendor-link pages. Vendor operations are outside this MVP.
-- R2 settings: only for future media uploads. The current report is text-only.
-- GOOGLE_API_KEY and SUPABASE_SERVICE_ROLE_KEY are not required by the current runtime.
 - Vercel workspace and local CLI account access is needed to create hosting projects. It is separate from application model keys.
 
 ## Supabase membership setup

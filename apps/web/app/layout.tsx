@@ -6,10 +6,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Resident OS",
-    template: "%s | Resident OS",
+    default: "Tento Resident OS",
+    template: "%s | Tento Resident OS",
   },
-  description: "Evidence-backed maintenance operations for apartment communities.",
+  description: "One application for residents, maintenance teams, property owners and technical administrators, with an evidence-backed GenAI maintenance assistant.",
 };
 
 export const viewport: Viewport = {

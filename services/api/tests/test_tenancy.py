@@ -29,6 +29,7 @@ from api.main import create_app
 from api.middleware.errors import install_problem_handlers
 from api.routers.stream import router as stream_router
 from api.routers.processing import router as processing_router
+from api.routers.identity import router as identity_router
 from api.routers.tenancies import router as tenancies_router
 from api.routers.tickets import _GET_TICKET, _LIST_TICKETS, router as tickets_router
 
@@ -52,6 +53,12 @@ class _RouteIsolationCase:
 
 
 _ROUTE_ISOLATION_CASES = (
+    _RouteIsolationCase(
+        method="GET",
+        route_template="/v1/me",
+        request_path="/v1/me",
+        assertion="identity",
+    ),
     _RouteIsolationCase(
         method="GET",
         route_template="/v1/tickets",
@@ -255,6 +262,7 @@ def ticket_app(ticket_session: _FakeTicketSession) -> FastAPI:
     app.include_router(stream_router)
     app.include_router(processing_router)
     app.include_router(tenancies_router)
+    app.include_router(identity_router)
 
     async def request_session() -> AsyncSession:
         return cast(AsyncSession, ticket_session)
@@ -312,7 +320,16 @@ async def test_org_a_cannot_obtain_org_b_data_from_any_registered_route(
             json=case.json_body,
         )
 
-    if case.assertion == "collection":
+    if case.assertion == "identity":
+        assert response.status_code == 200
+        assert response.json() == {
+            "org_id": str(ORG_A_ID),
+            "person_id": str(ORG_A_PERSON_ID),
+            "role": "property_manager",
+        }
+        assert ticket_session.executions == []
+        return
+    elif case.assertion == "collection":
         assert response.status_code == 200
         returned_ids = {item["id"] for item in response.json()["items"]}
         assert str(ORG_B_TICKET) not in returned_ids

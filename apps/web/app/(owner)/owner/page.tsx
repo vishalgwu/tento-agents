@@ -1,2 +1,3 @@
-import { redirect } from "next/navigation";
-export default function OwnerPage() { redirect("/app"); }
+import { WorkspaceBoard } from "@/components/workspace-board";
+export const dynamic = "force-dynamic";
+export default function OwnerPage() { return <WorkspaceBoard workspace="owner" />; }

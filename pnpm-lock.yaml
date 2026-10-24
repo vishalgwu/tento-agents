@@ -27,9 +27,6 @@ importers:
       '@resident-os/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
-      '@resident-os/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -82,25 +79,6 @@ importers:
       openapi-typescript:
         specifier: ^7.10.1
         version: 7.13.0(typescript@5.9.3)
-
-  packages/ui:
-    dependencies:
-      class-variance-authority:
-        specifier: ^0.7.1
-        version: 0.7.1
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
-      react:
-        specifier: ^19.0.0
-        version: 19.3.0
-      tailwind-merge:
-        specifier: ^3.3.0
-        version: 3.6.0
-    devDependencies:
-      '@types/react':
-        specifier: ^19.1.8
-        version: 19.3.0
 
 packages:
 

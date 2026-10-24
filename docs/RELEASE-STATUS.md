@@ -1,3 +1,17 @@
+# Main application update - 24 October 2026
+
+The main page now presents Tento Resident OS, its GenAI maintenance purpose and four workspace sign-in entries. Developer means technical administrator. /sign-in shares one credential flow; /v1/me supplies the API-verified organization, person and role. Neither client fields nor a selected login card grants a role. Server-rendered workspace pages verify access again before loading records.
+
+Maintenance, owner and technical administrator pages now display real authorized request data rather than redirecting to the resident form. These are read-only views. Admin adds service readiness and recorded run errors; no keys are shown. Resident reporting and the existing autonomous pipeline remain intact.
+
+Removed 11 unused code/package files: the vendor page/signing helper, unused badge/separator, and the unused shared decorative UI package. Removed dead credential suggestions and replaced the obsolete deployment plan. Existing data, migrations and the user's local login-test changes were preserved.
+
+Verification: 339 Python tests passed, 5 disposable-database tests skipped locally. Ruff, TypeScript and production web build passed. Isolated HTTP tests passed for all four role workspaces, resident-to-owner/admin denial, forged-role rejection and the existing ticket/worker flow. Live role-positive acceptance for owner/maintenance/admin still requires accounts already provisioned with those roles; no account was automatically promoted.
+
+The earlier production release evidence below is historical and covers the connected maintenance pipeline. The current deployment uses the same Vercel project URLs.
+
+---
+
 # Release status - 24 October 2026
 
 ## Verified this release

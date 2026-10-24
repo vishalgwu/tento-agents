@@ -1,5 +1,9 @@
 # Runtime architecture
 
+## Workspace access
+
+The public root explains the platform and links to four workspace sign-ins. Next.js exchanges credentials with Supabase and calls JWT-authenticated GET /v1/me before issuing a session cookie. Existing trusted claims determine the workspace; client role selection never changes permissions. Server workspace guards verify identity again. Maintenance and owner views read the existing tenant-scoped ticket API; technical administrator adds public readiness checks and saved run outcomes. These views provide no assignment, finance or user-management mutations.
+
 ## Request and execution flow
 
 Browser -> Next.js server proxies on Vercel -> JWT-authenticated FastAPI on Vercel -> Postgres ticket and queued agent_run. Redis supplies API rate limits. Mutation idempotency persists the exact receipt in the same transaction as the ticket/job. Property IDs come from the resident's current tenancy, never arbitrary client-provided location claims.

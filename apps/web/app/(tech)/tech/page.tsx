@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation";
-export default function TechnicianPage() { redirect("/app"); }
+export default function TechnicianPage() { redirect("/maintenance"); }

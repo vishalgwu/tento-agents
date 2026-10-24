@@ -1,21 +1,21 @@
-# Delivery status
+# Product delivery map
 
-## Implemented
+The main application is Tento Resident OS: one project overview and a shared entry point for four verified workspaces. See RELEASE-STATUS.md for deployment evidence and PRODUCT.md for the capability boundary.
 
-- Connected sign-in, authorised residence selection, saved reports, history and status polling.
-- Atomic ticket/job/idempotency receipts and tenant/reporter access boundaries.
-- Durable leased worker with bounded retries and fencing.
-- Full autonomous graph with real eligible source queries and saved traces.
-- Verified-source import and immutable policy configuration.
-- Internal work-order creation for validated in-house plans.
-- Railway API/worker configuration, Supabase token hook, migration runner and restricted role script.
+## Current application
 
-## Local verification
+- Home: product purpose, live maintenance workflow and workspace sign-in choices.
+- Resident: authorized residence selection, saved reports, history and agent results.
+- Maintenance: read-only organization request queue and saved assessments.
+- Owner: read-only maintenance overview over authorized organization records.
+- Technical administrator: organization-scoped requests, agent outcomes and service readiness.
 
-Ruff, Python/TypeScript checks, unit tests, real PostgreSQL integration and HTTP proxy contracts must pass before release. Database tests use isolated data; model tests use scripted responses. Record the exact latest commands/results in the release handoff.
+The API verifies account identity before issuing a workspace session. A workspace selector never grants roles. Existing tenant RLS remains authoritative. There is no self-service registration or role promotion.
 
-## Final configuration and live acceptance
+## Remaining product work
 
-Add the keys and trusted membership described in KEYS-AND-SETUP.md. Supply actual property data, in-house capabilities and verified source versions. Create Railway and Vercel projects, deploy a tested commit, then verify real sign-in, model calls and saved internal work orders over HTTPS. These steps cannot be claimed complete before service configuration exists.
+Approved policy evidence is required before policy-backed work orders can be accepted. Repair assignment/status editing, owner finance, portfolio management, user provisioning, media, vendor scheduling and outbound notifications are not implemented. Add these only through explicit product scope, real APIs and permission checks; do not create pretend controls or demo dashboards.
 
-Media, vendor integrations, external notifications, payments and extra dashboards are outside the chosen MVP.
+## Removed misleading scaffolding
+
+Unused vendor-link page and signing helper; unused shared decorative UI package; unused badge/separator components; redirects that disguised owner and maintenance pages as resident pages; obsolete vendor/media credential suggestions. Database history, applied migrations and functioning AI/safety/retrieval logic remain intact.
