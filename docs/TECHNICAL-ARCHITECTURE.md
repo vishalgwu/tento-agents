@@ -2,9 +2,9 @@
 
 ## Request and execution flow
 
-Browser -> Next.js server proxies on Vercel -> JWT-authenticated FastAPI on Railway -> Postgres ticket and queued agent_run. Redis supplies API rate limits. Mutation idempotency persists the exact receipt in the same transaction as the ticket/job. Property IDs come from the resident's current tenancy, never arbitrary client-provided location claims.
+Browser -> Next.js server proxies on Vercel -> JWT-authenticated FastAPI on Vercel -> Postgres ticket and queued agent_run. Redis supplies API rate limits. Mutation idempotency persists the exact receipt in the same transaction as the ticket/job. Property IDs come from the resident's current tenancy, never arbitrary client-provided location claims.
 
-A separate Railway worker serves WORKER_ORG_ID. It claims jobs using FOR UPDATE SKIP LOCKED, a 300-second lease and a fencing UUID. Execution is capped at 180 seconds. Process loss permits lease recovery; failed attempts are limited to three. Trace, result and internal work-order writes commit only if the worker still owns the lease. The graph is side-effect-free outside the database, so a recovered attempt may rerun its model calls and incur another provider charge. It restarts the bounded graph; it does not claim mid-node checkpoint recovery.
+Authenticated Vercel requests process individual authorized runs. An optional continuous container worker and daily Vercel recovery endpoint serve WORKER_ORG_ID. It claims jobs using FOR UPDATE SKIP LOCKED, a 300-second lease and a fencing UUID. Execution is capped at 180 seconds. Process loss permits lease recovery; failed attempts are limited to three. Trace, result and internal work-order writes commit only if the worker still owns the lease. The graph is side-effect-free outside the database, so a recovered attempt may rerun its model calls and incur another provider charge. It restarts the bounded graph; it does not claim mid-node checkpoint recovery.
 
 ## Agent composition
 
@@ -20,6 +20,6 @@ Provider keys stay on Python. Next.js uses HttpOnly, Secure-in-production sessio
 
 ## Operational boundaries
 
-The API does not run background tasks in a web-function lifetime. Its direct compatibility endpoint /v1/agent/run still performs bounded non-persisted safety/intake analysis. The resident UI uses persisted /v1/tickets and run/status reads. Internal work orders are database records, not vendor dispatch receipts. No external operational transport is enabled.
+The API awaits one bounded worker execution per processing request; Next.js after() awaits that request after returning the saved receipt. Database leases permit recovery after interruption. Its direct compatibility endpoint /v1/agent/run still performs bounded non-persisted safety/intake analysis. The resident UI uses persisted /v1/tickets and run/status reads. Internal work orders are database records, not vendor dispatch receipts. No external operational transport is enabled.
 
-Use the explicit migration runner and database backups. Runtime roles cannot apply schema changes. Apply Railway configs from the repository root and Vercel from apps/web. See DEPLOYMENT.md and KEYS-AND-SETUP.md.
+Use the explicit migration runner and database backups. Runtime roles cannot apply schema changes. Use scripts/deploy_vercel.py to stage and deploy the two Vercel projects. See DEPLOYMENT.md and KEYS-AND-SETUP.md.

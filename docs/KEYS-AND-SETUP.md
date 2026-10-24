@@ -6,28 +6,29 @@ No paid model key is needed to run automated tests. Until a provider and live po
 
 | Variable | Where | What to supply |
 | --- | --- | --- |
-| DATABASE_URL | Railway API | Restricted resident_api PostgreSQL connection, using postgresql+asyncpg:// |
-| DATABASE_URL | Railway worker/import job | Restricted resident_worker connection; same database, different permissions |
-| REDIS_URL | Railway API | Railway Redis connection |
+| DATABASE_URL | Vercel API | Restricted resident_api PostgreSQL connection, using postgresql+asyncpg:// |
+| WORKER_DATABASE_URL | Worker/import job | Restricted resident_worker connection; same database, different permissions |
+| REDIS_URL | Vercel API | Upstash TLS Redis connection (rediss://) |
 | SUPABASE_URL | API + Vercel | Your Supabase project HTTPS URL |
 | SUPABASE_ANON_KEY | Vercel server only | Public anonymous/publishable project key accepted by Supabase Auth |
 | SUPABASE_JWT_AUDIENCE | API | Usually authenticated; match your issued token audience |
-| ANTHROPIC_API_KEY | Worker; API if using direct analysis | Your provider API key |
-| ANTHROPIC_MODEL | Worker; API if using direct analysis | Exact model ID enabled for your account |
-| WORKER_ORG_ID | Railway worker | The organisation UUID this worker serves; this is an ID, not a secret |
-| API_BASE_URL | Vercel server | Public HTTPS origin of the Railway API |
+| OPENAI_API_KEY / OPENAI_MODEL | Vercel API and worker | Existing OpenAI credentials and exact model ID; currently gpt-4.1-mini |
+| ANTHROPIC_API_KEY (optional fallback) | Worker; API if using direct analysis | Your provider API key |
+| ANTHROPIC_MODEL (optional fallback) | Worker; API if using direct analysis | Exact model ID enabled for your account |
+| WORKER_ORG_ID | Optional container worker / daily recovery | The organisation UUID this worker serves; this is an ID, not a secret |
+| API_BASE_URL | Vercel server | Public HTTPS origin of the Vercel API |
 | MIGRATION_DATABASE_URL | Explicit migration job only | Administrator PostgreSQL connection; never the browser or normal API role |
 
 The API can save reports without a model key. The worker needs the model key and verified policy sources to produce validated plans and internal work orders. One worker serves one configured organisation; deploy another tenant-scoped worker for another organisation.
 
 ## Needed only for source importing or optional features
 
-- OPENAI_API_KEY: only for the verified-source import command, which creates embeddings. The production query path uses PostgreSQL lexical retrieval.
+- OPENAI_API_KEY and OPENAI_MODEL: the primary model provider, also used by verified-source importing for embeddings. The production query path uses PostgreSQL lexical retrieval.
 - TEST_DATABASE_URL: only for integration tests; must point at a disposable database whose name ends _test.
 - VENDOR_LINK_SIGNING_SECRET: only if you enable existing signed vendor-link pages. Vendor operations are outside this MVP.
 - R2 settings: only for future media uploads. The current report is text-only.
 - GOOGLE_API_KEY and SUPABASE_SERVICE_ROLE_KEY are not required by the current runtime.
-- Vercel/Railway account access is needed to create hosting projects. It is separate from application model keys.
+- Vercel workspace and local CLI account access is needed to create hosting projects. It is separate from application model keys.
 
 ## Supabase membership setup
 
@@ -56,4 +57,4 @@ python -m brain.ingest --org-id YOUR_ORG_UUID --source verified-policy.md --clai
 
 The policy JSON is immutable source configuration: each entry has policy_key, outcome, source_start, source_end and source_text. The exact source_text must equal the character slice in the Markdown. Publish a new source version when the policy changes. These values supply deterministic policy precedence; models cannot invent canonical rules. Configure properties.in_house_trades with the actual in-house capabilities, such as an array containing plumbing. Missing sources or capability cause safe abstention.
 
-See docs/DEPLOYMENT.md for the complete Railway and Vercel steps. Keep all values in ignored local environment files or host secret settings. Never paste secrets into chat or commit them.
+See docs/DEPLOYMENT.md for the current Vercel deployment steps. Keep all values in ignored local environment files or host secret settings. Never paste secrets into chat or commit them.

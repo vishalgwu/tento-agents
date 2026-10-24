@@ -29,6 +29,10 @@ from anthropic import (
     AsyncAnthropic,
 )
 from anthropic.types import TextBlock
+
+import openai
+from openai import AsyncOpenAI
+
 from jinja2 import StrictUndefined, meta
 from jinja2.exceptions import TemplateError
 from jinja2.sandbox import SandboxedEnvironment
@@ -407,6 +411,102 @@ class AnthropicProvider:
                 getattr(usage, "cache_read_input_tokens", 0)
                 + getattr(usage, "cache_creation_input_tokens", 0)
             ),
+        )
+
+
+class OpenAIProvider:
+    """OpenAI adapter for the existing audited model gateway."""
+
+    name: Final[str] = "openai"
+
+    def __init__(self, client: AsyncOpenAI) -> None:
+        self._client = client
+
+    async def invoke(
+        self,
+        *,
+        route: ModelRoute,
+        prompt: RenderedPrompt,
+    ) -> ProviderCompletion:
+        if route.provider != self.name:
+            raise ProviderCallError(
+                f"OpenAIProvider cannot serve provider {route.provider!r}",
+                retryable=False,
+            )
+
+        if not prompt.dynamic_suffix.strip():
+            raise ProviderCallError(
+                "a model prompt requires dynamic request content",
+                retryable=False,
+            )
+
+        try:
+            response = await self._client.chat.completions.create(
+                model=route.model_name,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": prompt.static_prefix,
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt.dynamic_suffix,
+                    },
+                ],
+                response_format={"type": "json_object"},
+                max_completion_tokens=route.max_output_tokens,
+            )
+
+        except (
+            openai.APITimeoutError,
+            openai.APIConnectionError,
+        ) as exc:
+            raise ProviderCallError(
+                str(exc),
+                retryable=True,
+            ) from exc
+
+        except openai.APIStatusError as exc:
+            retryable = exc.status_code in {408, 409, 429} or exc.status_code >= 500
+
+            raise ProviderCallError(
+                str(exc),
+                retryable=retryable,
+            ) from exc
+
+        if not response.choices:
+            raise ProviderCallError(
+                "OpenAI response did not contain a completion", retryable=False
+            )
+        choice = response.choices[0]
+        if choice.finish_reason != "stop" or choice.message.refusal:
+            raise ProviderCallError(
+                "OpenAI response was refused or incomplete", retryable=False
+            )
+        message = choice.message
+        output_text = message.content or ""
+
+        if not output_text.strip():
+            raise ProviderCallError(
+                "OpenAI response did not contain text content",
+                retryable=False,
+            )
+
+        usage = response.usage
+
+        input_tokens = usage.prompt_tokens if usage else 0
+        output_tokens = usage.completion_tokens if usage else 0
+
+        cached_tokens = 0
+
+        if usage and usage.prompt_tokens_details:
+            cached_tokens = usage.prompt_tokens_details.cached_tokens or 0
+
+        return ProviderCompletion(
+            output_text=output_text,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cached_input_tokens=cached_tokens,
         )
 
 

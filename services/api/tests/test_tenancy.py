@@ -28,6 +28,7 @@ from api.deps.tenancy import (
 from api.main import create_app
 from api.middleware.errors import install_problem_handlers
 from api.routers.stream import router as stream_router
+from api.routers.processing import router as processing_router
 from api.routers.tenancies import router as tenancies_router
 from api.routers.tickets import _GET_TICKET, _LIST_TICKETS, router as tickets_router
 
@@ -87,6 +88,12 @@ _ROUTE_ISOLATION_CASES = (
         request_path="/v1/tickets",
         assertion="forbidden-submit",
         json_body={"description": "Leaky tap"},
+    ),
+    _RouteIsolationCase(
+        method="POST",
+        route_template="/v1/runs/{run_id}/process",
+        request_path=f"/v1/runs/{ORG_B_TICKET}/process",
+        assertion="foreign-detail",
     ),
 )
 
@@ -246,6 +253,7 @@ def ticket_app(ticket_session: _FakeTicketSession) -> FastAPI:
     install_problem_handlers(app)
     app.include_router(tickets_router)
     app.include_router(stream_router)
+    app.include_router(processing_router)
     app.include_router(tenancies_router)
 
     async def request_session() -> AsyncSession:

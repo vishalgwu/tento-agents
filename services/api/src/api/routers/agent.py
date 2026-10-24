@@ -9,6 +9,8 @@ from typing import Annotated, Literal, cast
 from uuid import UUID, uuid4, uuid5, NAMESPACE_URL
 
 from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
+from contextlib import AsyncExitStack
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -27,6 +29,7 @@ from brain.gateway.client import (
     GatewayClient,
     LlmCallRecord,
     ModelProvider,
+    OpenAIProvider,
     ModelRoute,
     ModelTier,
     PromptTemplate,
@@ -137,17 +140,33 @@ async def run_agent(
             status="emergency",
             summary="This report may describe an emergency. Move to safety and contact local emergency services or your property's emergency maintenance number immediately. This service has not contacted anyone.",
         )
-    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    model = os.environ.get("ANTHROPIC_MODEL", "").strip()
-    if not key or not model:
-        raise HTTPException(503, "Agent provider is not configured")
-    route = ModelRoute(provider="anthropic", model_name=model, model_version=model)
-    async with AsyncAnthropic(api_key=key, max_retries=0) as client:
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    openai_model = os.environ.get("OPENAI_MODEL", "").strip()
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    anthropic_model = os.environ.get("ANTHROPIC_MODEL", "").strip()
+    async with AsyncExitStack() as clients:
+        if openai_key and openai_model:
+            openai_client = await clients.enter_async_context(
+                AsyncOpenAI(api_key=openai_key, max_retries=0)
+            )
+            provider_name, model = "openai", openai_model
+            provider = cast(ModelProvider, OpenAIProvider(openai_client))
+        elif anthropic_key and anthropic_model:
+            anthropic_client = await clients.enter_async_context(
+                AsyncAnthropic(api_key=anthropic_key, max_retries=0)
+            )
+            provider_name, model = "anthropic", anthropic_model
+            provider = cast(ModelProvider, AnthropicProvider(anthropic_client))
+        else:
+            raise HTTPException(503, "Agent provider is not configured")
+        route = ModelRoute(
+            provider=provider_name, model_name=model, model_version=model
+        )
         gateway = GatewayClient(
             context=CallContext(
                 org_id=scope.org_id, agent_run_id=run_id, agent_step_id=uuid4()
             ),
-            providers={"anthropic": cast(ModelProvider, AnthropicProvider(client))},
+            providers={provider_name: provider},
             tier_routes={tier: route for tier in ModelTier},
             audit=LoggingCallAudit(),
             timeout_seconds=15,
@@ -159,3 +178,5 @@ async def run_agent(
                 )
         except TimeoutError as error:
             raise HTTPException(504, "Agent execution deadline exceeded") from error
+
+    raise HTTPException(503, "Agent execution could not complete")

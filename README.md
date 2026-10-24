@@ -5,7 +5,7 @@ The maintenance MVP in tento-agents lets a resident sign in, select an authorise
 ## Start here
 
 - [Keys and account setup](docs/KEYS-AND-SETUP.md): add credentials at the end; automated tests need no paid model keys.
-- [Local startup and Railway/Vercel deployment](docs/DEPLOYMENT.md).
+- [Local startup and Vercel deployment](docs/DEPLOYMENT.md).
 - [Product scope](docs/PRODUCT.md) and [architecture](docs/TECHNICAL-ARCHITECTURE.md).
 
 ## Local workflow
@@ -19,7 +19,7 @@ $env:PYTHONPATH="services/api/src;services/brain/src"
 python -m uvicorn api.main:app --reload --port 8000
 ```
 
-In a second shell with DATABASE_URL for the worker role and WORKER_ORG_ID set:
+In a second shell with WORKER_DATABASE_URL for the worker role and WORKER_ORG_ID set:
 
 ```powershell
 $env:PYTHONPATH="services/api/src;services/brain/src"
@@ -46,7 +46,7 @@ Set TEST_DATABASE_URL to a migrated disposable *_test database to include the re
 
 ## Hosting
 
-Vercel hosts apps/web. Railway hosts two services from the repository root: API and worker. Both share services/api/Dockerfile; use infra/railway/api.json and infra/railway/worker.json respectively as their config paths. Apply migrations as an explicit administrator job, not at API startup. Railway hosts Postgres/Redis or connects equivalent managed services.
+Vercel hosts the Next.js frontend and a separate FastAPI project. The frontend schedules authenticated, bounded processing after saving tickets; PostgreSQL retains the queue, leases and results. A protected daily cron provides limited recovery for the configured organization. See [release status](docs/RELEASE-STATUS.md) for verified connections and account blockers, and [deployment](docs/DEPLOYMENT.md) for automated release commands. The existing container worker remains available for continuous processing.
 
 The runtime image omits optional cross-encoder/NLP model packages; deterministic PII regex protection remains enabled. Source fixtures stay outside production indexes. Media uploads, vendor scheduling, external notifications, payments and extra dashboards are outside this internal-work-order MVP.
 

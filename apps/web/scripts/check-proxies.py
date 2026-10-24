@@ -14,6 +14,7 @@ import socket
 import subprocess
 import threading
 import time
+from uuid import UUID
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPCookieProcessor, Request, build_opener
@@ -34,6 +35,9 @@ def free_port() -> int:
 
 class Upstream(BaseHTTPRequestHandler):
     keys: list[str] = []
+    dispatch_keys: list[str] = []
+    run_status = "completed"
+    dispatch_status = 503
 
     def log_message(self, *_args: object) -> None:
         pass
@@ -52,6 +56,12 @@ class Upstream(BaseHTTPRequestHandler):
             assert body == {"email": "resident@example.test", "password": "test-password"}
             return self.send_json({"access_token": TOKEN, "expires_in": 3600})
         assert self.headers.get("Authorization") == f"Bearer {TOKEN}"
+        if self.path == f"/v1/runs/{RUN}/process":
+            assert body == {}
+            key = self.headers.get("Idempotency-Key")
+            assert key is not None and UUID(key).version == 4
+            self.dispatch_keys.append(key)
+            return self.send_json({"run_id": RUN, "processed": False}, self.dispatch_status)
         assert self.path == "/v1/tickets"
         assert body == {"description": "Kitchen tap is dripping", "tenancy_id": TENANCY, "access_permission": False, "pets_present": True}
         key = self.headers.get("Idempotency-Key")
@@ -63,7 +73,7 @@ class Upstream(BaseHTTPRequestHandler):
         assert self.headers.get("Authorization") == f"Bearer {TOKEN}"
         if self.path == "/v1/tenancies":
             return self.send_json({"items": [{"id": TENANCY, "property_name": "Test property", "unit_name": "101"}]})
-        ticket = {"id": TICKET, "ticket_number": 42, "status": "diagnosed", "priority": "p2", "category": "plumbing", "symptom_summary": "Dripping tap", "submitted_at": "2026-10-23T00:00:00Z", "latest_run": {"run_id": RUN, "status": "completed", "result": {"summary": "Plumbing assessment complete", "facts": {"category": "plumbing"}}, "error_code": None}}
+        ticket = {"id": TICKET, "ticket_number": 42, "status": "diagnosed", "priority": "p2", "category": "plumbing", "symptom_summary": "Dripping tap", "submitted_at": "2026-10-23T00:00:00Z", "latest_run": {"run_id": RUN, "status": self.run_status, "result": {"summary": "Plumbing assessment complete", "facts": {"category": "plumbing"}}, "error_code": None}}
         if self.path.startswith("/v1/tickets?"):
             return self.send_json({"items": [ticket], "next_cursor": None})
         assert self.path == f"/v1/tickets/{TICKET}"
@@ -120,14 +130,28 @@ def main() -> None:
         first = call("/api/tickets", 201, payload, "POST", key=KEY)
         second = call("/api/tickets", 201, payload, "POST", key=KEY)
         assert first == second and Upstream.keys == [KEY, KEY]
+        deadline = time.monotonic() + 10
+        while len(Upstream.dispatch_keys) < 2 and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert len(Upstream.dispatch_keys) == 2, "Submission must schedule a worker call even when runner fails"
+        assert len(set(Upstream.dispatch_keys)) == 2, "Every kick needs a fresh idempotency key"
+        Upstream.dispatch_status = 200
+        Upstream.run_status = "running"
+        call(f"/api/tickets/{TICKET}", 200)
+        deadline = time.monotonic() + 10
+        while len(Upstream.dispatch_keys) < 3 and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert len(Upstream.dispatch_keys) == 3, "Pending detail must trigger lease recovery"
+        Upstream.run_status = "completed"
         history = call("/api/tickets", 200)
         assert isinstance(history, dict) and history["items"][0]["ticket_number"] == 42
         detail = call(f"/api/tickets/{TICKET}", 200)
         assert isinstance(detail, dict) and detail["latest_run"]["result"]["summary"] == "Plumbing assessment complete"
+        assert len(Upstream.dispatch_keys) == 3, "Terminal detail must not dispatch work"
         call("/api/tickets", 400, {**payload, "access_permission": "yes"}, "POST", key=KEY)
         call("/api/session", 200, method="DELETE")
         call("/api/tickets", 401)
-        print("PASS: sign-in cookie, permitted residences, persistent submission proxy, stable retry key, history/detail result, validation, cross-origin denial, sign-out")
+        print("PASS: sign-in cookie, permitted residences, persistent submission proxy, stable retry key, history/detail result, validation, cross-origin denial, worker dispatch/recovery/failure isolation, sign-out")
     finally:
         process.terminate()
         try:

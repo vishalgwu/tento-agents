@@ -27,3 +27,5 @@ node_modules/
 # Local verification artifacts
 tmp/
 .mypy-*/
+.vercel/
+.pytest-provider-*/

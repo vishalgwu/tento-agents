@@ -91,6 +91,7 @@ async def test_emergency_runs_real_graph_without_provider_or_outbound_side_effec
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     session = Session(report="I smell gas in my apartment.")
     result = await execute_maintenance(
         session=cast(AsyncSession, session),
@@ -110,6 +111,7 @@ async def test_missing_provider_abstains_and_persists_terminal_steps(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     session = Session()
     org = uuid4()
     person = uuid4()

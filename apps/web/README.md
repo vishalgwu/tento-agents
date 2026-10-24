@@ -32,7 +32,11 @@ Mutation routes require a matching Origin header. Upstream requests disable redi
 
 Set the project Root Directory to `apps/web`, enable access to workspace files outside that directory, and use the included `vercel.json`. Set `API_BASE_URL` to the HTTPS origin of the separately hosted Python API, plus `SUPABASE_URL` and `SUPABASE_ANON_KEY`. No backend secrets belong in `NEXT_PUBLIC_*` variables.
 
-Ticket submission only persists and enqueues work, with a 15-second upstream deadline and 30-second function duration. Assessment runs in the separate durable Python worker. Polling is authenticated, uncached, and stops after a terminal run state or a request failure. Run the worker alongside the API host; a Vercel function does not execute the background workflow.
+Ticket submission persists and enqueues work with a 15-second API deadline. After the receipt is returned, Next.js `after()` calls the authenticated Python `POST /v1/runs/{run_id}/process` endpoint. This call has a 240-second deadline; ticket submission and detail functions have a 300-second maximum duration. The Python endpoint bounds execution to 180 seconds and uses the existing database lease to prevent duplicate execution.
+
+Authenticated detail reads schedule the same worker call while a run is queued or running, allowing recovery when the original dispatch was interrupted. Terminal runs do not dispatch work. Dispatch failures never replace a successfully saved response; later detail reads can retry. Polling remains uncached and stops after a terminal run state or request failure.
+
+Deploy the Python API as a separate Vercel project with its runner duration configured, or keep a dedicated worker on the Python host. Request-driven dispatch resumes while users view pending requests; a continuous external worker or scheduler remains useful for unattended recovery.
 
 ## Verification
 
@@ -42,6 +46,6 @@ Typecheck and production build validate all routes. To check the web HTTP bounda
 python apps/web/scripts/check-proxies.py
 ```
 
-This starts and stops a temporary Next.js dev server and verifies cookies, authorized residence and ticket contracts, unchanged retry keys, validation, and cross-origin denial. It does not connect to live Supabase or Postgres.
+This starts and stops a temporary Next.js dev server and verifies cookies, authorized residence and ticket contracts, unchanged retry keys, validation, cross-origin denial, post-response worker dispatch, pending-run recovery, terminal-run suppression, and failure isolation. It does not connect to live Supabase or Postgres.
 
  Verify the resident workflow with a provisioned account and active tenancy: sign in, submit a report, confirm it appears in history, observe queued/running transition, and refresh the detail after completion. A second resident must not be able to read the first resident's request ID. Provider and database integrations require configured deployment credentials; a local UI build alone does not verify those external services.

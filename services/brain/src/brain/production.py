@@ -16,6 +16,7 @@ from typing import Any, cast
 from uuid import UUID, uuid5
 
 from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,6 +47,7 @@ from brain.gateway.client import (
     ModelProvider,
     ModelRoute,
     ModelTier,
+    OpenAIProvider,
 )
 from brain.graph.builder import TicketStateCheckpointSerializer, build_maintenance_graph
 from brain.graph.nodes import AuditEvidence, DispatchSnapshot, GraphDependencies
@@ -507,37 +509,107 @@ async def execute_maintenance(
     inputs = PostgresWorkflowInputs(
         session, org_id=org_id, person_id=person_id, ticket_id=ticket_id, run_id=run_id
     )
-    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    model = os.environ.get("ANTHROPIC_MODEL", "").strip()
-    if key and model:
-        async with AsyncAnthropic(api_key=key, max_retries=0) as client:
-            gateways = {}
-            route = ModelRoute(
-                provider="anthropic", model_name=model, model_version=model
+
+    # Select the configured LLM provider.
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    openai_model = os.environ.get("OPENAI_MODEL", "").strip()
+
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    anthropic_model = os.environ.get("ANTHROPIC_MODEL", "").strip()
+
+    if openai_key and openai_model:
+        # Prefer OpenAI when configured.
+        async with AsyncOpenAI(
+            api_key=openai_key,
+            max_retries=0,
+        ) as client:
+            provider_name = "openai"
+            provider = cast(
+                ModelProvider,
+                OpenAIProvider(client),
             )
-            for stage in ("intake", "diagnosis", "dispatch", "policy_audit"):
+            route = ModelRoute(
+                provider=provider_name,
+                model_name=openai_model,
+                model_version=openai_model,
+            )
+
+            gateways = {}
+
+            for stage in (
+                "intake",
+                "diagnosis",
+                "dispatch",
+                "policy_audit",
+            ):
                 gateways[stage] = GatewayClient(
                     context=CallContext(
                         org_id=org_id,
                         agent_run_id=run_id,
                         agent_step_id=uuid5(run_id, stage),
                     ),
-                    providers={
-                        "anthropic": cast(ModelProvider, AnthropicProvider(client))
-                    },
+                    providers={provider_name: provider},
                     tier_routes={tier: route for tier in ModelTier},
                     audit=AsyncpgLlmCallAudit(SqlAlchemyConnection(session)),
                     timeout_seconds=15,
                 )
+
             state = await _run_graph(inputs, gateways)
+
+    elif anthropic_key and anthropic_model:
+        # Preserve Anthropic as an optional alternative.
+        async with AsyncAnthropic(
+            api_key=anthropic_key,
+            max_retries=0,
+        ) as anthropic_client:
+            provider_name = "anthropic"
+            provider = cast(
+                ModelProvider,
+                AnthropicProvider(anthropic_client),
+            )
+            route = ModelRoute(
+                provider=provider_name,
+                model_name=anthropic_model,
+                model_version=anthropic_model,
+            )
+
+            gateways = {}
+
+            for stage in (
+                "intake",
+                "diagnosis",
+                "dispatch",
+                "policy_audit",
+            ):
+                gateways[stage] = GatewayClient(
+                    context=CallContext(
+                        org_id=org_id,
+                        agent_run_id=run_id,
+                        agent_step_id=uuid5(run_id, stage),
+                    ),
+                    providers={provider_name: provider},
+                    tier_routes={tier: route for tier in ModelTier},
+                    audit=AsyncpgLlmCallAudit(SqlAlchemyConnection(session)),
+                    timeout_seconds=15,
+                )
+
+            state = await _run_graph(inputs, gateways)
+
     else:
+        # Fail safely when neither provider is configured.
         state = await _run_graph(
             inputs,
             {
                 stage: MissingProviderGateway()
-                for stage in ("intake", "diagnosis", "dispatch", "policy_audit")
+                for stage in (
+                    "intake",
+                    "diagnosis",
+                    "dispatch",
+                    "policy_audit",
+                )
             },
         )
+
     await persist_graph_result(session, state, inputs.source_rows)
     emergency = state.safety is not None and state.safety.p0
     completed = state.decision is not None and state.decision.mode is DecisionMode.AUTO

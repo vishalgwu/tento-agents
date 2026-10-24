@@ -68,6 +68,7 @@ async def test_route_rejects_missing_auth_scope_and_provider_configuration(
         assert denied.status_code != 200
         app.dependency_overrides[get_request_tenant_scope] = lambda: _SCOPE
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         emergency = await client.post(
             "/v1/agent/run", json={"description": "I smell gas in the apartment."}
         )

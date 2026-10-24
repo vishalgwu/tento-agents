@@ -112,7 +112,7 @@ export function ReportWizard() {
               <Label htmlFor="residence">Residence</Label>
               <select id="residence" required value={tenancy} disabled={busy || loading} onChange={(event) => setTenancy(event.target.value)} className="rounded-lg border bg-background p-3">
                 <option value="">{loading ? "Loading your residence..." : "Select your residence"}</option>
-                {tenancies.map((item) => <option key={item.id} value={item.id}>{item.property_name} Ã‚Â· Unit {item.unit_name}</option>)}
+                {tenancies.map((item) => <option key={item.id} value={item.id}>{item.property_name} - Unit {item.unit_name}</option>)}
               </select>
               <Label htmlFor="issue-description">What needs attention?</Label>
               <textarea id="issue-description" className="min-h-48 w-full rounded-lg border p-3 focus-visible:outline-2 focus-visible:outline-ring" required maxLength={20000} value={description} disabled={busy} onChange={(event) => setDescription(event.target.value)} placeholder="Describe what you see, hear, or smell, and when it started." />

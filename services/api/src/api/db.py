@@ -15,10 +15,12 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+import os
 from typing import Final, Literal
 from uuid import UUID
 
 from sqlalchemy import text
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -77,6 +79,11 @@ def create_database_engine(database_url: str) -> AsyncEngine:
         echo=False,
         pool_pre_ping=True,
         pool_recycle=1_800,
+        **(
+            {"poolclass": NullPool}
+            if os.environ.get("DATABASE_POOL_MODE") == "null"
+            else {}
+        ),
     )
 
 

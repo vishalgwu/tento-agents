@@ -36,12 +36,14 @@ _EXHAUSTED = text("""
     SET status = 'failed', completed_at = now(), lease_id = NULL,
         lease_expires_at = NULL, last_error_code = 'attempts_exhausted'
     WHERE org_id = CAST(:org_id AS uuid) AND attempt_count >= :max_attempts
+      AND (CAST(:requested_run_id AS uuid) IS NULL OR id = CAST(:requested_run_id AS uuid))
       AND (status = 'queued' OR (status = 'running' AND lease_expires_at <= now()))
 """)
 _CLAIM = text("""
     WITH candidate AS (
         SELECT run.id FROM public.agent_runs AS run
         WHERE run.org_id = CAST(:org_id AS uuid)
+          AND (CAST(:requested_run_id AS uuid) IS NULL OR run.id = CAST(:requested_run_id AS uuid))
           AND run.attempt_count < :max_attempts
           AND (run.status = 'queued' OR (run.status = 'running' AND run.lease_expires_at <= now()))
         ORDER BY run.created_at, run.id
@@ -90,13 +92,16 @@ class LeaseLost(RuntimeError):
 Workflow = Callable[..., Awaitable[dict[str, Any]]]
 
 
-async def claim_job(session: AsyncSession, org_id: UUID) -> Job | None:
+async def claim_job(
+    session: AsyncSession, org_id: UUID, *, run_id: UUID | None = None
+) -> Job | None:
     lease_id = uuid4()
     parameters = {
         "org_id": str(org_id),
         "lease_id": str(lease_id),
         "max_attempts": MAX_ATTEMPTS,
         "lease_seconds": LEASE_SECONDS,
+        "requested_run_id": str(run_id) if run_id is not None else None,
     }
     await session.execute(_EXHAUSTED, parameters)
     claimed = await session.execute(_CLAIM, parameters)
@@ -208,11 +213,15 @@ async def execute_job(
 
 
 async def process_one(
-    session_factory: async_sessionmaker[AsyncSession], org_id: UUID, workflow: Workflow
+    session_factory: async_sessionmaker[AsyncSession],
+    org_id: UUID,
+    workflow: Workflow,
+    *,
+    run_id: UUID | None = None,
 ) -> bool:
     context = TenantContext(org_id=org_id, role="operations_admin")
     async with tenant_session(session_factory, context) as session:
-        job = await claim_job(session, org_id)
+        job = await claim_job(session, org_id, run_id=run_id)
     if job is None:
         return False
     try:
@@ -248,7 +257,9 @@ async def main() -> None:
     from brain.production import execute_maintenance
 
     org_id = UUID(os.environ["WORKER_ORG_ID"])
-    engine = create_database_engine(os.environ["DATABASE_URL"])
+
+    engine = create_database_engine(os.environ["WORKER_DATABASE_URL"])
+
     factory = create_session_factory(engine)
     try:
         while True:
