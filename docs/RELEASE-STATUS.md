@@ -8,6 +8,21 @@ Removed 11 unused code/package files: the vendor page/signing helper, unused bad
 
 Verification: 339 Python tests passed, 5 disposable-database tests skipped locally. Ruff, TypeScript and production web build passed. Isolated HTTP tests passed for all four role workspaces, resident-to-owner/admin denial, forged-role rejection and the existing ticket/worker flow. Live role-positive acceptance for owner/maintenance/admin still requires accounts already provisioned with those roles; no account was automatically promoted.
 
+## Final portal validation
+
+- Main portal, all four role sign-in entries, API/database/Redis health, authentication and same-origin protection pass on the deployed URLs.
+- Shared login navigation is neutral; it no longer shows resident-only actions on staff/admin sign-in pages.
+- The removed vendor route returns 404. Owner/admin pages redirect unauthenticated visitors to the matching workspace sign-in.
+- [Python quality and PostgreSQL integration](https://github.com/vishalgwu/tento-agents/actions/runs/40116031675): passed for portal API code 52afcb0.
+- [Web quality](https://github.com/vishalgwu/tento-agents/actions/runs/40116163535): passed for final portal commit cf9e7b6.
+- [Production health](https://github.com/vishalgwu/tento-agents/actions/runs/40131734869): passed for cf9e7b6.
+
+## Approved account-role change
+
+The account owner explicitly approved promoting the selected existing resident account to operations_admin after being told that resident submission would no longer be available through that login. The role change was applied only to auth.users.raw_app_meta_data.resident_os.app_role for the approved account in the configured organization. Its organization/person identity, tenancy and ticket records were preserved. A minimal change receipt is stored in ignored tmp/approved-admin-role-change.json; no email or credentials are committed here.
+
+Fresh sign-in is required because previously issued JWTs retain their old claims until refreshed or expired. The operations administrator role is allowed into technical administrator, maintenance and owner workspaces. A separate correctly provisioned resident account is now required for new resident submissions in this organization; the user accepted this consequence rather than keeping the selected account as a resident. Live staff-workspace validation is awaiting the account owner's fresh sign-in.
+
 The earlier production release evidence below is historical and covers the connected maintenance pipeline. The current deployment uses the same Vercel project URLs.
 
 ---
