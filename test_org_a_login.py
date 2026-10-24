@@ -249,12 +249,115 @@ def test_resident(token, claims):
         print("ORGANIZATION A TENANCY API: NETWORK ERROR")
         print("CROSS-ORGANIZATION API ISOLATION: FAIL")
 
+
+
+    # Step 3.60 — Organization A ticket list baseline
+    print("\n=== Organization A Ticket List Baseline ===")
+
+    ticket_request = Request(
+        API_URL + "/v1/tickets",
+        headers={
+            "Authorization": f"Bearer {token}"
+        },
+        method="GET",
+    )
+
+    ticket_list_passed = False
+
+    try:
+        with urlopen(ticket_request, timeout=15) as response:
+            ticket_status = response.status
+            ticket_data = json.load(response)
+
+        items = ticket_data.get("items", [])
+
+        print("TICKET HTTP STATUS:", ticket_status)
+        print("Visible tickets:", len(items))
+
+        ticket_list_passed = (
+            ticket_status == 200
+            and isinstance(items, list)
+        )
+
+        print(
+            "TICKET LIST BASELINE:",
+            "PASS" if ticket_list_passed else "FAIL"
+        )
+
+    except HTTPError as error:
+        print("TICKET HTTP STATUS:", error.code)
+        print("TICKET LIST BASELINE: FAIL")
+
+    except URLError:
+        print("TICKET LIST BASELINE: NETWORK ERROR")
+
+
+    # Step 3.62 — Submit Organization A maintenance ticket
+    print("\n=== Organization A Maintenance Ticket Submission ===")
+
+    ticket_payload = {
+        "description": "Test maintenance request: kitchen sink faucet is dripping slowly.",
+        "tenancy_id": "bd79415a-e503-41d1-b6ed-2f93dc36cbbf",
+        "access_permission": False,
+        "pets_present": False,
+    }
+
+
+    # Generate a unique idempotency key for this test submission.
+    from uuid import uuid4
+
+    submit_request = Request(
+        API_URL + "/v1/tickets",
+        data=json.dumps(ticket_payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Idempotency-Key": str(uuid4()),
+        },
+        method="POST",
+    )
+
+
+
+    try:
+        with urlopen(submit_request, timeout=20) as response:
+            submission_status = response.status
+            submission_data = json.load(response)
+
+        print("SUBMISSION HTTP STATUS:", submission_status)
+        print("Ticket ID:", submission_data.get("ticket_id"))
+        print("Ticket Number:", submission_data.get("ticket_number"))
+        print("Agent Run ID:", submission_data.get("run_id"))
+        print("Status:", submission_data.get("status"))
+
+        submission_passed = (
+            submission_status == 201
+            and bool(submission_data.get("ticket_id"))
+            and bool(submission_data.get("run_id"))
+        )
+
+        print(
+            "TICKET SUBMISSION:",
+            "PASS" if submission_passed else "FAIL"
+        )
+
+    except HTTPError as error:
+        print("SUBMISSION HTTP STATUS:", error.code)
+        print("Error:", error.read().decode("utf-8", errors="replace"))
+        print("TICKET SUBMISSION: FAIL")
+
+    except URLError:
+        print("TICKET SUBMISSION: NETWORK ERROR")
+
+
+
     return (
         claims_passed
         and membership_passed
         and api_passed
         and tenancy_passed
         and cross_org_isolation_passed
+        and ticket_list_passed
     )
 
 
