@@ -6,7 +6,7 @@ Maintenance, owner and technical administrator pages now display real authorized
 
 Removed 11 unused code/package files: the vendor page/signing helper, unused badge/separator, and the unused shared decorative UI package. Removed dead credential suggestions and replaced the obsolete deployment plan. Existing data, migrations and the user's local login-test changes were preserved.
 
-Verification: 339 Python tests passed, 5 disposable-database tests skipped locally. Ruff, TypeScript and production web build passed. Isolated HTTP tests passed for all four role workspaces, resident-to-owner/admin denial, forged-role rejection and the existing ticket/worker flow. Live role-positive acceptance for owner/maintenance/admin still requires accounts already provisioned with those roles; no account was automatically promoted.
+Verification: 339 Python tests passed, 5 disposable-database tests skipped locally. Ruff, TypeScript and production web build passed. Isolated HTTP tests passed for all four role workspaces, resident-to-owner/admin denial, forged-role rejection and the existing ticket/worker flow. All three staff workspaces were subsequently verified live using the account-owner-approved operations administrator assignment described below. No role was granted before explicit account-owner approval.
 
 ## Final portal validation
 
@@ -21,7 +21,7 @@ Verification: 339 Python tests passed, 5 disposable-database tests skipped local
 
 The account owner explicitly approved promoting the selected existing resident account to operations_admin after being told that resident submission would no longer be available through that login. The role change was applied only to auth.users.raw_app_meta_data.resident_os.app_role for the approved account in the configured organization. Its organization/person identity, tenancy and ticket records were preserved. A minimal change receipt is stored in ignored tmp/approved-admin-role-change.json; no email or credentials are committed here.
 
-Fresh sign-in is required because previously issued JWTs retain their old claims until refreshed or expired. The operations administrator role is allowed into technical administrator, maintenance and owner workspaces. A separate correctly provisioned resident account is now required for new resident submissions in this organization; the user accepted this consequence rather than keeping the selected account as a resident. Live staff-workspace validation is awaiting the account owner's fresh sign-in.
+Fresh sign-in is required because previously issued JWTs retain their old claims until refreshed or expired. The operations administrator role is allowed into technical administrator, maintenance and owner workspaces. A separate correctly provisioned resident account is now required for new resident submissions in this organization; the user accepted this consequence rather than keeping the selected account as a resident. A fresh sign-in succeeded through the production form. The same live session then opened /admin, /maintenance and /owner. Each displayed the existing three authorized requests; /admin also reported database and Redis readiness. No ticket records were created, deleted or modified during these checks. The existing password was used only for the authorized login and was not persisted in application files or documentation.
 
 The earlier production release evidence below is historical and covers the connected maintenance pipeline. The current deployment uses the same Vercel project URLs.
 
