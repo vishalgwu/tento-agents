@@ -35,11 +35,17 @@ def main() -> None:
     }:
         raise RuntimeError("Production database or cache is unhealthy")
     check(args.web + "/resident/sign-in", 200)
+    home = check(args.web + "/", 200)
+    for workspace in ("resident", "maintenance", "owner", "admin"):
+        if f"workspace={workspace}".encode() not in home:
+            raise RuntimeError("Main application is missing a workspace entry")
+        check(args.web + "/sign-in?workspace=" + workspace, 200)
+    check(args.api + "/v1/me", 401)
     check(args.api + "/v1/tickets", 401)
     check(args.web + "/api/tickets", 401)
     check(args.web + "/api/session", 403, origin="https://example.org")
     print(
-        "PASS: API/database/Redis health, frontend availability, authentication, same-origin protection"
+        "PASS: API/database/Redis health, main portal, four login entries, authentication, same-origin protection"
     )
 
 

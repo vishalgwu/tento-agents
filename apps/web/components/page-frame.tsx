@@ -9,10 +9,8 @@ type PageFrameProps = {
 };
 
 const destinations = [
+  { href: "/", label: "Home" },
   { href: "/#workspaces", label: "Workspaces" },
-  { href: "/app/report", label: "New request" },
-  { href: "/app/tickets", label: "Request history" },
-  { href: "/sign-in", label: "Sign in" },
 ] as const;
 
 /** A small, role-neutral frame so each workspace has the same route boundary. */
