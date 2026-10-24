@@ -18,11 +18,20 @@
 - The account owner signed into the actual production frontend. The authorized residence loaded from Supabase.
 - Two clearly marked release-validation reports were saved without deleting existing records. Request #2 exercised conservative emergency handling (negated hazard words still trigger deterministic screening); guidance appeared and no one was contacted. Request #3 exercised routine processing: the worker completed one attempt, persisted an OpenAI gpt-4.1-mini intake receipt, extracted plumbing facts, and returned an abstention displayed in the browser.
 - Read-only receipt verification confirmed routine run status degraded/result abstained, no error code, one completed model call, zero active policy documents and zero unsupported work orders.
-- Production smoke checks pass. The source includes a scheduled GitHub Actions health check every six hours; it becomes active after that workflow is pushed to main. GitHub notification delivery follows the owner's existing account preferences.
+- Production smoke checks pass locally and in GitHub Actions. The scheduled health workflow is active on main and checks every six hours. GitHub notification delivery follows the owner's existing account preferences.
+- Protected production recovery returned 200 with processed=false after the queue was drained; unauthenticated recovery returns 401.
 
 ## Verification
 
-Final offline suite: 338 passed, 5 skipped (no disposable integration database configured). Ruff passes. Project-source mypy check passes across 110 files with third-party import traversal skipped; focused type checks of edited provider and deployment files also pass. The unmodified full dependency-traversing mypy command stalls in this Windows environment and was interrupted, so a full standard CI type-check result is not claimed. Web typecheck, production build and isolated proxy/dispatch tests pass. Both actual Vercel production builds passed. OpenAPI and shared TypeScript types were regenerated.
+Final offline suite: 338 passed, 5 skipped (no disposable local integration database configured). Ruff and edited-tooling type checks pass. Project-source mypy passes across 110 files. The standard Python 3.12 GitHub quality gate, including full mypy, passed on Linux. The separate real PostgreSQL integration job also passed. Web typecheck, production build and isolated proxy/dispatch tests pass. Both actual Vercel production builds passed. OpenAPI and shared TypeScript types were regenerated.
+
+Release code was pushed to main as abf14c4. Verified GitHub results:
+
+- [Python quality and PostgreSQL integration](https://github.com/vishalgwu/tento-agents/actions/runs/40114361501): both passed.
+- [Node 22 quality](https://github.com/vishalgwu/tento-agents/actions/runs/40114361477): passed.
+- [Production health](https://github.com/vishalgwu/tento-agents/actions/runs/40114361553): passed.
+
+The user's local edits to test_org_a_login.py were preserved and were not included in the release commit. No credentials were committed; the staged files were scanned against configured secrets before the push.
 
 ## Remaining evidence and account actions
 

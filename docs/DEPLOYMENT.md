@@ -51,7 +51,7 @@ Verify /healthz, unauthorized API rejection, cross-tenant denial, production coo
 
 ## Operations
 
-Run `python scripts/check_deployment.py` for credential-free production boundary checks. The production-health workflow checks every six hours after it is pushed to main; GitHub account notification preferences determine alert delivery.
+Run `python scripts/check_deployment.py` for credential-free production boundary checks. The production-health workflow is active on main and checks every six hours; GitHub account notification preferences determine alert delivery.
 
 Use Vercel runtime logs to monitor worker_dispatch_failed/worker_dispatch_unavailable, job_failed and job_lease_lost; logs must not contain resident text, JWTs or provider keys. Monitor database connections, Redis availability, queued job age and OpenAI spend. /healthz checks database and Redis, not policy or model readiness. Configure a health monitor and spend alerts in the relevant accounts.
 

@@ -19,7 +19,7 @@ No paid model key is needed to run automated tests. Until a provider and live po
 | API_BASE_URL | Vercel server | Public HTTPS origin of the Vercel API |
 | MIGRATION_DATABASE_URL | Explicit migration job only | Administrator PostgreSQL connection; never the browser or normal API role |
 
-The API can save reports without a model key. The worker needs the model key and verified policy sources to produce validated plans and internal work orders. One worker serves one configured organisation; deploy another tenant-scoped worker for another organisation.
+The API can save reports without a model key. The worker needs the model key and verified policy sources to produce validated plans and internal work orders. Authenticated on-demand processing serves the caller's verified organisation. The optional continuous worker and daily recovery each serve one configured organisation.
 
 ## Needed only for source importing or optional features
 
