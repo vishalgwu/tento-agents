@@ -1,3 +1,15 @@
+# Brand and UI release - 25 October 2026
+
+The current Vercel frontend uses the original Tento forest/ivory/lime identity, editorial headings, SVG wordmark and favicon, original conceptual courtyard imagery, responsive role-entry cards, branded sign-in layout and consistent workspace framing. Workspace summary counts derive only from loaded authorized records; no fabricated customer, occupancy or performance statistics were added.
+
+Code release: 9129660. Frontend production build and TypeScript passed. The existing isolated HTTP suite passed for sign-in, all four role workspaces, forged-role denial, tenant-bound ticket proxies and worker-dispatch failure isolation. [GitHub Web quality](https://github.com/vishalgwu/tento-agents/actions/runs/40146048030) passed. Production smoke checks passed for API/database/Redis health, the main portal, all four login entries, authentication and same-origin protection.
+
+Visual QA covered production desktop at 1280px and narrow phone layouts at 320px. The final narrow sign-in and dashboard checks found no horizontal overflow. The original architectural image loaded correctly in the rendered hero, and temporary browser viewport overrides were reset. A production preview is saved at output/release/tento-brand-home.png and shown in README.md. The brand guide is docs/BRAND.md.
+
+This release changes presentation and derives display summaries from existing records; it does not change account roles, tenant authorization, database schema or agent execution. Historical technical/account acceptance notes follow.
+
+---
+
 # Main application update - 24 October 2026
 
 The main page now presents Tento Resident OS, its GenAI maintenance purpose and four workspace sign-in entries. Developer means technical administrator. /sign-in shares one credential flow; /v1/me supplies the API-verified organization, person and role. Neither client fields nor a selected login card grants a role. Server-rendered workspace pages verify access again before loading records.

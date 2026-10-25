@@ -15,6 +15,12 @@ Use an existing organization account with the appropriate role. Maintenance, own
 
 Tento Resident OS has one main page with Resident, Maintenance, Owner and Technical administrator workspaces. Maintenance/owner/admin provide verified, read-only operational views; role selection never grants access. The connected maintenance flow lets a resident sign in, select an authorised residence, save a report, and follow its actual status. A separate durable Python worker runs safety, intake, source retrieval, diagnosis, dispatch planning and policy validation. A validated in-house plan creates a real internal work order. No vendor is contacted and no visit is claimed to be scheduled.
 
+## Application preview
+
+[![Tento Resident OS — live branded application](output/release/tento-brand-home.png)](https://tento-resident-os.vercel.app/)
+
+The shared visual identity covers the home page, sign-in, resident flows and staff workspaces. See the [brand guide](docs/BRAND.md) for the palette, typography, imagery and interaction rules.
+
 ## Start here
 
 - [Keys and account setup](docs/KEYS-AND-SETUP.md): add credentials at the end; automated tests need no paid model keys.
