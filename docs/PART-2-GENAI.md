@@ -59,4 +59,4 @@ Add MCP only for a concrete authenticated read-tool consumer or an approved exte
 
 ## Verification
 
-Local validation: 348 Python tests passed; five isolated PostgreSQL tests require a dedicated migrated *_test database. Hosted Upstash round-trip, tenant isolation, TTL and cleanup passed. Ruff lint/format and focused type checks passed. Full CI and deployment results are recorded in RELEASE-STATUS.md.
+Local validation: 348 Python tests passed; five isolated PostgreSQL tests require a dedicated migrated *_test database. Hosted Upstash round-trip, tenant isolation, TTL and cleanup passed. Ruff lint/format and focused type checks passed. Full mypy passed across 119 files; web proxy regression, TypeScript, production build, Python CI and real PostgreSQL integration passed. Both Vercel projects were deployed and production health/access checks passed. [Release evidence](RELEASE-STATUS.md).

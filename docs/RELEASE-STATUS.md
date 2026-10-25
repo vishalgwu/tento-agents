@@ -4,7 +4,13 @@ Part 1 remains documented at 156133f. Part 2A adds deployment-controlled model t
 
 The checked-in synthetic benchmark reports and resume-safe bullets are in [PART-2-GENAI.md](PART-2-GENAI.md). They disclose sample size, exact scope and tail latency. A read-only production check found zero active sources and zero canonical policy claims for the configured tenant. The only required human handoff is supplying verified property policies; [one-page checklist](../output/pdf/tento-part2-human-task.pdf). MCP, persistent personal memory, live dense/reranking and RAG faithfulness are not claimed as shipped.
 
-Local verification: Ruff lint/format, 348 passing Python tests (five dedicated PostgreSQL tests skipped locally), production Next.js build and hosted cache isolation/TTL/cleanup. Final static, web-contract, CI and deployment evidence follows when completed.
+Local verification: Ruff lint/format, 348 passing Python tests (five dedicated PostgreSQL tests skipped locally), production Next.js build and hosted cache isolation/TTL/cleanup. Full mypy passed across 119 files. Web proxy/ticket/auth regression checks, TypeScript and the production Next.js build passed.
+
+Release implementation: **43a090d**. [Python quality and PostgreSQL integration](https://github.com/vishalgwu/tento-agents/actions/runs/40211166242) and [Web quality](https://github.com/vishalgwu/tento-agents/actions/runs/40211166332) passed. The five dedicated PostgreSQL cases ran in CI against a disposable migrated database. Both existing Vercel projects were deployed with the secure allowlisted environment helper; no migration or production data import occurred.
+
+Post-deployment checks passed for API/database/Redis health, four workspace entries, authentication and same-origin boundaries. Direct read-only service checks confirmed resident_api/resident_worker are non-superuser, NOBYPASSRLS roles, plus Supabase JWKS and OpenAI model access. Hosted vector-cache tests confirmed tenant isolation, expiry and cleanup. Public benchmark cards were verified expanded on desktop and at 320px, with no horizontal page overflow; temporary viewport overrides were reset. [Release screenshot](../output/release/tento-part2-measurements.png).
+
+The paired synthetic reports match the release source hashes. These are local development measurements, not deployed load-test results or population accuracy claims. Production evidence still contains no approved policy sources, so policy-backed dispatch/faithfulness acceptance remains blocked on the single source-content handoff.
 
 ---
 
