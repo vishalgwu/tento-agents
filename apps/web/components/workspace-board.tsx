@@ -50,17 +50,48 @@ export async function WorkspaceBoard({
       }
       description={workspaces[workspace].description}
     >
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-5">
+      <div className="workspace-identity">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">
-            Verified account role
-          </p>
-          <p className="mt-1 font-medium">{statusLabel(identity.role)}</p>
+          <p className="eyebrow">Verified account role</p>
+          <p className="role-name">{statusLabel(identity.role)}</p>
         </div>
-        <Link href="/#workspaces" className="text-sm underline">
-          All workspaces
+        <Link href="/#workspaces" className="text-link">
+          All workspaces ↗
         </Link>
       </div>
+      {valid && (
+        <dl className="workspace-stats">
+          <div className="workspace-stat">
+            <dt>Visible requests</dt>
+            <dd>{tickets.length}</dd>
+            <small>IN THIS AUTHORIZED VIEW</small>
+          </div>
+          <div className="workspace-stat">
+            <dt>Active assessments</dt>
+            <dd>
+              {
+                tickets.filter((ticket) =>
+                  ["queued", "running"].includes(
+                    ticket.latest_run?.status ?? "",
+                  ),
+                ).length
+              }
+            </dd>
+            <small>QUEUED OR RUNNING</small>
+          </div>
+          <div className="workspace-stat">
+            <dt>Needs attention</dt>
+            <dd>
+              {
+                tickets.filter((ticket) =>
+                  ["blocked", "escalated", "failed"].includes(ticket.status),
+                ).length
+              }
+            </dd>
+            <small>BASED ON SAVED STATUS</small>
+          </div>
+        </dl>
+      )}
       {readiness && (
         <p className="mb-6 rounded-xl border bg-card p-5">
           {readiness}. Agent outcomes are recorded below; credentials are never
@@ -103,7 +134,7 @@ export async function WorkspaceBoard({
                 <Link
                   key={ticket.id}
                   href={`/app/tickets/${ticket.id}`}
-                  className="grid gap-3 rounded-xl border bg-card p-5 transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-primary sm:grid-cols-[1fr_auto]"
+                  className="ticket-card grid gap-3 rounded-xl border bg-card p-5 transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-primary sm:grid-cols-[1fr_auto]"
                 >
                   <div>
                     <h3 className="font-medium">
@@ -116,7 +147,11 @@ export async function WorkspaceBoard({
                     </p>
                   </div>
                   <div className="text-sm sm:text-right">
-                    <p>{statusLabel(ticket.status)}</p>
+                    <p
+                      className={`ticket-status ${["blocked", "escalated", "failed"].includes(ticket.status) ? "ticket-status--attention" : ""}`}
+                    >
+                      {statusLabel(ticket.status)}
+                    </p>
                     <p className="mt-2 text-muted-foreground">
                       Agent:{" "}
                       {ticket.latest_run

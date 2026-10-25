@@ -9,13 +9,14 @@ export const metadata: Metadata = {
     default: "Tento Resident OS",
     template: "%s | Tento Resident OS",
   },
-  description: "One application for residents, maintenance teams, property owners and technical administrators, with an evidence-backed GenAI maintenance assistant.",
+  description:
+    "One application for residents, maintenance teams, property owners and technical administrators, with an evidence-backed GenAI maintenance assistant.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#f9fafb",
+  themeColor: "#1b342d",
 };
 
 export default function RootLayout({

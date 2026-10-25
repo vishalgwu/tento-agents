@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -49,39 +50,58 @@ export function SignInForm({ workspace }: { workspace: Workspace }) {
     }
   }
   return (
-    <form onSubmit={submit} className="grid max-w-md gap-4" aria-busy={busy}>
-      <Label htmlFor="email">Email address</Label>
-      <Input
-        id="email"
-        name="email"
-        type="email"
-        autoComplete="username"
-        required
-        disabled={busy}
-      />
-      <Label htmlFor="password">Password</Label>
-      <Input
-        id="password"
-        name="password"
-        type="password"
-        autoComplete="current-password"
-        required
-        disabled={busy}
-      />
-      <Button type="submit" disabled={busy}>
-        {busy ? "Signing in…" : `Sign in to ${workspaces[workspace].name}`}
-      </Button>
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
+    <div className="signin-layout">
+      <form onSubmit={submit} className="signin-form" aria-busy={busy}>
+        <p className="eyebrow">A familiar place to begin</p>
+        <Label htmlFor="email">Email address</Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="username"
+          required
+          disabled={busy}
+        />
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          disabled={busy}
+        />
+        <Button type="submit" disabled={busy}>
+          {busy ? "Signing in…" : `Sign in to ${workspaces[workspace].name}`}
+        </Button>
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <p className="text-sm text-muted-foreground">
+          Access comes from your organization's account assignment.
         </p>
-      )}
-      <p className="text-sm text-muted-foreground">
-        Access comes from your organization's account assignment.
-      </p>
-      <Link href="/#workspaces" className="text-sm underline">
-        Choose another workspace
-      </Link>
-    </form>
+        <Link href="/#workspaces" className="text-sm underline">
+          Choose another workspace
+        </Link>
+      </form>
+      <aside className="signin-story" aria-label="Tento community">
+        <Image
+          src="/images/tento-courtyard.png"
+          alt=""
+          fill
+          sizes="(max-width: 760px) 88vw, 50vw"
+        />
+        <div className="signin-story-copy">
+          <p>THOUGHTFULLY CONNECTED</p>
+          <h2>
+            Your community.
+            <br />
+            <em>A little closer.</em>
+          </h2>
+        </div>
+      </aside>
+    </div>
   );
 }
