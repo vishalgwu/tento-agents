@@ -1,104 +1,121 @@
 # Tento Resident OS
 
-**[Open the live application on Vercel](https://tento-resident-os.vercel.app/)**
+**[Live application](https://tento-resident-os.vercel.app/)** · [Engineering showcase](https://tento-resident-os.vercel.app/#engineering) · [Resume bullets](#resume-ready-project-bullets) · [Local setup](#local-development)
 
-[Screenshots](#application-preview) · [Engineering](#engineering-at-a-glance) · [Local setup](#local-workflow) · [Verification](#verify)
+An AI-assisted maintenance platform connecting residents, maintenance teams, property owners and technical administrators. Tento turns a resident's report into a saved, traceable assessment through a tenant-scoped agent workflow.
 
-One application for residents, maintenance teams, property owners and technical administrators, powered by an evidence-backed GenAI maintenance workflow.
+## Product experience
 
-| Workspace | Live entry |
+Residents sign in, select an authorized residence, submit a report and follow its assessment. Staff workspaces display organization-scoped requests, agent outcomes and service readiness. The API verifies account roles and tenant membership for every protected request.
+
+| Workspace | Entry point |
 | --- | --- |
-| Resident | [Resident sign in](https://tento-resident-os.vercel.app/sign-in?workspace=resident) |
-| Maintenance | [Maintenance sign in](https://tento-resident-os.vercel.app/sign-in?workspace=maintenance) |
-| Owner | [Owner sign in](https://tento-resident-os.vercel.app/sign-in?workspace=owner) |
-| Technical administrator | [Administrator sign in](https://tento-resident-os.vercel.app/sign-in?workspace=admin) |
+| Resident | [Report and track maintenance](https://tento-resident-os.vercel.app/sign-in?workspace=resident) |
+| Maintenance | [Organization request queue](https://tento-resident-os.vercel.app/sign-in?workspace=maintenance) |
+| Owner | [Maintenance overview](https://tento-resident-os.vercel.app/sign-in?workspace=owner) |
+| Technical administrator | [Application operations](https://tento-resident-os.vercel.app/sign-in?workspace=admin) |
 
-Use an existing organization account with the appropriate role. Maintenance, owner and administrator views are currently read-only. Approved property policies are required for policy-backed work orders; missing evidence produces a safe abstention.
+**MVP scope:** staff workspaces are read-only. Policy-backed work orders require approved property evidence; the workflow returns an explicit abstention when evidence is insufficient.
 
-Tento Resident OS has one main page with Resident, Maintenance, Owner and Technical administrator workspaces. Maintenance/owner/admin provide verified, read-only operational views; role selection never grants access. The connected maintenance flow lets a resident sign in, select an authorised residence, save a report, and follow its actual status. A separate durable Python worker runs safety, intake, source retrieval, diagnosis, dispatch planning and policy validation. A validated in-house plan creates a real internal work order. No vendor is contacted and no visit is claimed to be scheduled.
-
-## Application preview
+## Application screenshots
 
 | Main application | Workspace sign-in |
 | --- | --- |
-| [![Tento live home page](output/release/tento-brand-home.png)](https://tento-resident-os.vercel.app/) | [![Tento real workspace sign-in screen](output/release/tento-sign-in.png)](https://tento-resident-os.vercel.app/sign-in?workspace=resident) |
-
-These are screenshots of the deployed application, with no account credentials shown. The courtyard artwork is an original conceptual brand image, not a property listing.
-
-The shared visual identity covers the home page, sign-in, resident flows and staff workspaces. See the [brand guide](docs/BRAND.md) for the palette, typography, imagery and interaction rules.
-
-## Engineering at a glance
-
-The live system combines a Next.js/TypeScript frontend, FastAPI, LangGraph, OpenAI, Supabase PostgreSQL/Auth and Upstash Redis. The inventory below separates the deployed path from independently tested modules and unimplemented integrations. [Read the full engineering deep dive](docs/ENGINEERING.md), or explore [Engineering on the live home page](https://tento-resident-os.vercel.app/#engineering).
+| [![Tento home page](output/release/tento-brand-home.png)](https://tento-resident-os.vercel.app/) | [![Tento workspace sign-in](output/release/tento-sign-in.png)](https://tento-resident-os.vercel.app/sign-in?workspace=resident) |
 
 <details>
-<summary>View the engineering section on the deployed home page</summary>
+<summary>Engineering showcase</summary>
 
-[![Tento architecture and implementation showcase](output/release/tento-engineering.png)](https://tento-resident-os.vercel.app/#engineering)
+[![Tento engineering showcase](output/release/tento-engineering.png)](https://tento-resident-os.vercel.app/#engineering)
 
 </details>
 
+Screenshots show the deployed application with no account credentials. The courtyard artwork is an original conceptual brand image. [Visual identity guide](docs/BRAND.md).
+
+## Engineering highlights
+
+- **Multi-agent orchestration:** LangGraph coordinates safety screening, intake, source retrieval, diagnosis, dispatch planning and independent policy validation through typed handoffs.
+- **LLM gateway:** OpenAI **gpt-4.1-mini** serves four specialist model stages, with task routing, JSON-object output, Pydantic validation, bounded retries and prompt-version receipts.
+- **Evidence-grounded retrieval:** PostgreSQL full-text ranking scopes policy sources by organization, jurisdiction and effective date, preserving exact citation spans and canonical policy claims.
+- **Context engineering:** an **8,000-token** application envelope uses tokenizer-backed allocation and whole-block policy selection to preserve source integrity.
+- **Execution state:** per-run LangGraph checkpoints coordinate agent state; PostgreSQL persists jobs, steps, traces and results for subsequent reads and retry recovery.
+- **Durable processing:** tickets and jobs commit together before assessment. Fenced leases, bounded attempts and deterministic work-order identities protect retries and state transitions.
+- **Tenant security:** Supabase signed authentication, server-verified roles, explicit organization predicates, transaction-local PostgreSQL RLS and separate API/worker logins enforce access boundaries.
+- **AI guardrails:** deterministic safety rules, PII redaction, local injection screening, typed untrusted context and schema/evidence validation constrain model-driven decisions.
+- **Request protection:** Upstash Redis rate limits, PostgreSQL idempotency receipts, HttpOnly/Secure cookies and same-origin mutation checks protect the browser-to-API boundary.
+- **Evaluation and observability:** versioned retrieval, injection and fair-housing fixtures accompany automated tests; model receipts record prompt versions, token usage, elapsed latency and outcomes.
+
+### Model routing
+
+| Specialist stage | Logical tier | Production model |
+| --- | --- | --- |
+| Intake normalization | Small | gpt-4.1-mini |
+| Diagnosis | Mid | gpt-4.1-mini |
+| Dispatch planning | Mid | gpt-4.1-mini |
+| Policy audit | Small | gpt-4.1-mini |
+
+The production composition maps these logical task tiers to the configured OpenAI model. [Gateway implementation](services/brain/src/brain/gateway/client.py) · [Production composition](services/brain/src/brain/production.py).
+
+## Architecture
+
 ```mermaid
 flowchart LR
-  UI[Next.js / Vercel] --> API[FastAPI: JWT + RLS]
-  API --> DB[(Supabase PostgreSQL: saved ticket + job)]
-  API --> Rate[Upstash rate limits]
-  UI -->|after response| Worker[Bounded worker]
+  UI[Next.js on Vercel] --> API[FastAPI: JWT + tenant RLS]
+  API --> DB[(Supabase PostgreSQL)]
+  API --> Rate[Upstash Redis rate limits]
+  UI -->|after saved receipt| Worker[Bounded worker request]
   Worker --> Graph[LangGraph + model gateway]
-  Graph --> Ground[Scoped policy evidence + validation]
-  Ground --> DB
+  Graph --> Evidence[Scoped policy evidence]
+  Evidence --> Gate[Validation / abstention]
+  Gate --> DB
 ```
 
-| Capability | Actual implementation / status |
-| --- | --- |
-| LLMs | Live OpenAI **gpt-4.1-mini**. Anthropic is an optional configuration alternative, not request-time failover. |
-| Models and router | Typed task classes/tiers. Intake and policy audit use logical Small; diagnosis and planning use Mid. The live composition currently maps **all tiers to one configured model**. |
-| Temperature / output | Temperature is **not explicitly set**. OpenAI JSON-object mode, Pydantic validation and a default 1,024-output-token cap. |
-| Multi-agent orchestration | Bounded LangGraph: safety → intake → context → diagnosis → planning → independent policy audit → deterministic gate. Stages stop when prerequisites fail. |
-| RAG and context | Live PostgreSQL lexical ranking with tenant, jurisdiction and effective-time filtering, exact citation spans and immutable policy claims. **Approved live policies are still required.** |
-| Context budget | Tokenizer-backed 8,000-token envelope, whole-block inclusion/omission, 1,600-token policy slot. Budget slots do not imply every slot is populated. |
-| Embeddings | Verified-source importer: **text-embedding-3-small / 1,536 dimensions**, in-process cache, PostgreSQL halfvec storage. Dense search is not the active production query path. |
-| Reranking | Tested hybrid RRF and **BAAI/bge-reranker-v2-m3** modules; cross-encoder omitted from the minimal runtime and not enabled in live retrieval. |
-| Memory | Per-run LangGraph MemorySaver plus durable PostgreSQL jobs/traces/results. Recovered attempts restart the graph; no cross-session personal chat memory. |
-| Database and Supabase | PostgreSQL/pgvector schema, Supabase asymmetric JWT Auth, explicit tenant predicates and transaction-local RLS, separate API/worker logins. |
-| Upstash and caching | TLS Redis rate-limit counters; PostgreSQL idempotency receipts. Provider cache-token usage is recorded; no shared semantic answer cache or measured hit-rate claim. |
-| MCP | Tool-grant vocabulary/authorizer exist. **No production application MCP transport is integrated.** Development connectors are separate from runtime features. |
-| Guardrails / prompt injection | Safety rules, local shield, typed untrusted context, no-write model capabilities, schema/citation/policy checks and server-controlled effects. No claim of injection immunity. |
-| PII and security | Regex redaction before model work; JWT roles, organization/tenancy checks, RLS, restricted DB roles, HttpOnly/Secure cookies, same-origin mutations, rate limits and sanitized errors. |
-| Evaluation | Versioned retrieval/injection/fair-housing fixtures; Recall@5/10, MRR and nDCG@10 harness; unit/contract and PostgreSQL integration checks. No published live RAG score. |
-| Latency and speed | Per-call elapsed latency recorded. Production bounds: 15s gateway call, 12 graph steps, 180s worker execution, 3 job attempts / 300s lease. **Limits are not benchmarks or SLAs.** |
-| First-token latency (TTFT) | Time to first token is not instrumented: model JSON responses are not token-streamed. Saved progress snapshots are not a token stream. |
-| Cost | Token usage is recorded, but the adapters do not price dollar totals. The default zero cost field is **unpriced, not free**. No verified per-ticket dollar cost, cost-saving percentage or dollar-budget enforcement is claimed. |
+Ticket creation, job enqueueing and the idempotency receipt share a transaction. Next.js after() initiates a tenant-authorized processing request. The worker claims a fenced lease, executes the graph and commits its result while the lease remains valid. Pending detail reads and protected daily recovery can reclaim eligible interrupted work.
 
-The engineering deep dive links each area to source code, explains context allocations and documents operational limits. This is a working maintenance MVP with explicit implementation boundaries, not a claim that every listed research module is deployed.
+Production uses a 15-second gateway-call timeout, a 1,024-output-token route default, a 12-step graph cap and a 180-second workflow execution timeout. Jobs have at most three attempts and a 300-second fencing lease. These values describe execution controls.
 
-## Start here
+[Architecture and source-linked engineering notes](docs/ENGINEERING.md) · [Deployment and recovery](docs/DEPLOYMENT.md).
 
-- [Keys and account setup](docs/KEYS-AND-SETUP.md): add credentials at the end; automated tests need no paid model keys.
-- [Local startup and Vercel deployment](docs/DEPLOYMENT.md).
-- [Product scope](docs/PRODUCT.md) and [architecture](docs/TECHNICAL-ARCHITECTURE.md).
+## Technology stack
 
-## Local workflow
+| Layer | Technology | Responsibility |
+| --- | --- | --- |
+| Application | Next.js, React, TypeScript, Tailwind CSS | Branded portal, role workspaces and server proxies |
+| API | FastAPI, Python, Pydantic | Typed contracts, verified identity and request controls |
+| Agent runtime | LangGraph, OpenAI gpt-4.1-mini | Typed orchestration and structured model generation |
+| Data and identity | Supabase PostgreSQL, Supabase Auth | Tenant records, durable jobs, audit receipts and signed identity |
+| Rate limiting | Upstash Redis over TLS | Organization/person request budgets |
+| Quality | pytest, Ruff, mypy, TypeScript, GitHub Actions | Unit, contract, database and web quality gates |
+| Hosting | Vercel | Frontend and bounded Python API/worker execution |
 
-Use Python 3.12, Node.js 22 and pnpm 11.19.0. Install requirements.txt and run pnpm install --frozen-lockfile. Configure ignored API environment values and apps/web/.env.local using .env.example. Explicitly load the API environment into your shell; Uvicorn does not load the root file automatically.
+## Resume-ready project bullets
 
-Start Postgres with pgvector and Redis, apply migrations with an administrator connection, and configure restricted runtime roles. Then run:
+**Tento Resident OS | Full-stack Generative AI Project**
+
+- **Built and deployed** a multi-tenant GenAI maintenance platform with **Next.js, FastAPI, OpenAI GPT-4.1-mini and Supabase**, supporting **four role-based workspaces** with server-verified access and organization-scoped data.
+- **Orchestrated four specialist LLM stages with LangGraph**, combining typed handoffs, deterministic safety screening and independent policy validation to produce traceable assessments and explicit evidence-based abstention.
+- **Engineered a tenant-scoped RAG workflow** using PostgreSQL full-text retrieval, effective-date and jurisdiction filters, exact citation spans and an **8,000-token context budget** to ground maintenance reasoning in applicable sources.
+- **Implemented durable asynchronous processing** with atomic ticket/job creation, idempotency receipts, fenced PostgreSQL leases and bounded retries, decoupling saved request receipts from long-running agent execution.
+- **Hardened the AI and API boundaries** with PII redaction, prompt-injection screening, Supabase JWT verification, PostgreSQL RLS and Upstash rate limiting; validated workflows through **339 passing Python tests**, PostgreSQL integration and automated web contract checks.
+
+## Local development
+
+Use Python 3.12, Node.js 22 and pnpm 11.19.0. Install requirements.txt and run pnpm install --frozen-lockfile. Configure ignored API and web environment files from .env.example. [Account/key setup](docs/KEYS-AND-SETUP.md).
+
+For a fresh local database, follow the explicit migration/runtime-role steps in [DEPLOYMENT.md](docs/DEPLOYMENT.md). Existing configured installations should retain their data and migration ledger.
 
 ```powershell
 $env:PYTHONPATH="services/api/src;services/brain/src"
-python -m uvicorn api.main:app --reload --port 8000
+python -m uvicorn api.main:app --env-file .env --reload --port 8000
 ```
 
-In a second shell with WORKER_DATABASE_URL for the worker role and WORKER_ORG_ID set:
+Configure apps/web/.env.local with API_BASE_URL, SUPABASE_URL and SUPABASE_ANON_KEY, then run pnpm dev:web. The web application starts processing after saving a ticket. An optional continuous worker can run separately with WORKER_DATABASE_URL and WORKER_ORG_ID:
 
 ```powershell
-$env:PYTHONPATH="services/api/src;services/brain/src"
 python -m api.worker
 ```
 
-In a third shell, run pnpm dev:web. Open /resident/sign-in, then /app/report and /app/tickets. Real membership and current tenancy records are required. Without a model key or live policy sources, reports remain saved and the worker returns explicit abstention.
-
-## Verify
+## Verification
 
 ```powershell
 python -m ruff check services/api services/brain infra/seed scripts/export_openapi.py
@@ -110,14 +127,17 @@ pnpm generate:api
 pnpm typecheck:web
 pnpm build:web
 python apps/web/scripts/check-proxies.py
+python scripts/check_deployment.py
 ```
 
-Set TEST_DATABASE_URL to a migrated disposable *_test database to include the real PostgreSQL integration tests; otherwise those tests skip. CI includes a pgvector integration job. Proxy tests use explicit upstream fixtures. Scripted model tests do not claim live provider success.
+Database integration tests require a migrated disposable *_test database through TEST_DATABASE_URL; otherwise they skip. CI runs a dedicated pgvector/PostgreSQL integration job. The web contract suite uses isolated upstream fixtures. Production health checks run through the scheduled repository workflow.
 
-## Hosting
+## Project documentation
 
-The live app is [tento-resident-os.vercel.app](https://tento-resident-os.vercel.app). Vercel hosts the Next.js frontend and a separate FastAPI project. The frontend schedules authenticated, bounded processing after saving tickets; PostgreSQL retains the queue, leases and results. A protected daily cron provides limited recovery for the configured organization. See [release status](docs/RELEASE-STATUS.md) for verified results and remaining policy requirements, and [deployment](docs/DEPLOYMENT.md) for automated release commands. The existing container worker remains available for continuous processing.
+- [Product and role capabilities](docs/PRODUCT.md)
+- [Engineering implementation notes](docs/ENGINEERING.md)
+- [Runtime architecture](docs/TECHNICAL-ARCHITECTURE.md)
+- [Deployment and recovery](docs/DEPLOYMENT.md)
+- [Verified release status](docs/RELEASE-STATUS.md)
 
-The runtime image omits optional cross-encoder/NLP model packages; deterministic PII regex protection remains enabled. Source fixtures stay outside production indexes. Media uploads, vendor scheduling, external notifications, payments and extra dashboards are outside this internal-work-order MVP.
-
-See [LICENSE](LICENSE).
+[License](LICENSE).

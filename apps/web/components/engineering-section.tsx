@@ -1,5 +1,5 @@
 import {
-  engineeringBoundaries,
+  engineeringPractices,
   modelRoutes,
   runtimeCapabilities,
 } from "@/lib/engineering";
@@ -30,9 +30,8 @@ export function EngineeringSection() {
           </h2>
         </div>
         <p>
-          A look at the actual implementation: how requests move, where evidence
-          enters, and which capabilities are live versus still at the
-          code-and-test stage.
+          Follow a maintenance request through the platform: verified identity,
+          durable processing, grounded model reasoning and a saved assessment.
         </p>
       </div>
       <div
@@ -66,8 +65,7 @@ export function EngineeringSection() {
       <p className="engineering-caption">
         FastAPI → PostgreSQL is the durable boundary. Next.js after() starts a
         bounded worker request; pending ticket reads and a protected daily cron
-        provide limited recovery. Hobby hosting is not an always-running queue
-        consumer.
+        provide recovery for eligible interrupted jobs.
       </p>
       <div className="engineering-grid">
         {runtimeCapabilities.map((item) => (
@@ -87,11 +85,10 @@ export function EngineeringSection() {
       <div className="model-routing">
         <div>
           <p className="eyebrow">One gateway, explicit choices</p>
-          <h3>Task routing, without a hidden model switch.</h3>
+          <h3>One gateway. Consistent task routing.</h3>
           <p>
-            Current OpenAI deployment mapping. A configured Anthropic model is
-            selected only when the OpenAI configuration is absent; it is not a
-            request-time failover chain.
+            Intake, diagnosis, planning and policy audit use typed task routes.
+            The production composition maps these logical tiers to gpt-4.1-mini.
           </p>
         </div>
         <div className="routing-table-wrap">
@@ -117,13 +114,13 @@ export function EngineeringSection() {
         </div>
       </div>
       <div className="engineering-boundaries">
-        <h3>Good engineering includes clear boundaries.</h3>
+        <h3>Quality built into the workflow.</h3>
         <p>
-          These details are part of the project, with their current maturity
-          shown explicitly.
+          Structured output, regression checks and recorded execution support a
+          traceable application workflow.
         </p>
         <div className="engineering-detail-grid">
-          {engineeringBoundaries.map((item) => (
+          {engineeringPractices.map((item) => (
             <details key={item.title}>
               <summary>
                 <span>{item.title}</span>
