@@ -1,3 +1,15 @@
+# Engineering showcase and screenshot gallery - 25 October 2026
+
+The README and live home-page #engineering section now present source-audited models/routing, context/RAG, multi-agent orchestration, per-run memory, Supabase/PostgreSQL, Upstash/caching, guardrails, PII, prompt-injection boundaries, security, evaluation, execution limits, temperature behavior, TTFT and cost instrumentation. Status labels separate deployed composition from optional/tested modules and absent capabilities. MCP transport, live reranking, token-streaming TTFT and priced cost totals are not claimed as production features.
+
+README includes real public-page screenshots of the home page and blank sign-in form, plus the live engineering showcase. No account credentials or private resident records appear in these screenshots. docs/ENGINEERING.md links implementation details to the source and explains caveats, including single physical model routing and restart-based worker recovery.
+
+Release code: 68bf6da. Production web build, TypeScript and the existing isolated role/proxy/ticket-flow suite passed. [GitHub Web quality](https://github.com/vishalgwu/tento-agents/actions/runs/40164286108) passed. The frontend was deployed to the existing Vercel project. Desktop and 320px engineering layout checks showed no horizontal page overflow; MCP/cost disclosures expanded correctly and temporary viewport overrides were reset. Source-file links in the engineering deep dive were checked locally.
+
+This release documents and presents existing implementation; it does not enable MCP, reranking, persistent conversational memory, new providers or performance/cost benchmarks. Historical release evidence follows.
+
+---
+
 # Brand and UI release - 25 October 2026
 
 The current Vercel frontend uses the original Tento forest/ivory/lime identity, editorial headings, SVG wordmark and favicon, original conceptual courtyard imagery, responsive role-entry cards, branded sign-in layout and consistent workspace framing. Workspace summary counts derive only from loaded authorized records; no fabricated customer, occupancy or performance statistics were added.

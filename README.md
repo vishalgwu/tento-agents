@@ -2,6 +2,8 @@
 
 **[Open the live application on Vercel](https://tento-resident-os.vercel.app/)**
 
+[Screenshots](#application-preview) · [Engineering](#engineering-at-a-glance) · [Local setup](#local-workflow) · [Verification](#verify)
+
 One application for residents, maintenance teams, property owners and technical administrators, powered by an evidence-backed GenAI maintenance workflow.
 
 | Workspace | Live entry |
@@ -28,6 +30,13 @@ The shared visual identity covers the home page, sign-in, resident flows and sta
 ## Engineering at a glance
 
 The live system combines a Next.js/TypeScript frontend, FastAPI, LangGraph, OpenAI, Supabase PostgreSQL/Auth and Upstash Redis. The inventory below separates the deployed path from independently tested modules and unimplemented integrations. [Read the full engineering deep dive](docs/ENGINEERING.md), or explore [Engineering on the live home page](https://tento-resident-os.vercel.app/#engineering).
+
+<details>
+<summary>View the engineering section on the deployed home page</summary>
+
+[![Tento architecture and implementation showcase](output/release/tento-engineering.png)](https://tento-resident-os.vercel.app/#engineering)
+
+</details>
 
 ```mermaid
 flowchart LR
@@ -58,7 +67,7 @@ flowchart LR
 | PII and security | Regex redaction before model work; JWT roles, organization/tenancy checks, RLS, restricted DB roles, HttpOnly/Secure cookies, same-origin mutations, rate limits and sanitized errors. |
 | Evaluation | Versioned retrieval/injection/fair-housing fixtures; Recall@5/10, MRR and nDCG@10 harness; unit/contract and PostgreSQL integration checks. No published live RAG score. |
 | Latency and speed | Per-call elapsed latency recorded. Production bounds: 15s gateway call, 12 graph steps, 180s worker execution, 3 job attempts / 300s lease. **Limits are not benchmarks or SLAs.** |
-| TTFT / TIFT | Time to first token is not instrumented: model JSON responses are not token-streamed. Saved progress snapshots are not a token stream. |
+| First-token latency (TTFT) | Time to first token is not instrumented: model JSON responses are not token-streamed. Saved progress snapshots are not a token stream. |
 | Cost | Token usage is recorded, but the adapters do not price dollar totals. The default zero cost field is **unpriced, not free**. No verified per-ticket dollar cost, cost-saving percentage or dollar-budget enforcement is claimed. |
 
 The engineering deep dive links each area to source code, explains context allocations and documents operational limits. This is a working maintenance MVP with explicit implementation boundaries, not a claim that every listed research module is deployed.
