@@ -17,9 +17,51 @@ Tento Resident OS has one main page with Resident, Maintenance, Owner and Techni
 
 ## Application preview
 
-[![Tento Resident OS — live branded application](output/release/tento-brand-home.png)](https://tento-resident-os.vercel.app/)
+| Main application | Workspace sign-in |
+| --- | --- |
+| [![Tento live home page](output/release/tento-brand-home.png)](https://tento-resident-os.vercel.app/) | [![Tento real workspace sign-in screen](output/release/tento-sign-in.png)](https://tento-resident-os.vercel.app/sign-in?workspace=resident) |
+
+These are screenshots of the deployed application, with no account credentials shown. The courtyard artwork is an original conceptual brand image, not a property listing.
 
 The shared visual identity covers the home page, sign-in, resident flows and staff workspaces. See the [brand guide](docs/BRAND.md) for the palette, typography, imagery and interaction rules.
+
+## Engineering at a glance
+
+The live system combines a Next.js/TypeScript frontend, FastAPI, LangGraph, OpenAI, Supabase PostgreSQL/Auth and Upstash Redis. The inventory below separates the deployed path from independently tested modules and unimplemented integrations. [Read the full engineering deep dive](docs/ENGINEERING.md), or explore [Engineering on the live home page](https://tento-resident-os.vercel.app/#engineering).
+
+```mermaid
+flowchart LR
+  UI[Next.js / Vercel] --> API[FastAPI: JWT + RLS]
+  API --> DB[(Supabase PostgreSQL: saved ticket + job)]
+  API --> Rate[Upstash rate limits]
+  UI -->|after response| Worker[Bounded worker]
+  Worker --> Graph[LangGraph + model gateway]
+  Graph --> Ground[Scoped policy evidence + validation]
+  Ground --> DB
+```
+
+| Capability | Actual implementation / status |
+| --- | --- |
+| LLMs | Live OpenAI **gpt-4.1-mini**. Anthropic is an optional configuration alternative, not request-time failover. |
+| Models and router | Typed task classes/tiers. Intake and policy audit use logical Small; diagnosis and planning use Mid. The live composition currently maps **all tiers to one configured model**. |
+| Temperature / output | Temperature is **not explicitly set**. OpenAI JSON-object mode, Pydantic validation and a default 1,024-output-token cap. |
+| Multi-agent orchestration | Bounded LangGraph: safety → intake → context → diagnosis → planning → independent policy audit → deterministic gate. Stages stop when prerequisites fail. |
+| RAG and context | Live PostgreSQL lexical ranking with tenant, jurisdiction and effective-time filtering, exact citation spans and immutable policy claims. **Approved live policies are still required.** |
+| Context budget | Tokenizer-backed 8,000-token envelope, whole-block inclusion/omission, 1,600-token policy slot. Budget slots do not imply every slot is populated. |
+| Embeddings | Verified-source importer: **text-embedding-3-small / 1,536 dimensions**, in-process cache, PostgreSQL halfvec storage. Dense search is not the active production query path. |
+| Reranking | Tested hybrid RRF and **BAAI/bge-reranker-v2-m3** modules; cross-encoder omitted from the minimal runtime and not enabled in live retrieval. |
+| Memory | Per-run LangGraph MemorySaver plus durable PostgreSQL jobs/traces/results. Recovered attempts restart the graph; no cross-session personal chat memory. |
+| Database and Supabase | PostgreSQL/pgvector schema, Supabase asymmetric JWT Auth, explicit tenant predicates and transaction-local RLS, separate API/worker logins. |
+| Upstash and caching | TLS Redis rate-limit counters; PostgreSQL idempotency receipts. Provider cache-token usage is recorded; no shared semantic answer cache or measured hit-rate claim. |
+| MCP | Tool-grant vocabulary/authorizer exist. **No production application MCP transport is integrated.** Development connectors are separate from runtime features. |
+| Guardrails / prompt injection | Safety rules, local shield, typed untrusted context, no-write model capabilities, schema/citation/policy checks and server-controlled effects. No claim of injection immunity. |
+| PII and security | Regex redaction before model work; JWT roles, organization/tenancy checks, RLS, restricted DB roles, HttpOnly/Secure cookies, same-origin mutations, rate limits and sanitized errors. |
+| Evaluation | Versioned retrieval/injection/fair-housing fixtures; Recall@5/10, MRR and nDCG@10 harness; unit/contract and PostgreSQL integration checks. No published live RAG score. |
+| Latency and speed | Per-call elapsed latency recorded. Production bounds: 15s gateway call, 12 graph steps, 180s worker execution, 3 job attempts / 300s lease. **Limits are not benchmarks or SLAs.** |
+| TTFT / TIFT | Time to first token is not instrumented: model JSON responses are not token-streamed. Saved progress snapshots are not a token stream. |
+| Cost | Token usage is recorded, but the adapters do not price dollar totals. The default zero cost field is **unpriced, not free**. No verified per-ticket dollar cost, cost-saving percentage or dollar-budget enforcement is claimed. |
+
+The engineering deep dive links each area to source code, explains context allocations and documents operational limits. This is a working maintenance MVP with explicit implementation boundaries, not a claim that every listed research module is deployed.
 
 ## Start here
 

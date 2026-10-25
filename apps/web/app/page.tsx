@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Brand, WorkspaceIcon } from "@/components/brand";
+import { EngineeringSection } from "@/components/engineering-section";
 import { workspaces, type Workspace } from "@/lib/workspaces";
 
 const roles: Workspace[] = ["resident", "maintenance", "owner", "admin"];
@@ -30,7 +31,7 @@ export default function HomePage() {
       <header className="site-header">
         <Brand />
         <nav aria-label="Platform navigation">
-          <a href="#approach">Our approach</a>
+          <a href="#engineering">Engineering</a>
           <a href="#workspaces">Workspaces</a>
           <Link href="/sign-in" className="nav-signin">
             Sign in <span aria-hidden="true">↗</span>
@@ -191,6 +192,7 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+      <EngineeringSection />
       <section className="honesty-section">
         <span className="honesty-mark" aria-hidden="true">
           ✳
