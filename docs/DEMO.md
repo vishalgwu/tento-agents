@@ -40,3 +40,7 @@ The command reads ignored credentials, executes real model calls, saves genuine 
 No human policy-source handoff is required for this demo. The previous policy checklist PDF is superseded accordingly. Real-property use would still require verified sources, real staff/vendor records and operational acceptance; this release does not claim those.
 
 MCP, personal cross-session memory and semantic RAGAS faithfulness are not claimed as implemented here. The demo uses the existing model gateway, contextual retrieval, bounded multi-agent orchestration, per-run memory, PII/injection screening and deterministic authority boundaries. Scope-specific future extensions remain documented in PART-2-GENAI.md.
+
+## Release verification
+
+Code release d72f4c0 passed 354 local Python tests, full mypy across 124 files, frontend build/type checks, the expanded proxy contract suite, Web CI and Python/PostgreSQL CI. Both Vercel projects were deployed. The main-page link, recorded exploration, emergency scenario and genuine authenticated fresh four-stage assessment were verified in the deployed browser. Layout checks at 558px and 1265px found no horizontal overflow. No production policy import or operational write was performed. [Release evidence](RELEASE-STATUS.md).

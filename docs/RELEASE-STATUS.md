@@ -4,7 +4,13 @@ The supplied fictional Maple Court pack is now normalized and used by an isolate
 
 A real citation-schema integration gap was corrected without relaxing validators: model-facing schemas expose bracketed provenance patterns, diagnosis/planning prompts are v2, and the policy-audit prompt is v3. One recorded plan passed all four model stages; four emergency cases stopped before model calls; ten cases remained abstentions, including one citation rejection. No recorded failures were replaced with successful outputs. See [demo methods and results](DEMO.md).
 
-Local verification: 354 Python tests passed (five dedicated PostgreSQL cases skipped locally), focused demo/tenant tests passed, the Next.js production build passed, and proxy tests now cover demo authentication, same-origin checks, validation and generated replay keys. Full static, CI and deployed validation evidence is recorded below after release.
+Local verification: 354 Python tests passed (five dedicated PostgreSQL cases skipped locally), focused demo/tenant tests passed, the Next.js production build passed, and proxy tests now cover demo authentication, same-origin checks, validation and generated replay keys. Full mypy passed across 124 files, with lint/format and frontend type/build checks passing.
+
+Release implementation: **d72f4c0**. [Web quality](https://github.com/vishalgwu/tento-agents/actions/runs/40237259988) and [Python quality / PostgreSQL integration](https://github.com/vishalgwu/tento-agents/actions/runs/40237259933) passed. Both existing Vercel projects were deployed through the secure helper; no database migration or synthetic-policy import occurred.
+
+Deployed verification passed: service/database/Redis health, existing workspace authentication boundaries, public /demo recorded exploration, main-page Try the demo navigation, and a genuine authenticated fresh cabinet assessment with completed intake, diagnosis, planning and policy audit. The response explicitly reported no real work order, ticket, dispatch or notification. Public emergency exploration also returned the safety outcome. The demo was checked at 558px and 1265px layouts without horizontal overflow; temporary viewport overrides were reset. [Live assessment screenshot](../output/release/tento-policy-demo.png). The revised one-page PDF was rendered and visually inspected.
+
+No policy-source human action remains for the fictional demo. The real-property source requirement remains relevant only to future real-world operation.
 
 ---
 

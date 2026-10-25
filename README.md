@@ -12,6 +12,8 @@ An AI-assisted maintenance platform connecting residents, maintenance teams, pro
 
 [Open the fictional Maple Court demo](https://tento-resident-os.vercel.app/demo) to inspect **15 real recorded agent runs**, exact citations from **five synthetic policy documents**, and the decision trace. Recorded exploration needs no login; authenticated users can run a fresh assessment. Fictional demo data stays outside the maintenance knowledge index, and the demo creates no real ticket, work order or notification. [Dataset, methodology and results](docs/DEMO.md).
 
+[![Tento policy-grounded demo](output/release/tento-policy-demo.png)](https://tento-resident-os.vercel.app/demo)
+
 ## Product experience
 
 Residents sign in, select an authorized residence, submit a report and follow its assessment. Staff workspaces display organization-scoped requests, agent outcomes and service readiness. The API verifies account roles and tenant membership for every protected request.
