@@ -100,22 +100,30 @@ Production uses a 15-second gateway-call timeout, a 1,024-output-token route def
 
 ## Resume-ready project bullets
 
-**Tento Resident OS | Full-stack Generative AI Project**
+**Tento Resident OS | Full-stack Generative AI Engineering**
 
-- **Built and deployed** a multi-tenant GenAI maintenance platform with **Next.js, FastAPI, OpenAI GPT-4.1-mini and Supabase**, supporting **four role-based workspaces** with server-verified access and organization-scoped data.
-- **Orchestrated four specialist LLM stages with LangGraph**, combining typed handoffs, deterministic safety screening and independent policy validation to produce traceable assessments and explicit evidence-based abstention.
-- **Engineered a tenant-scoped RAG workflow** using PostgreSQL full-text retrieval, effective-date and jurisdiction filters, exact citation spans and an **8,000-token context budget** to ground maintenance reasoning in applicable sources.
-- **Implemented durable asynchronous processing** with atomic ticket/job creation, idempotency receipts, fenced PostgreSQL leases and bounded retries, decoupling saved request receipts from long-running agent execution.
-- **Hardened the AI and API boundaries** with PII redaction, prompt-injection screening, Supabase JWT verification, PostgreSQL RLS and Upstash rate limiting; validated workflows through **354 passing Python tests**, PostgreSQL integration and automated web contract checks.
+Next.js · TypeScript · FastAPI · GPT-4.1-mini · LangGraph · Supabase · Upstash · Vercel
 
-### Measured GenAI engineering
+Select three or four bullets for a resume and retain the benchmark scope.
 
-- **Instrumented and benchmarked GPT-4.1-mini intake** across **30 synthetic runs (six unique reports)**, measuring **0.876s p95 intake latency**, **0.562s p95 provider first-content latency** and **$0.000325 estimated token cost per run**.
-- **Implemented a tenant-isolated Upstash embedding cache**, reducing warm lookup p95 by **96.0% (320.4ms to 12.8ms)** and avoiding **20 repeat provider calls** in a **20-pair synthetic OpenAI/Redis benchmark**.
+- **Built and deployed a multi-tenant GenAI maintenance platform** with Next.js, FastAPI, GPT-4.1-mini and Supabase, connecting **four role-based workspaces** to a **four-stage LangGraph workflow** with server-verified identity and organization-scoped PostgreSQL RLS.
+- **Reduced warm embedding-lookup p95 by 96.0%**, from **320.4ms to 12.8ms**, using a tenant-isolated Upstash Redis cache; avoided **20 repeat embedding-provider calls** in a **20-pair synthetic miss/hit benchmark**.
+- **Instrumented structured LLM intake**, measuring **0.876s p95 intake latency**, **0.562s p95 provider first-content latency** and **$0.000325 estimated token cost per run** across **30 synthetic runs over six unique reports**.
+- **Hardened model-input boundaries against prompt injection** using PII redaction, labeled untrusted context and server-controlled write capabilities; validated **40 synthetic cases across five input paths** with **zero accepted write-capable untrusted contexts** in those tests.
+- **Engineered typed handoffs across four specialist LLM stages** with Pydantic validation, model-visible citation schemas and exact provenance-membership checks; combined JWT verification, tenant RLS and retry controls in a platform validated by **354 passing Python tests** and PostgreSQL integration checks.
+- **Delivered an evidence-grounded AI demo** over **five versioned synthetic policy documents and ten exact-span claims**, exposing **fifteen recorded scenarios** plus authenticated live reruns; **four recorded emergency scenarios stopped before model calls**, while unsupported plans remained explicit abstentions.
 
-These are local synthetic benchmarks; the slowest intake run was **9.734s**. [Sample scope, raw reports and reproduction](docs/PART-2-GENAI.md).
+### Measurement evidence
 
-- **Delivered a policy-grounded GenAI demo** with **five versioned synthetic sources, ten exact-span policy claims and fifteen scenarios**, combining a bounded four-stage agent workflow, emergency screening, independent policy audit and inspectable recorded/live results.
+| Result | Verified scope | Evidence |
+| --- | --- | --- |
+| 96.0% lower warm embedding lookup p95 | 20 synthetic miss/hit pairs; OpenAI embeddings + hosted Redis | [Cache report](output/benchmarks/part2-embedding-cache.json) |
+| 0.876s intake p95; 0.562s provider first-content p95 | 30 sequential synthetic runs; six unique reports | [Intake report](output/benchmarks/part2-intake-temperature-zero.json) |
+| 40 untrusted-input cases; five ingress types | Capability-boundary regression coverage, including cases the lexical scanner does not flag | [Boundary tests](services/brain/tests/test_injection_dataset.py) |
+| Recall@3 90.5%; Precision@3 57.1% | 14 source-labeled development queries over five fictional documents; isolated SQLite FTS5/BM25 | [Demo retrieval report](output/benchmarks/part2-demo-retrieval.json) |
+| 354 passing Python tests; five PostgreSQL integration cases passed in CI | Unit, contract, isolation and workflow checks | [Release evidence](docs/RELEASE-STATUS.md) |
+
+Latency and cache figures are local development benchmarks, not production SLAs; the slowest measured intake run was **9.734s**. Provider first-content timing is measured at the worker, not browser-visible token delivery. Token costs are estimates for completed intake calls, not whole-ticket or infrastructure costs. The 40-case result measures rejection of write-capable untrusted context, not a universal injection-detection rate. The retrieval corpus is small and not held out. [Methods](docs/PART-2-GENAI.md) · [Demo scope](docs/DEMO.md).
 
 ## Local development
 

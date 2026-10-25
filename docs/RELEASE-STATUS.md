@@ -1,3 +1,13 @@
+# Verified-results showcase and resume documentation - 25 October 2026
+
+The README now contains concise action/implementation/result project bullets, a linked evidence table and explicit benchmark scope. docs/RESUME.md provides interview talking points and prevents conflating the existing tool-authorizer module or development connectors with an application MCP transport. No MCP delivery claim was added.
+
+The home-page engineering section now displays six visible results: 96.0% lower warm embedding lookup p95, 0.876s measured intake p95, forty prompt-boundary cases across five ingress types, four typed agent stages, fifteen fictional demo scenarios and 354 passing Python tests. Every card links to its report, tests or implementation. The previous synthetic-policy demo and authenticated runtime are unchanged.
+
+Local production build and frontend type checks passed. The exact injection evidence was rerun: forty parametrized cases plus one corpus-integrity check passed. Final web regression, CI and deployment evidence follows after publication.
+
+---
+
 # Part 2B: supplied-policy demonstration - 25 October 2026
 
 The supplied fictional Maple Court pack is now normalized and used by an isolated demo runtime. Five fixture documents, ten exact-span claims and fifteen real recorded graph runs support the public /demo explorer; signed-in users can rerun scenarios through the authenticated API. Demo assessments cannot create real tickets, work orders or notifications. The maintenance source index and existing resident records remain separate. The previous human policy-source PDF is superseded for demonstration use; no real-property approval is required to run this project demo.

@@ -2,6 +2,7 @@ import {
   engineeringPractices,
   modelRoutes,
   runtimeCapabilities,
+  verifiedResults,
 } from "@/lib/engineering";
 
 const repository = "https://github.com/vishalgwu/tento-agents/blob/main/";
@@ -34,6 +35,47 @@ export function EngineeringSection() {
           durable processing, grounded model reasoning and a saved assessment.
         </p>
       </div>
+      <section
+        className="verified-results"
+        aria-labelledby="verified-results-title"
+      >
+        <div className="verified-results-heading">
+          <p className="eyebrow">Built. Tested. Measured.</p>
+          <h3 id="verified-results-title">Engineering you can inspect.</h3>
+          <p>
+            Measured project results, with the workload and evidence beside each
+            claim.
+          </p>
+        </div>
+        <div className="verified-results-grid">
+          {verifiedResults.map((item) => (
+            <article key={item.title} className="verified-result">
+              <p className="verified-result-value">{item.value}</p>
+              <h4>{item.title}</h4>
+              <p>{item.scope}</p>
+              <a href={repository + item.source} className="text-link">
+                Inspect evidence ↗
+              </a>
+            </article>
+          ))}
+        </div>
+        <p className="engineering-caption">
+          Synthetic benchmark figures describe their stated workloads. Intake
+          timing is not a repair-time SLA, and boundary tests are not an
+          exhaustive security guarantee.
+        </p>
+        <div className="engineering-evidence">
+          <a href="/demo" className="brand-button">
+            Explore the policy demo ↗
+          </a>
+          <a
+            href={repository + "README.md#resume-ready-project-bullets"}
+            className="text-link"
+          >
+            Read the project highlights ↗
+          </a>
+        </div>
+      </section>
       <div
         className="engineering-stack"
         aria-label="Production technology stack"

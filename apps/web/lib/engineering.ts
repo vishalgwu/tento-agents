@@ -13,7 +13,7 @@ export const runtimeCapabilities = [
     title: "Grounding before generation",
     tag: "RAG + CONTEXT",
     detail:
-      "PostgreSQL lexical retrieval filters policy evidence by organization, jurisdiction and effective date. Citation spans and immutable policy claims feed a whole-block context budget: 8,000 tokens overall, including a 1,600-token policy slot. Approved live policies are still required.",
+      "PostgreSQL lexical retrieval filters policy evidence by organization, jurisdiction and effective date. Citation spans and immutable policy claims feed a whole-block context budget: 8,000 tokens overall, including a 1,600-token policy slot. The fictional demo uses a separate five-document SQLite FTS5/BM25 index with exact-span evidence; its sources stay outside the maintenance index.",
     source: "services/brain/src/brain/production.py",
   },
   {
@@ -93,4 +93,50 @@ export const modelRoutes = [
   { task: "Diagnosis", tier: "Mid", model: "gpt-4.1-mini" },
   { task: "Dispatch planning", tier: "Mid", model: "gpt-4.1-mini" },
   { task: "Policy audit", tier: "Small", model: "gpt-4.1-mini" },
+] as const;
+
+/** Public results: scope and evidence are mandatory alongside every number. */
+export const verifiedResults = [
+  {
+    value: "96.0%",
+    title: "Lower warm embedding lookup p95",
+    scope:
+      "320.4ms → 12.8ms in 20 synthetic OpenAI/Upstash miss-hit pairs; 20 repeat provider calls avoided.",
+    source: "output/benchmarks/part2-embedding-cache.json",
+  },
+  {
+    value: "0.876s",
+    title: "Measured intake p95",
+    scope:
+      "30 synthetic runs over six reports. Provider first-content p95: 0.562s; slowest intake: 9.734s. Local benchmark.",
+    source: "output/benchmarks/part2-intake-temperature-zero.json",
+  },
+  {
+    value: "40 cases",
+    title: "Prompt-injection boundary coverage",
+    scope:
+      "Five synthetic ingress types. All 40 tests rejected write-capable untrusted context; this measures a capability boundary, not universal detection accuracy.",
+    source: "services/brain/tests/test_injection_dataset.py",
+  },
+  {
+    value: "4 stages",
+    title: "Typed agent orchestration",
+    scope:
+      "Intake, diagnosis, planning and policy audit use validated Pydantic handoffs, bracketed citations and server-controlled authority.",
+    source: "services/brain/src/brain/graph/nodes.py",
+  },
+  {
+    value: "15 scenarios",
+    title: "Inspect the grounded demo",
+    scope:
+      "Five fictional policy documents, ten exact-span claims and genuine recorded/live results. Four recorded emergencies stopped before model calls.",
+    source: "docs/DEMO.md",
+  },
+  {
+    value: "354 tests",
+    title: "Verified engineering checks",
+    scope:
+      "Python regressions passed, alongside PostgreSQL integration, full type checks, frontend builds and authenticated web contract checks.",
+    source: "docs/RELEASE-STATUS.md",
+  },
 ] as const;

@@ -127,3 +127,9 @@ The adapter estimates GPT-4.1-mini token cost using the versioned rate card in g
 [Part 2 methods, resume-safe scoped metrics and raw evidence](PART-2-GENAI.md). The checked-in baseline and final synthetic runs are separate observations, not a controlled causal experiment. No model migration, production reliability percentage, repair-time gain or retrieval-accuracy improvement is inferred from those runs.
 
 Sources: [gateway receipts](../services/brain/src/brain/gateway/client.py), [worker limits](../services/api/src/api/worker.py), [web dispatch](../apps/web/lib/run-dispatch.ts), [hosting limitations](DEPLOYMENT.md).
+
+## Hiring-manager project evidence
+
+The live home-page results section links six delivered capabilities to their source: scoped cache and intake benchmarks, 40 synthetic prompt-boundary cases across five ingress types, four typed agent stages, fifteen fictional demo scenarios and 354 passing Python tests. The injection suite contains one corpus-integrity check plus forty parametrized boundary checks; all 41 tests pass. No universal attack-detection rate is asserted.
+
+The [README resume bullets](../README.md#resume-ready-project-bullets) retain workload sizes and measurement scope. [Interview evidence](RESUME.md) distinguishes prompt-injection defenses, typed validation and server authority from unimplemented MCP transport. Application runtime MCP delivery is not claimed.
