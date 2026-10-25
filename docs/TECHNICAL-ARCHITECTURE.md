@@ -27,3 +27,9 @@ Provider keys stay on Python. Next.js uses HttpOnly, Secure-in-production sessio
 The API awaits one bounded worker execution per processing request; Next.js after() awaits that request after returning the saved receipt. Database leases permit recovery after interruption. Its direct compatibility endpoint /v1/agent/run still performs bounded non-persisted safety/intake analysis. The resident UI uses persisted /v1/tickets and run/status reads. Internal work orders are database records, not vendor dispatch receipts. No external operational transport is enabled.
 
 Use the explicit migration runner and database backups. Runtime roles cannot apply schema changes. Use scripts/deploy_vercel.py to stage and deploy the two Vercel projects. See DEPLOYMENT.md and KEYS-AND-SETUP.md.
+
+## Part 2 measurement and caching
+
+Production OpenAI stages stream internally to measure first non-empty content while retaining full JSON/schema validation before graph handoff. Deployment-owned tier model IDs, temperature and output caps are included in request identity. Versioned token prices estimate known-model usage; content-free worker logs carry first-content timing, pricing version and generation settings. Existing PostgreSQL receipts retain per-attempt usage, elapsed latency and estimates; historical records are preserved.
+
+Verified-source ingestion reuses embeddings through a tenant-scoped Upstash Redis cache with a 24-hour TTL, dimensional/model/digest validation and cache-miss fallback on Redis errors. No resident answer cache, cross-session personal memory or new document authority is introduced. [Part 2 methods and evidence](PART-2-GENAI.md).

@@ -5,7 +5,7 @@ export const runtimeCapabilities = [
     title: "Models, with an explicit route",
     tag: "LLM + ROUTING",
     detail:
-      "OpenAI gpt-4.1-mini serves intake, diagnosis, planning and policy audit through a typed gateway. Task tiers are logical; the live composition maps every tier to one configured model. Structured responses are validated before the next stage receives them.",
+      "OpenAI gpt-4.1-mini serves intake, diagnosis, planning and policy audit through a typed gateway at temperature 0. Deployment-owned tier overrides support independent model configuration. Task tiers are logical; the live composition maps every tier to one configured model. Structured responses are validated before the next stage receives them.",
     source: "services/brain/src/brain/production.py",
   },
   {
@@ -69,8 +69,22 @@ export const engineeringPractices = [
     title: "Execution observability",
     status: "Recorded",
     detail:
-      "Model-call receipts retain prompt versions, input/output token usage, cached-token counts, elapsed latency and outcomes. Saved agent steps and guardrail receipts make each assessment traceable.",
+      "Model-call receipts retain prompt versions, input/output token usage, cached-token counts, elapsed latency and outcomes. Content-free worker logs add provider first-content timing and versioned token-cost estimates. Saved agent steps and guardrail receipts make each assessment traceable.",
     source: "services/brain/src/brain/gateway/client.py",
+  },
+  {
+    title: "Measured intake latency",
+    status: "Synthetic benchmark",
+    detail:
+      "30 sequential synthetic intake runs over six unique reports measured 0.876s p95 intake latency and 0.562s p95 provider first-content latency. The slowest run was 9.734s. This is a local development benchmark, not a production SLA. Raw observations and configuration are published.",
+    source: "docs/PART-2-GENAI.md",
+  },
+  {
+    title: "Measured embedding reuse",
+    status: "Paired benchmark",
+    detail:
+      "A tenant-scoped Upstash embedding cache avoided 20 repeat provider calls in 20 synthetic miss/hit pairs. Warm lookup p95 fell from 320.4ms to 12.8ms (96.0%). This measures embedding reuse, not full ticket processing. Verified-source ingestion preserves source eligibility checks.",
+    source: "docs/PART-2-GENAI.md",
   },
 ] as const;
 

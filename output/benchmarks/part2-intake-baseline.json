@@ -1,0 +1,268 @@
+{
+  "scope": "synthetic intake-agent benchmark; not end-to-end repair time or production SLO",
+  "created_at": "2026-10-25T05:38:02.473822+00:00",
+  "git_sha": "156133fcfc7bd9dfd9a8be6f6ea96cfeff1b11b3",
+  "source_sha256": "c2fb467fc7b245ca57bc148deaf4dc415b00711296ec89c3c4b4c4a6b7da5040",
+  "dataset_sha256": "bd35059983d973fde00a59d5c130aa8771c95467c7a8228ca5307ab075acff59",
+  "python": "3.12.10",
+  "platform": "Windows",
+  "concurrency": 1,
+  "samples": 30,
+  "unique_cases": 6,
+  "routes": {
+    "small": {
+      "provider": "openai",
+      "model_name": "gpt-4.1-mini",
+      "model_version": "gpt-4.1-mini",
+      "max_output_tokens": 1024,
+      "temperature": null
+    },
+    "mid": {
+      "provider": "openai",
+      "model_name": "gpt-4.1-mini",
+      "model_version": "gpt-4.1-mini",
+      "max_output_tokens": 1024,
+      "temperature": null
+    },
+    "large": {
+      "provider": "openai",
+      "model_name": "gpt-4.1-mini",
+      "model_version": "gpt-4.1-mini",
+      "max_output_tokens": 1024,
+      "temperature": null
+    }
+  },
+  "accuracy": 1.0,
+  "completion_rate": 1.0,
+  "p50_intake_ms": 738.509,
+  "p95_intake_ms": 1281.751,
+  "p50_provider_ttft_ms": 406.0,
+  "p95_provider_ttft_ms": 1000.0,
+  "provider_attempts": 30,
+  "measured_streams": 30,
+  "priced_streams": 30,
+  "estimated_cost_microusd": 9716,
+  "input_tokens": 17915,
+  "cached_input_tokens": 0,
+  "output_tokens": 1587,
+  "price_version": "openai-standard-2026-10-25",
+  "price_source": "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
+  "observations": [
+    {
+      "case_id": "intake-01",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 17315.856
+    },
+    {
+      "case_id": "intake-02",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 1281.751
+    },
+    {
+      "case_id": "intake-03",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 1106.948
+    },
+    {
+      "case_id": "intake-04",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 1108.739
+    },
+    {
+      "case_id": "intake-05",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 745.431
+    },
+    {
+      "case_id": "intake-06",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 794.793
+    },
+    {
+      "case_id": "intake-01",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 679.969
+    },
+    {
+      "case_id": "intake-02",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 945.971
+    },
+    {
+      "case_id": "intake-03",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 1096.526
+    },
+    {
+      "case_id": "intake-04",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 656.42
+    },
+    {
+      "case_id": "intake-05",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 1254.323
+    },
+    {
+      "case_id": "intake-06",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 711.574
+    },
+    {
+      "case_id": "intake-01",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 654.502
+    },
+    {
+      "case_id": "intake-02",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 651.143
+    },
+    {
+      "case_id": "intake-03",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 750.679
+    },
+    {
+      "case_id": "intake-04",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 699.995
+    },
+    {
+      "case_id": "intake-05",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 738.509
+    },
+    {
+      "case_id": "intake-06",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 661.313
+    },
+    {
+      "case_id": "intake-01",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 721.086
+    },
+    {
+      "case_id": "intake-02",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 684.18
+    },
+    {
+      "case_id": "intake-03",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 672.213
+    },
+    {
+      "case_id": "intake-04",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 660.059
+    },
+    {
+      "case_id": "intake-05",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 807.035
+    },
+    {
+      "case_id": "intake-06",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 697.128
+    },
+    {
+      "case_id": "intake-01",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 688.899
+    },
+    {
+      "case_id": "intake-02",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 767.224
+    },
+    {
+      "case_id": "intake-03",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 756.859
+    },
+    {
+      "case_id": "intake-04",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 815.196
+    },
+    {
+      "case_id": "intake-05",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 756.939
+    },
+    {
+      "case_id": "intake-06",
+      "correct": true,
+      "completed": true,
+      "repair_attempted": false,
+      "elapsed_ms": 693.105
+    }
+  ],
+  "limitations": [
+    "Small synthetic development set, not a held-out production evaluation.",
+    "TTFT measures first non-empty provider content at the worker, not browser-visible text.",
+    "Costs estimate completed streams with final usage only; interrupted attempts may also be billed.",
+    "Repeated cases are correlated; no population reliability or repair-time improvement is inferred."
+  ]
+}

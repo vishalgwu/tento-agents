@@ -96,3 +96,7 @@ does not improve at least one measured metric without regressing any retrieval
 or no-match metric. Delete the reranker rather than keeping an unmeasured or
 non-improving component. Do not commit a made-up report: the repository has no
 published retrieval numbers until a real run produces one.
+
+## Live model and embedding-cache measurements
+
+Part 2 adds explicitly opt-in `python -m evals.model_benchmark --live --samples 30` and `python -m evals.cache_benchmark --live --samples 20`. Set PYTHONPATH to services/brain/src. They read ignored local configuration, consume bounded provider calls and save content-free observations under output/benchmarks. The intake fixture has six synthetic development reports, not production policy evidence or a held-out accuracy set. Cache pairs use random-tenant short-lived synthetic vectors with cleanup. See [methodology and recorded measurements](../docs/PART-2-GENAI.md).

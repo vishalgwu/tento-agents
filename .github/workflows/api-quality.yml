@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/api-quality.yml'
       - 'knowledge/**'
+      - 'evals/**'
       - 'infra/migrations/**'
       - 'infra/seed/**'
       - 'pyproject.toml'
@@ -20,6 +21,7 @@ on:
     paths:
       - '.github/workflows/api-quality.yml'
       - 'knowledge/**'
+      - 'evals/**'
       - 'infra/migrations/**'
       - 'infra/seed/**'
       - 'pyproject.toml'

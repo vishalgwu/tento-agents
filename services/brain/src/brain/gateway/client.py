@@ -11,6 +11,8 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
+import math
 import random
 import re
 import time
@@ -38,6 +40,8 @@ from jinja2.exceptions import TemplateError
 from jinja2.sandbox import SandboxedEnvironment
 from pydantic import BaseModel, ValidationError
 
+from brain.gateway.pricing import PRICE_VERSION, estimate_microusd
+
 from brain.guardrails.injection import (
     PromptContext,
     PromptContextError,
@@ -50,6 +54,17 @@ _PROMPT_VERSION_PATTERN: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _FRONT_MATTER_DELIMITER: Final = "---"
 _CACHE_BOUNDARY: Final = "<!-- resident-os:dynamic -->"
 _PROMPT_ROOT: Final = Path(__file__).resolve().parents[1] / "prompts"
+
+
+def configure_model_metrics_logging() -> None:
+    """Enable content-free JSON events in the deployed worker's log stream."""
+    logger = logging.getLogger("tento.model_metrics")
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
 
 
 class GatewayError(RuntimeError):
@@ -149,6 +164,7 @@ class ModelRoute:
     model_name: str
     model_version: str
     max_output_tokens: int = 1_024
+    temperature: float | None = None
 
     def __post_init__(self) -> None:
         if not self.provider.strip():
@@ -157,6 +173,10 @@ class ModelRoute:
             raise ValueError("model_name must be non-blank")
         if not self.model_version.strip():
             raise ValueError("model_version must be non-blank")
+        if self.temperature is not None and (
+            not math.isfinite(self.temperature) or not 0 <= self.temperature <= 2
+        ):
+            raise ValueError("temperature must be finite and between zero and two")
         if self.max_output_tokens <= 0:
             raise ValueError("max_output_tokens must be positive")
 
@@ -331,8 +351,12 @@ class ProviderCompletion:
     output_tokens: int = 0
     cached_input_tokens: int = 0
     cost_microusd: int = 0
+    first_token_ms: int | None = None
+    pricing_version: str | None = None
 
     def __post_init__(self) -> None:
+        if self.first_token_ms is not None and self.first_token_ms < 0:
+            raise ValueError("first token latency must be non-negative")
         if any(
             value < 0
             for value in (
@@ -419,8 +443,9 @@ class OpenAIProvider:
 
     name: Final[str] = "openai"
 
-    def __init__(self, client: AsyncOpenAI) -> None:
+    def __init__(self, client: AsyncOpenAI, *, streaming: bool = False) -> None:
         self._client = client
+        self._streaming = streaming
 
     async def invoke(
         self,
@@ -440,7 +465,12 @@ class OpenAIProvider:
                 retryable=False,
             )
 
+        started = time.monotonic()
         try:
+            if self._streaming:
+                return await self._invoke_stream(
+                    route=route, prompt=prompt, started=started
+                )
             response = await self._client.chat.completions.create(
                 model=route.model_name,
                 messages=[
@@ -455,6 +485,9 @@ class OpenAIProvider:
                 ],
                 response_format={"type": "json_object"},
                 max_completion_tokens=route.max_output_tokens,
+                temperature=route.temperature
+                if route.temperature is not None
+                else openai.NOT_GIVEN,
             )
 
         except (
@@ -502,11 +535,96 @@ class OpenAIProvider:
         if usage and usage.prompt_tokens_details:
             cached_tokens = usage.prompt_tokens_details.cached_tokens or 0
 
+        cost = (
+            estimate_microusd(
+                route.model_name,
+                input_tokens=input_tokens,
+                cached_tokens=cached_tokens,
+                output_tokens=output_tokens,
+            )
+            if usage
+            else None
+        )
         return ProviderCompletion(
             output_text=output_text,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             cached_input_tokens=cached_tokens,
+            cost_microusd=cost or 0,
+            pricing_version=PRICE_VERSION if cost is not None else None,
+        )
+
+    async def _invoke_stream(
+        self, *, route: ModelRoute, prompt: RenderedPrompt, started: float
+    ) -> ProviderCompletion:
+        """Measure provider first-content latency; keep partial JSON private.
+
+        Only complete, non-refused output reaches schema validation. A missing
+        final usage chunk is unknown accounting, never a free completion.
+        """
+        stream = await self._client.chat.completions.create(
+            model=route.model_name,
+            messages=[
+                {"role": "system", "content": prompt.static_prefix},
+                {"role": "user", "content": prompt.dynamic_suffix},
+            ],
+            response_format={"type": "json_object"},
+            max_completion_tokens=route.max_output_tokens,
+            stream=True,
+            stream_options={"include_usage": True},
+            temperature=route.temperature
+            if route.temperature is not None
+            else openai.NOT_GIVEN,
+        )
+        content: list[str] = []
+        first_token_ms = None
+        finish = None
+        usage = None
+        refused = False
+        async with stream:
+            async for chunk in stream:
+                if chunk.usage is not None:
+                    usage = chunk.usage
+                if not chunk.choices:
+                    continue
+                choice = chunk.choices[0]
+                if choice.delta.refusal:
+                    refused = True
+                if choice.delta.content:
+                    if first_token_ms is None:
+                        first_token_ms = _latency_ms(started)
+                    content.append(choice.delta.content)
+                if choice.finish_reason is not None:
+                    finish = choice.finish_reason
+        if finish != "stop" or refused or not "".join(content).strip():
+            raise ProviderCallError(
+                "OpenAI stream was refused or incomplete", retryable=False
+            )
+        input_tokens = usage.prompt_tokens if usage else 0
+        output_tokens = usage.completion_tokens if usage else 0
+        cached_tokens = (
+            (usage.prompt_tokens_details.cached_tokens or 0)
+            if usage and usage.prompt_tokens_details
+            else 0
+        )
+        cost = (
+            estimate_microusd(
+                route.model_name,
+                input_tokens=input_tokens,
+                cached_tokens=cached_tokens,
+                output_tokens=output_tokens,
+            )
+            if usage
+            else None
+        )
+        return ProviderCompletion(
+            output_text="".join(content),
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cached_input_tokens=cached_tokens,
+            cost_microusd=cost or 0,
+            first_token_ms=first_token_ms,
+            pricing_version=PRICE_VERSION if cost is not None else None,
         )
 
 
@@ -802,6 +920,8 @@ class GatewayClient:
                     "task": task.value,
                     "model_name": route.model_name,
                     "model_version": route.model_version,
+                    "temperature": route.temperature,
+                    "max_output_tokens": route.max_output_tokens,
                     "prompt": prompt.content,
                     "schema_sha256": schema_digest,
                 },
@@ -868,6 +988,30 @@ class GatewayClient:
             else:
                 completed_at = _utc_now()
                 response_digest = _sha256(completion.output_text)
+                # Operational logs contain no prompts, raw outputs or resident PII.
+                logging.getLogger("tento.model_metrics").info(
+                    json.dumps(
+                        {
+                            "event": "model_completion",
+                            "org_id": str(self._context.org_id),
+                            "run_id": str(self._context.agent_run_id),
+                            "task": task.value,
+                            "attempt": attempt_number,
+                            "model": route.model_name,
+                            "temperature": route.temperature,
+                            "first_token_ms": completion.first_token_ms,
+                            "latency_ms": _latency_ms(started_monotonic),
+                            "estimated_cost_microusd": completion.cost_microusd
+                            if completion.pricing_version
+                            else None,
+                            "pricing_version": completion.pricing_version,
+                            "input_tokens": completion.input_tokens,
+                            "output_tokens": completion.output_tokens,
+                            "cached_input_tokens": completion.cached_input_tokens,
+                        },
+                        sort_keys=True,
+                    )
+                )
                 try:
                     result = schema.model_validate_json(completion.output_text)
                 except ValidationError as exc:

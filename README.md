@@ -4,6 +4,10 @@
 
 An AI-assisted maintenance platform connecting residents, maintenance teams, property owners and technical administrators. Tento turns a resident's report into a saved, traceable assessment through a tenant-scoped agent workflow.
 
+## Project parts
+
+**Part 1 — deployed MVP:** authenticated reporting, four workspaces and autonomous maintenance assessment. **Part 2A — measurement and caching:** configurable model tiers, temperature controls, provider first-content timing, token-price estimates and tenant-scoped Upstash embedding reuse. [Implementation, measured results and next gates](docs/PART-2-GENAI.md).
+
 ## Product experience
 
 Residents sign in, select an authorized residence, submit a report and follow its assessment. Staff workspaces display organization-scoped requests, agent outcomes and service readiness. The API verifies account roles and tenant membership for every protected request.
@@ -54,7 +58,7 @@ Screenshots show the deployed application with no account credentials. The court
 | Dispatch planning | Mid | gpt-4.1-mini |
 | Policy audit | Small | gpt-4.1-mini |
 
-The production composition maps these logical task tiers to the configured OpenAI model. [Gateway implementation](services/brain/src/brain/gateway/client.py) · [Production composition](services/brain/src/brain/production.py).
+The current deployment uses temperature 0 and maps these logical tiers to GPT-4.1-mini. Server-owned tier overrides allow independently configured models; the gateway records the selected model and generation settings. [Gateway implementation](services/brain/src/brain/gateway/client.py) · [Production composition](services/brain/src/brain/production.py).
 
 ## Architecture
 
@@ -84,7 +88,7 @@ Production uses a 15-second gateway-call timeout, a 1,024-output-token route def
 | API | FastAPI, Python, Pydantic | Typed contracts, verified identity and request controls |
 | Agent runtime | LangGraph, OpenAI gpt-4.1-mini | Typed orchestration and structured model generation |
 | Data and identity | Supabase PostgreSQL, Supabase Auth | Tenant records, durable jobs, audit receipts and signed identity |
-| Rate limiting | Upstash Redis over TLS | Organization/person request budgets |
+| Rate limiting and embedding reuse | Upstash Redis over TLS | Request budgets and tenant-scoped verified-source embedding cache |
 | Quality | pytest, Ruff, mypy, TypeScript, GitHub Actions | Unit, contract, database and web quality gates |
 | Hosting | Vercel | Frontend and bounded Python API/worker execution |
 
@@ -96,7 +100,14 @@ Production uses a 15-second gateway-call timeout, a 1,024-output-token route def
 - **Orchestrated four specialist LLM stages with LangGraph**, combining typed handoffs, deterministic safety screening and independent policy validation to produce traceable assessments and explicit evidence-based abstention.
 - **Engineered a tenant-scoped RAG workflow** using PostgreSQL full-text retrieval, effective-date and jurisdiction filters, exact citation spans and an **8,000-token context budget** to ground maintenance reasoning in applicable sources.
 - **Implemented durable asynchronous processing** with atomic ticket/job creation, idempotency receipts, fenced PostgreSQL leases and bounded retries, decoupling saved request receipts from long-running agent execution.
-- **Hardened the AI and API boundaries** with PII redaction, prompt-injection screening, Supabase JWT verification, PostgreSQL RLS and Upstash rate limiting; validated workflows through **339 passing Python tests**, PostgreSQL integration and automated web contract checks.
+- **Hardened the AI and API boundaries** with PII redaction, prompt-injection screening, Supabase JWT verification, PostgreSQL RLS and Upstash rate limiting; validated workflows through **348 passing Python tests**, PostgreSQL integration and automated web contract checks.
+
+### Measured GenAI engineering
+
+- **Instrumented and benchmarked GPT-4.1-mini intake** across **30 synthetic runs (six unique reports)**, measuring **0.876s p95 intake latency**, **0.562s p95 provider first-content latency** and **$0.000325 estimated token cost per run**.
+- **Implemented a tenant-isolated Upstash embedding cache**, reducing warm lookup p95 by **96.0% (320.4ms to 12.8ms)** and avoiding **20 repeat provider calls** in a **20-pair synthetic OpenAI/Redis benchmark**.
+
+These are local synthetic benchmarks; the slowest intake run was **9.734s**. [Sample scope, raw reports and reproduction](docs/PART-2-GENAI.md).
 
 ## Local development
 

@@ -1,3 +1,13 @@
+# Part 2A: measured model gateway and embedding reuse - 25 October 2026
+
+Part 1 remains documented at 156133f. Part 2A adds deployment-controlled model tier overrides, explicit temperature validation/configuration, internal streaming with first-content timing, versioned token-price estimates, content-free model metric logs and tenant-scoped Upstash embedding reuse for verified-source ingestion. No database migration, policy import, account provisioning or resident-record rewrite is included.
+
+The checked-in synthetic benchmark reports and resume-safe bullets are in [PART-2-GENAI.md](PART-2-GENAI.md). They disclose sample size, exact scope and tail latency. A read-only production check found zero active sources and zero canonical policy claims for the configured tenant. The only required human handoff is supplying verified property policies; [one-page checklist](../output/pdf/tento-part2-human-task.pdf). MCP, persistent personal memory, live dense/reranking and RAG faithfulness are not claimed as shipped.
+
+Local verification: Ruff lint/format, 348 passing Python tests (five dedicated PostgreSQL tests skipped locally), production Next.js build and hosted cache isolation/TTL/cleanup. Final static, web-contract, CI and deployment evidence follows when completed.
+
+---
+
 # Engineering showcase and screenshot gallery - 25 October 2026
 
 The README and live home-page #engineering section now present source-audited models/routing, context/RAG, multi-agent orchestration, per-run memory, Supabase/PostgreSQL, Upstash/caching, guardrails, PII, prompt-injection boundaries, security, evaluation, execution limits, temperature behavior, TTFT and cost instrumentation. Status labels separate deployed composition from optional/tested modules and absent capabilities. MCP transport, live reranking, token-streaming TTFT and priced cost totals are not claimed as production features.

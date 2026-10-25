@@ -12,6 +12,10 @@ import json
 import os
 from pathlib import Path
 from uuid import UUID, uuid5
+from typing import cast
+from redis.asyncio import Redis
+
+from brain.retrieval.cache import CacheRedis, RedisEmbeddingCache
 
 import asyncpg  # type: ignore[import-untyped]
 from openai import AsyncOpenAI
@@ -75,6 +79,18 @@ async def ingest_source(*, org_id: UUID, source: Path, claims: Path | None) -> N
     if not database_url or not os.environ.get("OPENAI_API_KEY", "").strip():
         raise ValueError("DATABASE_URL and OPENAI_API_KEY must be configured")
     connection = await asyncpg.connect(database_url)
+    cache_client = (
+        Redis.from_url(
+            os.environ["REDIS_URL"], socket_connect_timeout=2, socket_timeout=2
+        )
+        if os.environ.get("REDIS_URL")
+        else None
+    )
+    cache = (
+        RedisEmbeddingCache(cast(CacheRedis, cache_client), org_id=org_id)
+        if cache_client is not None
+        else InMemoryEmbeddingCache()
+    )
     try:
         async with connection.transaction():
             await connection.execute(
@@ -90,7 +106,7 @@ async def ingest_source(*, org_id: UUID, source: Path, claims: Path | None) -> N
                 result = await KnowledgeIngestor(
                     repository=AsyncpgKnowledgeRepository(connection),
                     embedding_provider=OpenAIEmbeddingProvider(client),
-                    embedding_cache=InMemoryEmbeddingCache(),
+                    embedding_cache=cache,
                     org_id=org_id,
                 ).ingest_file(source)
             if result.document_id is None:
@@ -146,6 +162,8 @@ async def ingest_source(*, org_id: UUID, source: Path, claims: Path | None) -> N
         )
     finally:
         await connection.close()
+        if cache_client is not None:
+            await cache_client.aclose()
 
 
 def main() -> None:

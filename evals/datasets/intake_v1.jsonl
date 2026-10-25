@@ -1,0 +1,6 @@
+{"id":"intake-01","report":"My bathroom sink has been draining very slowly since yesterday.","intent":"maintenance","access_permission":true,"pets_present":false}
+{"id":"intake-02","report":"The refrigerator is not keeping food cold. It started this morning.","intent":"maintenance","access_permission":false,"pets_present":true}
+{"id":"intake-03","report":"The bedroom door handle is loose and falls off when I turn it.","intent":"maintenance","access_permission":true,"pets_present":true}
+{"id":"intake-04","report":"The dishwasher leaves standing water after a wash cycle.","intent":"maintenance","access_permission":false,"pets_present":false}
+{"id":"intake-05","report":"The bathroom exhaust fan makes a rattling noise whenever it is switched on.","intent":"maintenance","access_permission":true,"pets_present":false}
+{"id":"intake-06","report":"Where can I read the community quiet-hours policy?", "intent":"question","access_permission":null,"pets_present":null}

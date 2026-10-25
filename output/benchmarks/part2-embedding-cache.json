@@ -1,0 +1,147 @@
+{
+  "scope": "paired synthetic single-text embedding misses/hits; not resident request latency",
+  "created_at": "2026-10-25T16:15:21.055587+00:00",
+  "samples": 20,
+  "model": "text-embedding-3-small",
+  "dimensions": 1536,
+  "cache_source_sha256": "e0883f08c1185a9d975d66cad1b2c788b2c77d76e909e3bbaa73b8719016b78f",
+  "ttl_seconds": 60,
+  "concurrency": 1,
+  "cold_provider_calls": 20,
+  "repeat_provider_calls": 0,
+  "repeat_call_reduction_fraction": 1.0,
+  "p50_miss_ms": 231.908,
+  "p95_miss_ms": 320.355,
+  "p50_hit_ms": 8.29,
+  "p95_hit_ms": 12.762,
+  "max_miss_ms": 1604.377,
+  "max_hit_ms": 14.039,
+  "pairs": [
+    {
+      "case_id": "cache-01",
+      "miss_ms": 1604.377,
+      "hit_ms": 14.039,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-02",
+      "miss_ms": 236.459,
+      "hit_ms": 7.784,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-03",
+      "miss_ms": 234.076,
+      "hit_ms": 6.565,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-04",
+      "miss_ms": 286.989,
+      "hit_ms": 9.094,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-05",
+      "miss_ms": 231.908,
+      "hit_ms": 8.67,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-06",
+      "miss_ms": 320.355,
+      "hit_ms": 6.349,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-07",
+      "miss_ms": 181.246,
+      "hit_ms": 12.762,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-08",
+      "miss_ms": 211.46,
+      "hit_ms": 9.325,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-09",
+      "miss_ms": 228.474,
+      "hit_ms": 8.29,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-10",
+      "miss_ms": 238.445,
+      "hit_ms": 9.089,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-11",
+      "miss_ms": 239.001,
+      "hit_ms": 8.591,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-12",
+      "miss_ms": 253.082,
+      "hit_ms": 8.42,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-13",
+      "miss_ms": 233.867,
+      "hit_ms": 7.276,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-14",
+      "miss_ms": 202.889,
+      "hit_ms": 8.21,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-15",
+      "miss_ms": 197.541,
+      "hit_ms": 9.201,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-16",
+      "miss_ms": 195.892,
+      "hit_ms": 6.344,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-17",
+      "miss_ms": 192.77,
+      "hit_ms": 6.477,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-18",
+      "miss_ms": 228.156,
+      "hit_ms": 6.476,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-19",
+      "miss_ms": 265.102,
+      "hit_ms": 9.477,
+      "repeat_provider_calls": 0
+    },
+    {
+      "case_id": "cache-20",
+      "miss_ms": 227.463,
+      "hit_ms": 7.326,
+      "repeat_provider_calls": 0
+    }
+  ],
+  "limitations": [
+    "Paired miss-then-hit order; not a randomized load test.",
+    "Cache TTL is shortened for this test; ingestion uses a 24-hour TTL.",
+    "Measures existing-input reuse only, not novel queries or end-to-end inference cost.",
+    "Synthetic vectors use a random tenant namespace and are removed after the test."
+  ]
+}

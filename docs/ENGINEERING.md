@@ -24,7 +24,7 @@ The ticket, queued run and idempotency receipt commit before assessment begins. 
 
 ## LLMs and model routing
 
-Current deployment: **OpenAI gpt-4.1-mini**, from OPENAI_MODEL. The gateway has typed logical tiers; production currently maps all tiers to the same configured route. There is no automatic small/large-model escalation in this composition.
+Current deployment: **OpenAI gpt-4.1-mini**, from OPENAI_MODEL. The gateway has typed logical tiers; production uses deployment-owned OPENAI_MODEL_SMALL/MID/LARGE overrides, defaulting to OPENAI_MODEL. The current deployment retains GPT-4.1-mini across all tiers. There is no automatic small/large-model escalation in this composition.
 
 | Active task | Logical tier | Current OpenAI model |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ Current deployment: **OpenAI gpt-4.1-mini**, from OPENAI_MODEL. The gateway has 
 
 If OpenAI configuration is absent and Anthropic key/model are configured, the composition selects Anthropic. This is configuration selection, not per-request failover after an OpenAI error. If neither is configured, the workflow fails safely. Stage preconditions can stop execution early, for example when policy evidence is missing.
 
-The OpenAI adapter requests JSON-object output, then validates responses with Pydantic. Empty, refused or truncated responses fail safely. **Temperature is not explicitly set**; no temperature=0 guarantee is claimed. max_completion_tokens is capped by the route (default 1,024). JSON mode is not treated as proof that a response matches the application schema.
+The OpenAI adapter requests JSON-object output, then validates responses with Pydantic. Empty, refused or truncated responses fail safely. **Temperature is explicitly configured as 0 for the current deployment**. Routes validate finite values in [0,2]; omit the setting for models without sampling controls. Temperature 0 does not guarantee identical responses. max_completion_tokens is capped by the route (default 1,024). JSON mode is not treated as proof that a response matches the application schema.
 
 Sources: [production composition](../services/brain/src/brain/production.py), [gateway and provider adapters](../services/brain/src/brain/gateway/client.py).
 
@@ -65,7 +65,7 @@ The tokenizer-backed context budgeter uses o200k_base and an **8,000-token envel
 
 The live composition supplies the inputs it has; the presence of a budget slot does not mean conversation summaries or similar-case memory are populated in production. Source-bearing blocks are not truncated to fit.
 
-The verified-source import command uses **text-embedding-3-small, 1,536 dimensions**, with an in-memory embedding cache and PostgreSQL halfvec storage. The live query path does not currently perform dense/hybrid search. **Hybrid RRF and BAAI/bge-reranker-v2-m3** implementations have independent tests; the cross-encoder is omitted from the minimal deployment runtime and is not active in the live retrieval path.
+The verified-source import command uses **text-embedding-3-small, 1,536 dimensions**, with a tenant-scoped Upstash Redis embedding cache (24-hour TTL) when REDIS_URL is configured, an in-memory fallback when absent, and PostgreSQL halfvec storage. Redis outages degrade to misses; invalid vectors are rejected. Cache reuse never grants source eligibility. The live query path does not currently perform dense/hybrid search. **Hybrid RRF and BAAI/bge-reranker-v2-m3** implementations have independent tests; the cross-encoder is omitted from the minimal deployment runtime and is not active in the live retrieval path.
 
 Sources: [live retrieval](../services/brain/src/brain/production.py), [budgeter](../services/brain/src/brain/context/budget.py), [importer](../services/brain/src/brain/ingest.py), [embeddings](../services/brain/src/brain/retrieval/embed.py), [hybrid](../services/brain/src/brain/retrieval/hybrid.py), [reranker](../services/brain/src/brain/retrieval/rerank.py).
 
@@ -73,10 +73,10 @@ Sources: [live retrieval](../services/brain/src/brain/production.py), [budgeter]
 
 - Supabase PostgreSQL stores organizations, tenancy records, tickets, agent runs, work orders, source documents/chunks, policy claims and audit receipts. pgvector/halfvec supports the source-ingestion/vector modules.
 - Supabase Auth signs application identities. API verification uses public asymmetric JWKS; trusted application roles and organization/person IDs come from signed claims.
-- Upstash TLS Redis is the live API rate-limit store. It is not an agent-memory store or semantic answer cache.
+- Upstash TLS Redis supplies API rate limits and a separate tenant/model/content-scoped vector cache used by verified-source ingestion. It is not a semantic answer cache or an agent-memory store.
 - PostgreSQL mutation idempotency replays the saved receipt and prevents duplicate ticket creation. Worker leases and deterministic work-order IDs protect execution effects.
 - Static prompt prefixes and per-call cached-token usage are represented in the gateway. The Anthropic adapter sends an explicit ephemeral prefix-cache boundary. OpenAI cached-token usage is provider-reported; no cache-hit rate or savings benchmark is claimed.
-- There is no tenant-shared LLM answer cache. The importer's embedding cache is in-process, not a hosted Redis embedding cache.
+- Redis embedding reuse has bounded values and expiry; the importer uses an in-process fallback only when Redis is not configured. Raw source text is not stored in the vector cache.
 
 Sources: [API assembly](../services/api/src/api/main.py), [database/RLS context](../services/api/src/api/db.py), [rate limiter](../services/api/src/api/middleware/rate_limit.py), [idempotency](../services/api/src/api/middleware/idempotency.py).
 
@@ -116,12 +116,14 @@ Sources: [evaluation guide](../evals/README.md), [retrieval metrics](../evals/re
 | Worker execution bound | 180 seconds |
 | Job attempts / fencing lease | At most 3 attempts / 300-second lease |
 | Web background worker request | 240-second timeout; 300-second route duration |
-| Model-token streaming / TTFT | Not implemented or instrumented |
-| p50/p95 latency / throughput | No published production benchmark |
-| Priced dollar cost | Not calculated by current provider adapters |
+| Provider streaming / first-content latency | Measured at the worker; content-free model_metrics logs and benchmark reports |
+| Intake and cache p50/p95 | Scoped synthetic benchmarks published in PART-2-GENAI.md; not production SLAs |
+| Token-price estimate | Versioned GPT-4.1-mini standard rates, cached-input split and microdollar rounding |
 
-TTFT means **time to first token** (sometimes written TIFT). The model adapter returns a complete JSON response. Saved run/SSE snapshots are not a token stream, so no first-token latency is claimed. These timeout and token limits are configuration ceilings, not achieved speed numbers or an SLA. Source and context limits reduce unnecessary work; no percentage improvement is asserted.
+TTFT means **time to first token** (sometimes written TIFT). The OpenAI production adapter uses streaming and times the first non-empty content event. It collects the full JSON privately and only releases schema-validated output to the graph. This metric is measured at the worker and does not represent browser-visible token delivery. Stream refusal, truncation, cancellation and missing final usage are explicit boundaries. Saved run/SSE snapshots remain workflow status, not a model-token stream.
 
-The cost_microusd receipt field defaults to zero in current completions. **Zero is an unpriced field, not free inference.** A priced estimate would need recorded uncached input, cached input and output tokens multiplied by the corresponding current provider rates, plus any additional attempts and services, and reconciliation with billing. There is no implemented dollar-budget enforcement or verified per-ticket cost benchmark. Token/call/step bounds provide structural limits, not a financial guarantee.
+The adapter estimates GPT-4.1-mini token cost using the versioned rate card in gateway/pricing.py. Total prompt tokens include cached tokens, so uncached and cached portions are charged once at their respective rates. Estimates round upward to whole microdollars and populate existing cost receipts. Structured worker logs include the price version; unknown models and missing usage have null price metadata rather than being described as free. Historical zero receipts are not backfilled. Interrupted calls may incur costs without final token usage; invoice totals also include infrastructure, tools and applicable charges.
+
+[Part 2 methods, resume-safe scoped metrics and raw evidence](PART-2-GENAI.md). The checked-in baseline and final synthetic runs are separate observations, not a controlled causal experiment. No model migration, production reliability percentage, repair-time gain or retrieval-accuracy improvement is inferred from those runs.
 
 Sources: [gateway receipts](../services/brain/src/brain/gateway/client.py), [worker limits](../services/api/src/api/worker.py), [web dispatch](../apps/web/lib/run-dispatch.ts), [hosting limitations](DEPLOYMENT.md).

@@ -39,10 +39,12 @@ from brain.context.envelope import (
     ProvenanceInput,
     assemble_context_envelope,
 )
+from brain.gateway.config import openai_routes
 from brain.gateway.client import (
     AnthropicProvider,
     AsyncpgLlmCallAudit,
     CallContext,
+    configure_model_metrics_logging,
     GatewayClient,
     ModelProvider,
     ModelRoute,
@@ -505,6 +507,7 @@ async def execute_maintenance(
     run_id: UUID,
 ) -> dict[str, Any]:
     """Run the actual multi-agent graph under the worker's RLS transaction."""
+    configure_model_metrics_logging()
     await initialize_steps(session, org_id, run_id)
     inputs = PostgresWorkflowInputs(
         session, org_id=org_id, person_id=person_id, ticket_id=ticket_id, run_id=run_id
@@ -526,13 +529,9 @@ async def execute_maintenance(
             provider_name = "openai"
             provider = cast(
                 ModelProvider,
-                OpenAIProvider(client),
+                OpenAIProvider(client, streaming=True),
             )
-            route = ModelRoute(
-                provider=provider_name,
-                model_name=openai_model,
-                model_version=openai_model,
-            )
+            routes = openai_routes(os.environ)
 
             gateways = {}
 
@@ -549,7 +548,7 @@ async def execute_maintenance(
                         agent_step_id=uuid5(run_id, stage),
                     ),
                     providers={provider_name: provider},
-                    tier_routes={tier: route for tier in ModelTier},
+                    tier_routes=routes,
                     audit=AsyncpgLlmCallAudit(SqlAlchemyConnection(session)),
                     timeout_seconds=15,
                 )

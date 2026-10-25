@@ -56,3 +56,11 @@ Run `python scripts/check_deployment.py` for credential-free production boundary
 Use Vercel runtime logs to monitor worker_dispatch_failed/worker_dispatch_unavailable, job_failed and job_lease_lost; logs must not contain resident text, JWTs or provider keys. Monitor database connections, Redis availability, queued job age and OpenAI spend. /healthz checks database and Redis, not policy or model readiness. Configure a health monitor and spend alerts in the relevant accounts.
 
 Confirm the Supabase plan's actual backup coverage and retention in the dashboard; do not assume a free project has managed backups. Keep an encrypted off-host database backup and rehearse restoration to a separate project. Roll back application code through Vercel without rolling back or resetting resident records. Never restore over production without an explicit recovery decision. No migrations are executed at application startup or by the deployment script.
+
+## Part 2 model settings and measurement logs
+
+OPENAI_MODEL remains required. Optional OPENAI_MODEL_SMALL, OPENAI_MODEL_MID and OPENAI_MODEL_LARGE select server-owned tier routes; blank values keep the base model. OPENAI_TEMPERATURE=0 is verified for the current GPT-4.1-mini deployment. Omit it for models without sampling controls. OPENAI_MAX_OUTPUT_TOKENS defaults to 1024. The deployment helper allowlists these settings and transfers them without printing values.
+
+Look for JSON events with event=model_completion in worker/API logs. They contain scoped run identity, task, attempt, model, temperature, first_token_ms, elapsed latency, token counts and versioned estimated token cost, without prompt/response text. Provider completion is not equivalent to a valid final assessment; inspect the saved workflow outcome. Unknown usage or rates remain unpriced in logs. See PART-2-GENAI.md for benchmark methodology and cost limitations.
+
+The source importer uses REDIS_URL for tenant-scoped 24-hour embedding reuse, retaining eligibility checks and exact source versions. Redis errors are cache misses; they do not bypass the model provider or policy checks. This release requires no database migration and does not import synthetic policies.
