@@ -51,7 +51,13 @@ class RecommendedAction(BaseModel):
 
     action: str = Field(min_length=1, max_length=600)
     rationale: str = Field(min_length=1, max_length=1_000)
-    provenance_ids: tuple[str, ...] = Field(min_length=1, max_length=8)
+    provenance_ids: tuple[str, ...] = Field(
+        min_length=1,
+        max_length=8,
+        json_schema_extra={
+            "items": {"type": "string", "pattern": r"^\[(?:C|F)[1-9]\d*\]$"}
+        },
+    )
 
     @field_validator("action", "rationale")
     @classmethod
@@ -73,7 +79,13 @@ class DiagnosticAssessment(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
     likely_cause: str | None = Field(default=None, max_length=1_000)
-    cause_provenance_ids: tuple[str, ...] = Field(default=(), max_length=8)
+    cause_provenance_ids: tuple[str, ...] = Field(
+        default=(),
+        max_length=8,
+        json_schema_extra={
+            "items": {"type": "string", "pattern": r"^\[(?:C|F)[1-9]\d*\]$"}
+        },
+    )
     recommended_actions: tuple[RecommendedAction, ...] = Field(default=(), max_length=5)
     unknowns: tuple[str, ...] = Field(default=(), max_length=8)
 

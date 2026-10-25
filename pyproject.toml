@@ -15,6 +15,7 @@ files = [
     "evals/retrieval.py",
     "evals/model_benchmark.py",
     "evals/cache_benchmark.py",
+    "evals/demo_benchmark.py",
     "evals/test_model_benchmark.py",
     "evals/test_retrieval.py",
     "infra/seed/generate.py",

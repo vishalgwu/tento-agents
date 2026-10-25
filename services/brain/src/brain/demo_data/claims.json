@@ -1,0 +1,82 @@
+[
+  {
+    "doc_id": "MC-OPS-001",
+    "policy_key": "demo.priority.immediate_safety",
+    "outcome": "Examples include active flooding or a burst pipe; sewage backup; smoke, fire, or suspected gas leak; sparking, exposed live wiring, or burning electrical odor; a failed exterior door that leaves a unit unable to secure; a fallen or unstable structural component; or loss of heat during a severe cold-weather condition when people may be at risk.\n\n**Routing:** Flag for immediate human review and on-call dispatch. For fire, suspected gas leak, immediate threat to life, or other imminent danger, instruct the resident to move to safety and contact the appropriate emergency service. Do not wait for a portal response.",
+    "source_start": 1756,
+    "source_end": 2373,
+    "source_text": "Examples include active flooding or a burst pipe; sewage backup; smoke, fire, or suspected gas leak; sparking, exposed live wiring, or burning electrical odor; a failed exterior door that leaves a unit unable to secure; a fallen or unstable structural component; or loss of heat during a severe cold-weather condition when people may be at risk.\n\n**Routing:** Flag for immediate human review and on-call dispatch. For fire, suspected gas leak, immediate threat to life, or other imminent danger, instruct the resident to move to safety and contact the appropriate emergency service. Do not wait for a portal response."
+  },
+  {
+    "doc_id": "MC-OPS-001",
+    "policy_key": "demo.priority.routine",
+    "outcome": "Examples include a dripping tap, a slow drain that remains usable, a broken cabinet hinge, a damaged blind, a noncritical light fixture, or an appliance issue that does not create an immediate hazard.\n\n**Routing:** Queue for ordinary scheduling. Demonstration target: initial review within two business days. This is an illustrative internal target, not a guarantee or legal deadline.",
+    "source_start": 2875,
+    "source_end": 3259,
+    "source_text": "Examples include a dripping tap, a slow drain that remains usable, a broken cabinet hinge, a damaged blind, a noncritical light fixture, or an appliance issue that does not create an immediate hazard.\n\n**Routing:** Queue for ordinary scheduling. Demonstration target: initial review within two business days. This is an illustrative internal target, not a guarantee or legal deadline."
+  },
+  {
+    "doc_id": "MC-SAFE-002",
+    "policy_key": "demo.safety.immediate_hazards",
+    "outcome": "Tell the resident to leave the affected area, avoid operating switches or equipment if a gas leak is suspected, and contact emergency services from a safe location. Do not ask the resident to investigate the source, relight equipment, or perform repairs. Notify the on-call property contact after the resident is safe, where appropriate.\n\n### Electrical danger\n\nFor sparks, exposed conductors, shocks, burning odors, or water contacting electrical equipment, tell the resident to keep away from the affected area and not touch exposed wiring or wet electrical equipment. If there is immediate danger, move to safety and contact emergency services. Dispatch only qualified personnel through the authorized process.",
+    "source_start": 1066,
+    "source_end": 1779,
+    "source_text": "Tell the resident to leave the affected area, avoid operating switches or equipment if a gas leak is suspected, and contact emergency services from a safe location. Do not ask the resident to investigate the source, relight equipment, or perform repairs. Notify the on-call property contact after the resident is safe, where appropriate.\n\n### Electrical danger\n\nFor sparks, exposed conductors, shocks, burning odors, or water contacting electrical equipment, tell the resident to keep away from the affected area and not touch exposed wiring or wet electrical equipment. If there is immediate danger, move to safety and contact emergency services. Dispatch only qualified personnel through the authorized process."
+  },
+  {
+    "doc_id": "MC-SAFE-002",
+    "policy_key": "demo.safety.no_unsafe_repairs",
+    "outcome": "The assistant must not instruct a resident to:\n- repair gas lines, electrical panels, live wiring, fire alarms, or sprinkler systems;\n- bypass a safety device or disable an alarm;\n- use an open flame to locate a gas leak;\n- enter a flooded area where electrical hazards may exist;\n- perform work requiring a licensed trade or special protective equipment.",
+    "source_start": 3168,
+    "source_end": 3523,
+    "source_text": "The assistant must not instruct a resident to:\n- repair gas lines, electrical panels, live wiring, fire alarms, or sprinkler systems;\n- bypass a safety device or disable an alarm;\n- use an open flame to locate a gas leak;\n- enter a flooded area where electrical hazards may exist;\n- perform work requiring a licensed trade or special protective equipment."
+  },
+  {
+    "doc_id": "MC-OPS-003",
+    "policy_key": "demo.trade.in_house_scope",
+    "outcome": "Subject to training, site authorization, and safe conditions, in-house maintenance may:\n- inspect and document nonhazardous visible damage;\n- replace ordinary interior light bulbs where safely accessible and permitted;\n- adjust cabinet hardware, door handles, and nonsecurity hardware;\n- perform basic fixture checks that do not require opening energized equipment;\n- install approved replacement filters;\n- perform visual checks and document appliance symptoms;\n- place a safe area restriction or request a vendor when a condition exceeds staff authorization.\n\nThese permissions do not authorize work on energized wiring, gas systems, fire protection systems, structural elements, refrigerant circuits, or any task requiring a credential that the assigned person does not hold.",
+    "source_start": 1058,
+    "source_end": 1836,
+    "source_text": "Subject to training, site authorization, and safe conditions, in-house maintenance may:\n- inspect and document nonhazardous visible damage;\n- replace ordinary interior light bulbs where safely accessible and permitted;\n- adjust cabinet hardware, door handles, and nonsecurity hardware;\n- perform basic fixture checks that do not require opening energized equipment;\n- install approved replacement filters;\n- perform visual checks and document appliance symptoms;\n- place a safe area restriction or request a vendor when a condition exceeds staff authorization.\n\nThese permissions do not authorize work on energized wiring, gas systems, fire protection systems, structural elements, refrigerant circuits, or any task requiring a credential that the assigned person does not hold."
+  },
+  {
+    "doc_id": "MC-OPS-003",
+    "policy_key": "demo.trade.specialist_scope",
+    "outcome": "Use an appropriately qualified and property-approved specialist for:\n- electrical panel, circuit, outlet, or wiring repair beyond a permitted basic visual check;\n- gas piping, gas appliance connections, or suspected gas-system defects;\n- refrigerant handling or sealed HVAC-system repair;\n- fire alarm, sprinkler, or other life-safety system repair;\n- suspected structural damage, unstable balconies, or major building-envelope failure;\n- sewage contamination remediation or hazardous-material conditions;\n- pest treatment involving restricted chemicals or conditions outside the approved pest vendor's scope.\n\nThe system must not infer a vendor's license, insurance, availability, or approval from a trade label alone. These details must come from a verified vendor record.",
+    "source_start": 1886,
+    "source_end": 2660,
+    "source_text": "Use an appropriately qualified and property-approved specialist for:\n- electrical panel, circuit, outlet, or wiring repair beyond a permitted basic visual check;\n- gas piping, gas appliance connections, or suspected gas-system defects;\n- refrigerant handling or sealed HVAC-system repair;\n- fire alarm, sprinkler, or other life-safety system repair;\n- suspected structural damage, unstable balconies, or major building-envelope failure;\n- sewage contamination remediation or hazardous-material conditions;\n- pest treatment involving restricted chemicals or conditions outside the approved pest vendor's scope.\n\nThe system must not infer a vendor's license, insurance, availability, or approval from a trade label alone. These details must come from a verified vendor record."
+  },
+  {
+    "doc_id": "MC-OPS-004",
+    "policy_key": "demo.access.verified_procedure",
+    "outcome": "For nonemergency work, staff should follow the property's verified notice and access procedure, document the appointment window, and identify the authorized worker. Emergency entry rules must come from the actual lease and applicable law; this synthetic policy does not establish a legal right of entry or a notice period.\n\nIf access cannot be confirmed, the system should record the failed coordination attempt and request human follow-up. It must not mark a job complete solely because a visit was scheduled.",
+    "source_start": 1310,
+    "source_end": 1820,
+    "source_text": "For nonemergency work, staff should follow the property's verified notice and access procedure, document the appointment window, and identify the authorized worker. Emergency entry rules must come from the actual lease and applicable law; this synthetic policy does not establish a legal right of entry or a notice period.\n\nIf access cannot be confirmed, the system should record the failed coordination attempt and request human follow-up. It must not mark a job complete solely because a visit was scheduled."
+  },
+  {
+    "doc_id": "MC-OPS-004",
+    "policy_key": "demo.charges.no_inferred_liability",
+    "outcome": "This document does not establish that a resident caused damage or owes money. Any proposed charge requires documented evidence, the applicable lease provision, required review, and authorization outside this policy. Do not infer fault from the existence of damage or from the resident who submitted the report.",
+    "source_start": 2593,
+    "source_end": 2903,
+    "source_text": "This document does not establish that a resident caused damage or owes money. Any proposed charge requires documented evidence, the applicable lease provision, required review, and authorization outside this policy. Do not infer fault from the existence of damage or from the resident who submitted the report."
+  },
+  {
+    "doc_id": "MC-OPS-005",
+    "policy_key": "demo.environmental.health_and_pest_limits",
+    "outcome": "Route reports of persistent dampness, recurring condensation, or visible suspected mold for human inspection. The AI must not identify a species, determine toxicity, diagnose a medical condition, or certify that an area is safe based on a photo or text description alone.\n\nIf an occupant reports severe symptoms or an immediate health emergency, advise seeking appropriate medical or emergency assistance; do not diagnose the cause.\n\n## 4. Pest reports\n\nRecord the pest described and where/when it was observed. Route to the approved pest-control workflow. Do not recommend restricted pesticides or improvised chemical mixtures. The system must not assert that a particular resident caused an infestation without verified evidence and an authorized review process.",
+    "source_start": 1616,
+    "source_end": 2380,
+    "source_text": "Route reports of persistent dampness, recurring condensation, or visible suspected mold for human inspection. The AI must not identify a species, determine toxicity, diagnose a medical condition, or certify that an area is safe based on a photo or text description alone.\n\nIf an occupant reports severe symptoms or an immediate health emergency, advise seeking appropriate medical or emergency assistance; do not diagnose the cause.\n\n## 4. Pest reports\n\nRecord the pest described and where/when it was observed. Route to the approved pest-control workflow. Do not recommend restricted pesticides or improvised chemical mixtures. The system must not assert that a particular resident caused an infestation without verified evidence and an authorized review process."
+  },
+  {
+    "doc_id": "MC-OPS-005",
+    "policy_key": "demo.case.documented_completion",
+    "outcome": "A case may be marked resolved only when a work record documents the action taken and an authorized person records the outcome. Scheduling an inspection or sending general advice is not proof that the condition has been corrected.",
+    "source_start": 2406,
+    "source_end": 2635,
+    "source_text": "A case may be marked resolved only when a work record documents the action taken and an authorized person records the outcome. Scheduling an inspection or sending general advice is not proof that the condition has been corrected."
+  }
+]

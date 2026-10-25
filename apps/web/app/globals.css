@@ -1517,3 +1517,12 @@ summary:focus-visible {
     margin-left: auto;
   }
 }
+
+@media (max-width: 760px) {
+  .site-header nav > a.nav-secondary {
+    display: none;
+  }
+  .site-header nav > a.nav-demo {
+    display: inline-flex;
+  }
+}

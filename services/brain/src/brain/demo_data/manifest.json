@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "fictional": true,
+  "bundle_id": "tento-maple-court-demo-v1",
+  "source_bundle_id": "tento-maple-court-policy-pack-v1",
+  "production_approval": false,
+  "organization": {
+    "id": "demo-org-maple-court",
+    "label": "Maple Court Demonstration Properties LLC"
+  },
+  "property": {
+    "id": "demo-property-maple-court-a",
+    "label": "Maple Court Apartments — Demo Site A"
+  },
+  "jurisdiction": "US-VA",
+  "legal_rules_verified": false,
+  "documents": [
+    {
+      "doc_id": "MC-OPS-001",
+      "filename": "policies/MC-OPS-001-maintenance-intake-and-priority.md",
+      "sha256": "04d277de0a4ea8416ba431cc362ca7870b7e03465c357054391f513cca03ccdb",
+      "original_sha256": "a3ac6d1894f0a11069b0aab3f4cf12564222becc1220b8e9d07b88f991001191",
+      "version": "demo-1.0",
+      "authority": "internal_sop",
+      "jurisdiction": "US-VA",
+      "status": "temporary_fixture",
+      "production_eligible": false
+    },
+    {
+      "doc_id": "MC-OPS-003",
+      "filename": "policies/MC-OPS-003-trade-authorization.md",
+      "sha256": "8393d4c7c3a032fc0a40efad1709c96da75edeab99b04e965903a6bfbc464819",
+      "original_sha256": "3318e6d5e9ee2805b9d53638ad60664bde1ebeebd165cecd32776b0a5ad70c1f",
+      "version": "demo-1.0",
+      "authority": "internal_sop",
+      "jurisdiction": "US-VA",
+      "status": "temporary_fixture",
+      "production_eligible": false
+    },
+    {
+      "doc_id": "MC-OPS-004",
+      "filename": "policies/MC-OPS-004-resident-access-and-prevention.md",
+      "sha256": "8cfa54c91a1076c76d12153c0b34991d22c06fc48dcfbc188fab5c229c89dc47",
+      "original_sha256": "5346f5d4de0f5aa36bab9ee8cd9bd6927d7595445e8fd446be19660757e9a50a",
+      "version": "demo-1.0",
+      "authority": "internal_sop",
+      "jurisdiction": "US-VA",
+      "status": "temporary_fixture",
+      "production_eligible": false
+    },
+    {
+      "doc_id": "MC-OPS-005",
+      "filename": "policies/MC-OPS-005-pest-and-moisture.md",
+      "sha256": "2a33d2110406e7356fc608d228cb9ae4573e3a0459fccc71647007f993557771",
+      "original_sha256": "85f6ecb3059301d8ae5faf3f086540290c5cd5efbbccb6c95e9ed307c2a8b8e8",
+      "version": "demo-1.0",
+      "authority": "internal_sop",
+      "jurisdiction": "US-VA",
+      "status": "temporary_fixture",
+      "production_eligible": false
+    },
+    {
+      "doc_id": "MC-SAFE-002",
+      "filename": "policies/MC-SAFE-002-emergency-safety.md",
+      "sha256": "dc5fe59405db246fc164df9b1219c0ac7c4272f65e2d8da14ae96f5a0c046f92",
+      "original_sha256": "85a2782db88b61a4a68f53ae4948c784c10ce66eda078b46d871f1ed1e3a443f",
+      "version": "demo-1.0",
+      "authority": "internal_sop",
+      "jurisdiction": "US-VA",
+      "status": "temporary_fixture",
+      "production_eligible": false
+    }
+  ]
+}

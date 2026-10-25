@@ -56,7 +56,13 @@ class PolicyAuditFinding(BaseModel):
     policy_key: str = Field(min_length=1, max_length=200)
     verdict: AuditFindingVerdict
     rationale: str = Field(min_length=1, max_length=1_000)
-    provenance_ids: tuple[str, ...] = Field(min_length=1, max_length=16)
+    provenance_ids: tuple[str, ...] = Field(
+        min_length=1,
+        max_length=16,
+        json_schema_extra={
+            "items": {"type": "string", "pattern": r"^\[(?:C|F)[1-9]\d*\]$"}
+        },
+    )
 
     @field_validator("policy_key", "rationale")
     @classmethod

@@ -154,7 +154,13 @@ class DispatchProposal(BaseModel):
     scope_summary: str = Field(min_length=1, max_length=1_000)
     parts_hint: tuple[str, ...] = Field(default=(), max_length=12)
     responsible_party: ResponsibleParty
-    provenance_ids: tuple[str, ...] = Field(min_length=1, max_length=16)
+    provenance_ids: tuple[str, ...] = Field(
+        min_length=1,
+        max_length=16,
+        json_schema_extra={
+            "items": {"type": "string", "pattern": r"^\[(?:C|F)[1-9]\d*\]$"}
+        },
+    )
 
     @field_validator("scope_summary")
     @classmethod

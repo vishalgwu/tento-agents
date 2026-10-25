@@ -1,2 +1,4 @@
 *.pdf binary
 *.png binary
+
+services/brain/src/brain/demo_data/** text eol=lf

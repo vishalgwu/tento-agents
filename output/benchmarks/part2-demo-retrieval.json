@@ -1,0 +1,263 @@
+{
+  "scope": "15 development scenarios over five fictional documents; SQLite FTS5/BM25, not the production PostgreSQL index",
+  "recorded_at": "2026-10-25T21:42:16.268586+00:00",
+  "answerable_cases": 14,
+  "case_count": 15,
+  "macro_precision_at_3": 0.5714285714285714,
+  "macro_recall_at_3": 0.9047619047619048,
+  "macro_recall_at_5": 1.0,
+  "rankings": [
+    {
+      "case_id": "TC-001",
+      "ranking": [
+        "MC-OPS-005",
+        "MC-OPS-003",
+        "MC-OPS-001",
+        "MC-SAFE-002",
+        "MC-OPS-004"
+      ],
+      "expected": [
+        "MC-OPS-001",
+        "MC-OPS-005",
+        "MC-SAFE-002"
+      ],
+      "precision_at_3": 0.6666666666666666,
+      "recall_at_3": 0.6666666666666666,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-002",
+      "ranking": [
+        "MC-OPS-003",
+        "MC-SAFE-002",
+        "MC-OPS-001"
+      ],
+      "expected": [
+        "MC-OPS-003",
+        "MC-SAFE-002"
+      ],
+      "precision_at_3": 0.6666666666666666,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-003",
+      "ranking": [
+        "MC-OPS-001",
+        "MC-OPS-003",
+        "MC-SAFE-002",
+        "MC-OPS-004",
+        "MC-OPS-005"
+      ],
+      "expected": [
+        "MC-OPS-001",
+        "MC-OPS-003"
+      ],
+      "precision_at_3": 0.6666666666666666,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-004",
+      "ranking": [
+        "MC-OPS-004",
+        "MC-OPS-003"
+      ],
+      "expected": [
+        "MC-OPS-003",
+        "MC-OPS-004"
+      ],
+      "precision_at_3": 0.6666666666666666,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-005",
+      "ranking": [
+        "MC-OPS-001",
+        "MC-OPS-004",
+        "MC-OPS-003",
+        "MC-SAFE-002",
+        "MC-OPS-005"
+      ],
+      "expected": [],
+      "precision_at_3": 0.0,
+      "recall_at_3": null,
+      "recall_at_5": null
+    },
+    {
+      "case_id": "TC-006",
+      "ranking": [
+        "MC-SAFE-002",
+        "MC-OPS-005",
+        "MC-OPS-003",
+        "MC-OPS-001",
+        "MC-OPS-004"
+      ],
+      "expected": [
+        "MC-OPS-005",
+        "MC-SAFE-002"
+      ],
+      "precision_at_3": 0.6666666666666666,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-007",
+      "ranking": [
+        "MC-OPS-004",
+        "MC-OPS-003",
+        "MC-OPS-005",
+        "MC-OPS-001"
+      ],
+      "expected": [
+        "MC-OPS-003"
+      ],
+      "precision_at_3": 0.3333333333333333,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-008",
+      "ranking": [
+        "MC-OPS-004",
+        "MC-OPS-005",
+        "MC-OPS-001",
+        "MC-OPS-003",
+        "MC-SAFE-002"
+      ],
+      "expected": [
+        "MC-OPS-004",
+        "MC-OPS-005"
+      ],
+      "precision_at_3": 0.6666666666666666,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-009",
+      "ranking": [
+        "MC-SAFE-002",
+        "MC-OPS-001",
+        "MC-OPS-005",
+        "MC-OPS-003",
+        "MC-OPS-004"
+      ],
+      "expected": [
+        "MC-SAFE-002"
+      ],
+      "precision_at_3": 0.3333333333333333,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-010",
+      "ranking": [
+        "MC-OPS-004",
+        "MC-OPS-005",
+        "MC-SAFE-002",
+        "MC-OPS-001",
+        "MC-OPS-003"
+      ],
+      "expected": [
+        "MC-OPS-004"
+      ],
+      "precision_at_3": 0.3333333333333333,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-011",
+      "ranking": [
+        "MC-SAFE-002",
+        "MC-OPS-005",
+        "MC-OPS-003",
+        "MC-OPS-004",
+        "MC-OPS-001"
+      ],
+      "expected": [
+        "MC-OPS-005"
+      ],
+      "precision_at_3": 0.3333333333333333,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-012",
+      "ranking": [
+        "MC-OPS-003",
+        "MC-SAFE-002",
+        "MC-OPS-004",
+        "MC-OPS-001"
+      ],
+      "expected": [
+        "MC-OPS-003",
+        "MC-SAFE-002"
+      ],
+      "precision_at_3": 0.6666666666666666,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-013",
+      "ranking": [
+        "MC-OPS-001",
+        "MC-OPS-004",
+        "MC-SAFE-002",
+        "MC-OPS-003",
+        "MC-OPS-005"
+      ],
+      "expected": [
+        "MC-OPS-001",
+        "MC-OPS-003",
+        "MC-OPS-004"
+      ],
+      "precision_at_3": 0.6666666666666666,
+      "recall_at_3": 0.6666666666666666,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-014",
+      "ranking": [
+        "MC-OPS-003",
+        "MC-OPS-005",
+        "MC-OPS-001",
+        "MC-OPS-004",
+        "MC-SAFE-002"
+      ],
+      "expected": [
+        "MC-OPS-001",
+        "MC-OPS-003",
+        "MC-OPS-004"
+      ],
+      "precision_at_3": 0.6666666666666666,
+      "recall_at_3": 0.6666666666666666,
+      "recall_at_5": 1.0
+    },
+    {
+      "case_id": "TC-015",
+      "ranking": [
+        "MC-SAFE-002",
+        "MC-OPS-001",
+        "MC-OPS-003",
+        "MC-OPS-004",
+        "MC-OPS-005"
+      ],
+      "expected": [
+        "MC-OPS-001",
+        "MC-OPS-003",
+        "MC-OPS-004"
+      ],
+      "precision_at_3": 0.6666666666666666,
+      "recall_at_3": 0.6666666666666666,
+      "recall_at_5": 1.0
+    }
+  ],
+  "unanswerable_source_cases": 1,
+  "no_match_accuracy": 0.0,
+  "limitations": [
+    "Small supplied development set, not held out.",
+    "Retrieval relevance does not authorize a legal answer or an operational write.",
+    "No semantic faithfulness or production quality claim is inferred."
+  ]
+}

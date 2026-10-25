@@ -29,3 +29,7 @@ Internal work orders await normal operational assignment. The MVP does not conta
 Automated processing returns completed, abstained or emergency. Queue lifecycle separately uses queued/running/completed/degraded/failed. A completed graph means a validated internal plan, not a completed repair. Missing live evidence or model access cannot produce a work order.
 
 Database migrations, RLS/lease/replay behavior and scripted full-graph execution are testable without paid keys. Real Supabase membership, verified property sources, provider credentials and hosting accounts must be configured before live acceptance.
+
+## Fictional demonstration workspace
+
+/demo is a separate recruiter-friendly policy explorer over the supplied fictional Maple Court pack. Public visitors inspect genuine recorded graph runs, exact evidence and stage traces. Signed-in users can rerun a scenario through the same model gateway and graph using demo-only inputs. Demo runs create no real ticket, work order, vendor dispatch or notification. The maintenance knowledge index remains unchanged. [Demo guide](DEMO.md).

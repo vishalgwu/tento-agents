@@ -1,12 +1,16 @@
 # Tento Resident OS
 
-**[Live application](https://tento-resident-os.vercel.app/)** · [Engineering showcase](https://tento-resident-os.vercel.app/#engineering) · [Resume bullets](#resume-ready-project-bullets) · [Local setup](#local-development)
+**[Try the demo](https://tento-resident-os.vercel.app/demo)** · [Main application](https://tento-resident-os.vercel.app/) · [Engineering showcase](https://tento-resident-os.vercel.app/#engineering) · [Resume bullets](#resume-ready-project-bullets) · [Local setup](#local-development)
 
 An AI-assisted maintenance platform connecting residents, maintenance teams, property owners and technical administrators. Tento turns a resident's report into a saved, traceable assessment through a tenant-scoped agent workflow.
 
 ## Project parts
 
 **Part 1 — deployed MVP:** authenticated reporting, four workspaces and autonomous maintenance assessment. **Part 2A — measurement and caching:** configurable model tiers, temperature controls, provider first-content timing, token-price estimates and tenant-scoped Upstash embedding reuse. [Implementation, measured results and next gates](docs/PART-2-GENAI.md).
+
+## Explore the demo
+
+[Open the fictional Maple Court demo](https://tento-resident-os.vercel.app/demo) to inspect **15 real recorded agent runs**, exact citations from **five synthetic policy documents**, and the decision trace. Recorded exploration needs no login; authenticated users can run a fresh assessment. Fictional demo data stays outside the maintenance knowledge index, and the demo creates no real ticket, work order or notification. [Dataset, methodology and results](docs/DEMO.md).
 
 ## Product experience
 
@@ -100,7 +104,7 @@ Production uses a 15-second gateway-call timeout, a 1,024-output-token route def
 - **Orchestrated four specialist LLM stages with LangGraph**, combining typed handoffs, deterministic safety screening and independent policy validation to produce traceable assessments and explicit evidence-based abstention.
 - **Engineered a tenant-scoped RAG workflow** using PostgreSQL full-text retrieval, effective-date and jurisdiction filters, exact citation spans and an **8,000-token context budget** to ground maintenance reasoning in applicable sources.
 - **Implemented durable asynchronous processing** with atomic ticket/job creation, idempotency receipts, fenced PostgreSQL leases and bounded retries, decoupling saved request receipts from long-running agent execution.
-- **Hardened the AI and API boundaries** with PII redaction, prompt-injection screening, Supabase JWT verification, PostgreSQL RLS and Upstash rate limiting; validated workflows through **348 passing Python tests**, PostgreSQL integration and automated web contract checks.
+- **Hardened the AI and API boundaries** with PII redaction, prompt-injection screening, Supabase JWT verification, PostgreSQL RLS and Upstash rate limiting; validated workflows through **354 passing Python tests**, PostgreSQL integration and automated web contract checks.
 
 ### Measured GenAI engineering
 
@@ -108,6 +112,8 @@ Production uses a 15-second gateway-call timeout, a 1,024-output-token route def
 - **Implemented a tenant-isolated Upstash embedding cache**, reducing warm lookup p95 by **96.0% (320.4ms to 12.8ms)** and avoiding **20 repeat provider calls** in a **20-pair synthetic OpenAI/Redis benchmark**.
 
 These are local synthetic benchmarks; the slowest intake run was **9.734s**. [Sample scope, raw reports and reproduction](docs/PART-2-GENAI.md).
+
+- **Delivered a policy-grounded GenAI demo** with **five versioned synthetic sources, ten exact-span policy claims and fifteen scenarios**, combining a bounded four-stage agent workflow, emergency screening, independent policy audit and inspectable recorded/live results.
 
 ## Local development
 

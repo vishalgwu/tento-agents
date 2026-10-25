@@ -280,12 +280,14 @@ def test_tenant_matrix_covers_every_registered_versioned_resource_route() -> Non
     does, and must appear in this matrix.
     """
 
+    # Stateless agent/demo calls expose no tenant resources; verified-scope and
+    # forged-body controls for the demo are covered in test_demo_api.py.
     registered_routes = {
         (method, route.path)
         for route in create_app().routes
         if isinstance(route, APIRoute)
         and route.path.startswith("/v1/")
-        and route.path != "/v1/agent/run"
+        and route.path not in {"/v1/agent/run", "/v1/demo/run"}
         for method in route.methods
     }
     covered_routes = {

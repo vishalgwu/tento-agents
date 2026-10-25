@@ -47,11 +47,11 @@ python -m evals.cache_benchmark --live --samples 20 --output output/benchmarks/c
 
 The cache benchmark uses a random tenant namespace, 60-second test TTL and explicit cleanup. Production ingestion retains its 24-hour TTL. The model benchmark's first request includes local startup work; provider TTFT starts immediately before the SDK request. There is no warm-up exclusion.
 
-## Part 2B: evidence-based retrieval tuning gate
+## Part 2B: supplied-policy demo completed
 
-A read-only check on 25 October 2026 found **0 active source documents and 0 canonical policy claims** for the configured production tenant. The human task is to supply verified property policies with source ownership, jurisdiction, effective dates and allowed maintenance outcomes. An authorized property representative must establish the content; generated fixtures cannot replace it.
+The supplied synthetic Maple Court pack resolves the demo's policy-data dependency. Five normalized fixture sources, ten exact-span claims and fifteen scenarios now support an isolated public recorded explorer and authenticated live graph reruns at [/demo](https://tento-resident-os.vercel.app/demo). No real-property approval is needed for this project demo. [Implementation, measured retrieval results and boundaries](DEMO.md).
 
-Once those sources are available: import immutable versions, define a separate held-out query/answer set, run the actual PostgreSQL retriever, measure Precision@5, Recall@5/@10, MRR and nDCG, and compare hybrid/reranking alternatives on the same corpus. Retain reranking only when quality gain justifies latency and cost. Faithfulness requires an answer/evidence evaluation, such as a documented RAGAS-compatible judge with calibrated examples; citation existence alone is not semantic faithfulness. Operational resolution-time improvement requires real completion timestamps and a baseline.
+The earlier read-only check of the maintenance tenant remains historical evidence: its approved index had no policy sources. Synthetic demo sources have not been promoted into that index. Real-property operation would still require verified sources. The previous human-source checklist is superseded for demonstration use.
 
 ## Part 2C: tool and memory extensions
 

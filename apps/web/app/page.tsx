@@ -31,8 +31,15 @@ export default function HomePage() {
       <header className="site-header">
         <Brand />
         <nav aria-label="Platform navigation">
-          <a href="#engineering">Engineering</a>
-          <a href="#workspaces">Workspaces</a>
+          <Link href="/demo" className="nav-demo">
+            Try the demo
+          </Link>
+          <a href="#engineering" className="nav-secondary">
+            Engineering
+          </a>
+          <a href="#workspaces" className="nav-secondary">
+            Workspaces
+          </a>
           <Link href="/sign-in" className="nav-signin">
             Sign in <span aria-hidden="true">↗</span>
           </Link>
@@ -61,9 +68,9 @@ export default function HomePage() {
             <a href="#workspaces" className="brand-button">
               Find your workspace <span aria-hidden="true">↗</span>
             </a>
-            <a href="#approach" className="text-link">
-              Get to know Tento <span aria-hidden="true">↓</span>
-            </a>
+            <Link href="/demo" className="text-link">
+              Explore a demo <span aria-hidden="true">↗</span>
+            </Link>
           </div>
           <div className="hero-footnote">
             <span className="tiny-grid" aria-hidden="true">

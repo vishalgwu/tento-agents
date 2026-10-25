@@ -33,3 +33,7 @@ Use the explicit migration runner and database backups. Runtime roles cannot app
 Production OpenAI stages stream internally to measure first non-empty content while retaining full JSON/schema validation before graph handoff. Deployment-owned tier model IDs, temperature and output caps are included in request identity. Versioned token prices estimate known-model usage; content-free worker logs carry first-content timing, pricing version and generation settings. Existing PostgreSQL receipts retain per-attempt usage, elapsed latency and estimates; historical records are preserved.
 
 Verified-source ingestion reuses embeddings through a tenant-scoped Upstash Redis cache with a 24-hour TTL, dimensional/model/digest validation and cache-miss fallback on Redis errors. No resident answer cache, cross-session personal memory or new document authority is introduced. [Part 2 methods and evidence](PART-2-GENAI.md).
+
+## Isolated policy demonstration
+
+The /demo explorer serves packaged real model-run recordings without authentication or paid per-visit calls. Its /api/demo proxy requires same-origin requests and a session, forwarding to the JWT-, tenant-, rate-limit- and idempotency-protected /v1/demo/run route only while DEMO_MODE=true. This path injects fictional inputs into the existing bounded graph, using a private in-memory SQLite FTS5/BM25 index and exact-span claims. It has no production knowledge/ticket/work-order persistence authority. Source checksums and ineligible fixture labels are validated on load. See DEMO.md.

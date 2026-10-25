@@ -63,6 +63,10 @@ class Upstream(BaseHTTPRequestHandler):
             assert key is not None and UUID(key).version == 4
             self.dispatch_keys.append(key)
             return self.send_json({"run_id": RUN, "processed": False}, self.dispatch_status)
+        if self.path == "/v1/demo/run":
+            assert body == {"description": "cabinet hinge"}
+            assert UUID(self.headers["Idempotency-Key"]).version == 4
+            return self.send_json({"synthetic": True, "status": "completed", "summary": "Demo only", "citations": [], "trace": []})
         assert self.path == "/v1/tickets"
         assert body == {"description": "Kitchen tap is dripping", "tenancy_id": TENANCY, "access_permission": False, "pets_present": True}
         key = self.headers.get("Idempotency-Key")
@@ -127,6 +131,8 @@ def main() -> None:
                 if time.monotonic() >= deadline or process.poll() is not None:
                     raise RuntimeError("Next.js test server did not start") from None
                 time.sleep(0.2)
+        call("/api/demo", 401, {"description": "cabinet hinge"}, "POST")
+        call("/api/demo", 403, {"description": "cabinet hinge"}, "POST", origin="https://foreign.example")
         call("/api/tickets", 403, {}, "POST", origin="https://foreign.example", key=KEY)
         login = call("/api/session", 200, {"email": "resident@example.test", "password": "test-password", "workspace": "resident"}, "POST")
         assert isinstance(login, dict) and login["destination"] == "/app/report"
@@ -136,6 +142,9 @@ def main() -> None:
         assert isinstance(forged, dict) and forged["destination"] == "/app/report", "Client role fields must not grant access"
         with client.open(base + "/admin", timeout=60) as denied:
             assert "/sign-in?workspace=admin" in denied.geturl(), "A resident must not obtain the admin workspace"
+        demo = call("/api/demo", 200, {"description": "cabinet hinge"}, "POST")
+        assert isinstance(demo, dict) and demo["synthetic"] is True
+        call("/api/demo", 400, {"description": " "}, "POST")
         tenancies = call("/api/tenancies", 200)
         assert isinstance(tenancies, dict) and tenancies["items"][0]["id"] == TENANCY
         payload = {"description": "Kitchen tap is dripping", "tenancy_id": TENANCY, "access_permission": False, "pets_present": True}

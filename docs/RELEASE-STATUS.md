@@ -1,3 +1,13 @@
+# Part 2B: supplied-policy demonstration - 25 October 2026
+
+The supplied fictional Maple Court pack is now normalized and used by an isolated demo runtime. Five fixture documents, ten exact-span claims and fifteen real recorded graph runs support the public /demo explorer; signed-in users can rerun scenarios through the authenticated API. Demo assessments cannot create real tickets, work orders or notifications. The maintenance source index and existing resident records remain separate. The previous human policy-source PDF is superseded for demonstration use; no real-property approval is required to run this project demo.
+
+A real citation-schema integration gap was corrected without relaxing validators: model-facing schemas expose bracketed provenance patterns, diagnosis/planning prompts are v2, and the policy-audit prompt is v3. One recorded plan passed all four model stages; four emergency cases stopped before model calls; ten cases remained abstentions, including one citation rejection. No recorded failures were replaced with successful outputs. See [demo methods and results](DEMO.md).
+
+Local verification: 354 Python tests passed (five dedicated PostgreSQL cases skipped locally), focused demo/tenant tests passed, the Next.js production build passed, and proxy tests now cover demo authentication, same-origin checks, validation and generated replay keys. Full static, CI and deployed validation evidence is recorded below after release.
+
+---
+
 # Part 2A: measured model gateway and embedding reuse - 25 October 2026
 
 Part 1 remains documented at 156133f. Part 2A adds deployment-controlled model tier overrides, explicit temperature validation/configuration, internal streaming with first-content timing, versioned token-price estimates, content-free model metric logs and tenant-scoped Upstash embedding reuse for verified-source ingestion. No database migration, policy import, account provisioning or resident-record rewrite is included.
