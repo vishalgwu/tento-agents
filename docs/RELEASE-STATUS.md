@@ -4,7 +4,9 @@ The README now contains concise action/implementation/result project bullets, a 
 
 The home-page engineering section now displays six visible results: 96.0% lower warm embedding lookup p95, 0.876s measured intake p95, forty prompt-boundary cases across five ingress types, four typed agent stages, fifteen fictional demo scenarios and 354 passing Python tests. Every card links to its report, tests or implementation. The previous synthetic-policy demo and authenticated runtime are unchanged.
 
-Local production build and frontend type checks passed. The exact injection evidence was rerun: forty parametrized cases plus one corpus-integrity check passed. Final web regression, CI and deployment evidence follows after publication.
+Local production build and frontend type checks passed. The exact injection evidence was rerun: forty parametrized cases plus one corpus-integrity check passed. Web proxy/authentication regressions passed. [Web quality](https://github.com/vishalgwu/tento-agents/actions/runs/40238807561) passed for implementation commit **cd3d41b**. The frontend was deployed to the existing Vercel project using the unchanged healthy API.
+
+Public verification confirmed all six expanded result cards, correct evidence links and responsive rendering at 1265px (three columns) and 558px (one column), without horizontal overflow. Production smoke checks passed for the main portal, API/database/Redis health, all four login entries, authentication and same-origin protection. The README engineering screenshot was refreshed from the deployed results section. No runtime/backend, credential, database-record or policy-source changes were made in this release.
 
 ---
 
